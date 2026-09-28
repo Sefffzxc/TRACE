@@ -107,16 +107,21 @@ services:
       - key: SECRET_KEY
         generateValue: true
 
-      # Both halves of the AI link come from the service itself: Render can
-      # inject a hostname but not a full URL, so the backend accepts a bare
-      # host and treats it as https.
       - key: AI_ENABLED
         value: "true"
+
+      # Render prompts for this. Paste the AI service's PUBLIC address — the URL
+      # shown at the top of the lbca-ai page, e.g. lbca-ai.onrender.com (the
+      # scheme is optional; the backend adds https for a bare host).
+      #
+      # Do NOT wire this with `fromService: property: host`. That injects
+      # Render's INTERNAL hostname — the bare service name, with no domain —
+      # which resolves only inside the private network and speaks http on the
+      # service's own port, not https on 443. It also does not reliably wake a
+      # sleeping free service. The public URL is a few milliseconds slower and
+      # simply works.
       - key: AI_SERVICE_URL
-        fromService:
-          name: lbca-ai
-          type: web
-          property: host
+        sync: false
       - key: AI_SERVICE_TOKEN
         fromService:
           name: lbca-ai
@@ -171,11 +176,19 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22.11.0"
+
+      # Render prompts for this. Paste the API's PUBLIC address — the URL at the
+      # top of the lbca-api page, e.g. lbca-api.onrender.com.
+      #
+      # This one is read by a BROWSER, so it must be the public hostname. A
+      # `fromService: property: host` reference injects the internal name
+      # (`lbca-api`, no domain), and the browser fails with
+      # ERR_NAME_NOT_RESOLVED on every request.
+      #
+      # It is also baked in at BUILD time, so changing it needs a redeploy of
+      # this site, not just a restart.
       - key: VITE_API_URL
-        fromService:
-          name: lbca-api
-          type: web
-          property: host
+        sync: false
     routes:
       # The app is a single-page router: every unknown path has to be served
       # index.html or a refresh on /students/12 returns 404.
