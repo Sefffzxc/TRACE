@@ -35,6 +35,16 @@ databases:
     plan: free
     databaseName: lbca
     user: lbca
+    # This MUST match the region on the two services below. Render's docs:
+    # "To use the internal URL, your connecting service and your database must
+    # belong to the same account and region." The connection string injected
+    # into lbca-api is the internal one, and an internal hostname only resolves
+    # inside its own region's private network — so a mismatch does not fail
+    # with a permission error, it fails with a DNS lookup error
+    # (socket.gaierror: Name or service not known) at startup.
+    #
+    # Omitting this is not neutral: it silently means `oregon`.
+    region: singapore
     # No postgresMajorVersion on purpose: Render's current default is what the
     # asyncpg driver is tested against, and pinning a version that a future
     # Render no longer offers would fail the whole blueprint.
