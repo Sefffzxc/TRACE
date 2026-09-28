@@ -145,9 +145,11 @@ services:
   - type: web
     name: lbca-web
     runtime: static
-    plan: free
     rootDir: frontend
-    # No region: static sites are served from Render's CDN everywhere.
+    # No `plan` and no `region` here, and neither is an oversight: a static site
+    # has no instance to size, so Render rejects `plan: free` as an unknown plan
+    # for this service type, and the built files are served from its CDN rather
+    # than from one region.
     # `npm install`, not `npm ci`, because this repository has no committed
     # package-lock.json and `npm ci` refuses to run without one. Once you run
     # npm install locally and commit the lockfile, change this to `npm ci` —
