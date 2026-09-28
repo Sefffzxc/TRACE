@@ -61,7 +61,15 @@ STATE: dict = {"bundle": None, "card": None, "loaded_at": None, "error": None}
 # ══════════════════════════════════════════════════════════════════════════════
 def load_model() -> None:
     try:
-        STATE["bundle"] = joblib.load(MODEL_PATH)
+        bundle_ = joblib.load(MODEL_PATH)
+        # `feature_importances_` on a RandomForest is a PROPERTY: every read
+        # averages the importances of all 400 trees from scratch (~66 ms here,
+        # far worse on a 0.1-CPU instance). It is read once per flagged student
+        # to work out the primary factor, so on a batch it was costing more
+        # than the predictions themselves. It cannot change after fitting, so
+        # it is computed once, here.
+        bundle_["importances"] = np.asarray(bundle_["model"].feature_importances_)
+        STATE["bundle"] = bundle_
         STATE["loaded_at"] = time.time()
         STATE["error"] = None
         print(f"[ai] loaded {MODEL_PATH} — {len(STATE['bundle']['features'])} features, "
@@ -181,10 +189,9 @@ FIELD_MAP = {
 # ══════════════════════════════════════════════════════════════════════════════
 # Inference
 # ══════════════════════════════════════════════════════════════════════════════
-def predict_one(rec: StudentRecord, b: dict) -> Prediction:
-    features = b["features"]
+def _prepare(rec: StudentRecord, b: dict) -> tuple:
+    """Turn one request into the model's row, noting what had to be imputed."""
     medians = b["medians"]
-
     row, imputed = {}, []
     for field, column in FIELD_MAP.items():
         value = getattr(rec, field)
@@ -193,36 +200,75 @@ def predict_one(rec: StudentRecord, b: dict) -> Prediction:
             imputed.append(column)
         else:
             row[column] = float(value)
+    return row, imputed
 
-    frame = pd.DataFrame([[row[c] for c in features]], columns=features)
-    proba = float(b["model"].predict_proba(frame)[0, 1])
-    is_high = proba >= b["threshold"]
 
-    factor = None
-    action = None
-    if is_high:
-        # The feature furthest from the cohort mean, weighted by its importance.
-        # This answers "why this student" rather than "what matters in general".
-        contributions = {}
-        for column, importance in zip(features, b["model"].feature_importances_):
-            spread = b["feature_stds"].get(column) or 1.0
-            z = abs(row[column] - b["feature_means"][column]) / spread
-            contributions[column] = importance * z
-        top = max(contributions, key=contributions.get)
-        factor = b["friendly_names"][top]
-        action = b["interventions"].get(factor)
+def _explain(row: dict, b: dict) -> tuple:
+    """Why this student — the feature furthest from the cohort mean, weighted
+    by its importance. This answers "why this one", not "what matters in
+    general", which is what a teacher looking at one name needs."""
+    contributions = {}
+    for column, importance in zip(b["features"], b["importances"]):
+        spread = b["feature_stds"].get(column) or 1.0
+        z = abs(row[column] - b["feature_means"][column]) / spread
+        contributions[column] = importance * z
+    top = max(contributions, key=contributions.get)
+    factor = b["friendly_names"][top]
+    return factor, b["interventions"].get(factor)
 
-    return Prediction(
-        risk_score=round(proba, 4),
-        risk_level="HIGH" if is_high else "LOW",
-        primary_factor=factor,
-        suggested_action=action,
-        used_threshold=b["threshold"],
-        used_baseline_defaults=bool(imputed),
-        imputed_fields=imputed,
-        model_version=MODEL_VERSION,
-        reference=rec.reference,
+
+def predict_many(records: List[StudentRecord], b: dict) -> List[Prediction]:
+    """Score a whole batch with ONE call into the model.
+
+    Calling predict_proba once per row costs ~370x more than one call for the
+    whole batch — 400 trees are walked with full Python/NumPy call overhead
+    every time. On a free 0.1-CPU instance a 500-row batch took long enough
+    that the platform killed the container mid-request, which is how this was
+    found.
+
+    This is also the form the audit used: final_pipeline.py evaluates with
+    `model.predict_proba(Xte)` over the whole test matrix, so batching matches
+    the measured results rather than departing from them. Batched and per-row
+    floats can differ by one ULP (~2e-16) through summation order; measured
+    over 20,000 rows that never changed a stored risk_score at 4 decimals nor
+    a HIGH/LOW decision, and the smallest gap between distinct probabilities
+    the model produces is 2.7e-9 — seven orders of magnitude wider than the
+    perturbation.
+    """
+    features = b["features"]
+    prepared = [_prepare(rec, b) for rec in records]
+
+    frame = pd.DataFrame(
+        [[row[c] for c in features] for row, _ in prepared], columns=features
     )
+    probas = b["model"].predict_proba(frame)[:, 1]
+    threshold = b["threshold"]
+
+    out = []
+    for rec, (row, imputed), proba in zip(records, prepared, probas):
+        proba = float(proba)
+        is_high = proba >= threshold
+        factor, action = _explain(row, b) if is_high else (None, None)
+        out.append(
+            Prediction(
+                risk_score=round(proba, 4),
+                risk_level="HIGH" if is_high else "LOW",
+                primary_factor=factor,
+                suggested_action=action,
+                used_threshold=threshold,
+                used_baseline_defaults=bool(imputed),
+                imputed_fields=imputed,
+                model_version=MODEL_VERSION,
+                reference=rec.reference,
+            )
+        )
+    return out
+
+
+def predict_one(rec: StudentRecord, b: dict) -> Prediction:
+    """One student. Same code path as a batch of one, so the two endpoints can
+    never drift apart."""
+    return predict_many([rec], b)[0]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -292,8 +338,7 @@ async def predict_batch(payload: BatchRequest):
             status_code=413,
             detail=f"Batch too large: {len(payload.records)} records, maximum {MAX_BATCH}.",
         )
-    b = bundle()
-    preds = [predict_one(r, b) for r in payload.records]
+    preds = predict_many(payload.records, bundle())
     return BatchResponse(predictions=preds, count=len(preds))
 
 

@@ -16,8 +16,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 def _with_scheme(value: str) -> str:
     """``lbca-ai.onrender.com`` -> ``https://lbca-ai.onrender.com``.
 
-    Anything that already names a scheme is left exactly as it is, so a local
-    ``http://localhost:8001`` keeps working.
+    These values are pasted in by hand when a blueprint is applied, and people
+    reasonably paste a hostname rather than a URL. Anything that already names a
+    scheme is left exactly as it is, so a local ``http://localhost:8001`` keeps
+    working.
     """
     value = value.strip().rstrip("/")
     if not value or "://" in value:
@@ -93,7 +95,11 @@ class Settings(BaseSettings):
     # Used only by the explicit warm-up / re-score endpoints, where the user
     # has asked for the model and a wait is acceptable.
     AI_WAKE_TIMEOUT_SECONDS: float = 90.0
-    AI_BATCH_SIZE: int = 500
+    # How many records go to the model in one request. The service accepts up
+    # to 500, but a free instance has 512 MB and 0.1 CPU, and a smaller request
+    # keeps each round trip well inside the platform's request timeout even
+    # when the whole school is re-scored at once.
+    AI_BATCH_SIZE: int = 100
 
     @field_validator("AI_SERVICE_URL", mode="after")
     @classmethod
@@ -105,11 +111,9 @@ class Settings(BaseSettings):
     def cors_origins(self) -> List[str]:
         """Allowed origins, with a scheme added where one is missing.
 
-        Render's blueprint can inject another service's *hostname* but cannot
-        build a URL out of it, so ALLOWED_ORIGINS arrives as
-        ``lbca-web.onrender.com``. Rather than make whoever deploys this paste
-        the full URL by hand — and get a silent CORS failure when they forget —
-        a bare host is treated as https.
+        This is typed in by hand at deployment time, and ``lbca-web.onrender.com``
+        is the obvious thing to paste. Treating a bare host as https avoids a
+        CORS failure that would otherwise look like a broken API.
         """
         return [_with_scheme(o.strip()) for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
