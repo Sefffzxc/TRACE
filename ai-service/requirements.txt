@@ -1,0 +1,10 @@
+# Versions are PINNED to the ones the model was trained with. A joblib bundle
+# loaded under a different scikit-learn version either warns or silently
+# mispredicts, so do not relax these without retraining.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+joblib==1.5.3
+scikit-learn==1.8.0
+numpy==2.4.4
+pandas==3.0.2

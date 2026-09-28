@@ -1,0 +1,377 @@
+"""Pydantic models for students, enrolments, PACE records and warnings."""
+from __future__ import annotations
+
+import json
+import uuid
+from datetime import date, datetime
+from typing import List, Literal, Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+
+class ORMModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ── Student ───────────────────────────────────────────────────────────────────
+class StudentBase(BaseModel):
+    first_name: str = Field(max_length=50)
+    middle_name: Optional[str] = Field(default=None, max_length=50)
+    last_name: str = Field(max_length=50)
+    birth_date: Optional[date] = None
+    gender: Literal["Male", "Female"] = "Male"
+    address: str = ""
+    photo: Optional[str] = None
+
+    guardian_first_name: str = ""
+    guardian_mid_name: Optional[str] = None
+    guardian_last_name: str = ""
+    guardian_contact: str = ""
+    guardian_relationship: str = "Parent"
+    guardian_email: Optional[EmailStr] = None
+
+
+class StudentCreate(StudentBase):
+    # Optional enrolment written in the same request
+    grade_level_id: Optional[int] = None
+    section_id: Optional[int] = None
+    school_year_id: Optional[int] = None
+
+
+class StudentUpdate(BaseModel):
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+    birth_date: Optional[date] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    photo: Optional[str] = None
+    guardian_first_name: Optional[str] = None
+    guardian_mid_name: Optional[str] = None
+    guardian_last_name: Optional[str] = None
+    guardian_contact: Optional[str] = None
+    guardian_relationship: Optional[str] = None
+    guardian_email: Optional[EmailStr] = None
+    is_active: Optional[bool] = None
+
+
+class StudentResponse(ORMModel, StudentBase):
+    student_id: int
+    login_id: Optional[str] = None
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+
+    # Flattened current-enrolment context, filled in by the service layer
+    full_name: Optional[str] = None
+    enrollment_id: Optional[int] = None
+    grade_level_id: Optional[int] = None
+    grade_level_name: Optional[str] = None
+    section_id: Optional[int] = None
+    section_name: Optional[str] = None
+    school_year_id: Optional[int] = None
+    adviser_name: Optional[str] = None
+
+    # Rolled-up PACE figures
+    pace_percent: float = 0.0
+    paces_behind: int = 0
+    attendance: float = 100.0
+    risk_level: str = "low"
+    risk_score: float = 0.0
+    subjects_tracked: int = 0
+
+
+# ── Enrolment ─────────────────────────────────────────────────────────────────
+class EnrollmentBase(BaseModel):
+    student_id: int
+    grade_level_id: int
+    section_id: int
+    school_year_id: int
+    enrollment_date: Optional[date] = None
+    is_active: bool = True
+
+
+class EnrollmentCreate(EnrollmentBase):
+    pass
+
+
+class EnrollmentUpdate(BaseModel):
+    grade_level_id: Optional[int] = None
+    section_id: Optional[int] = None
+    school_year_id: Optional[int] = None
+    next_grade_level_id: Optional[int] = None
+    is_active: Optional[bool] = None
+    end_of_year_status: Optional[
+        Literal["Promoted", "Retained", "Dropped", "Graduated"]
+    ] = None
+
+
+class EnrollmentResponse(ORMModel, EnrollmentBase):
+    enrollment_id: int
+    next_grade_level_id: Optional[int] = None
+    end_of_year_status: Optional[str] = None
+
+    # Display labels filled in by the router. These must NOT be named after a
+    # relationship on StudentEnrollment (student, grade_level, section,
+    # school_year, paces, warnings) — `model_validate` reads attributes off the
+    # ORM row, and touching an unloaded relationship in async SQLAlchemy raises
+    # MissingGreenlet. Hence the `_name` suffix throughout.
+    student_name: Optional[str] = None
+    grade_level_name: Optional[str] = None
+    section_name: Optional[str] = None
+    school_year_name: Optional[str] = None
+
+
+# ── PACE ──────────────────────────────────────────────────────────────────────
+class PaceBase(BaseModel):
+    student_id: int
+    enrollment_id: int
+    subject: str = Field(max_length=100)
+    subject_id: Optional[int] = None
+    current_pace: int = 0
+    expected_pace: int = 0
+    total_paces: int = 12
+    attendance: float = 100.0
+    average_score: float = 0.0
+    remarks: Optional[str] = None
+
+
+class AssessmentFields(BaseModel):
+    """The DepEd class-record values the risk model reads.
+
+    All optional. Left blank they are not guessed at by this API — the AI
+    service substitutes its training median and flags the prediction as having
+    used baseline defaults.
+    """
+
+    absences: Optional[int] = Field(default=None, ge=0, le=200)
+    ww_total_raw: Optional[float] = Field(default=None, ge=0)
+    ww_percent: Optional[float] = Field(default=None, ge=0, le=100)
+    pt_total_raw: Optional[float] = Field(default=None, ge=0)
+    pt_percent: Optional[float] = Field(default=None, ge=0, le=100)
+    missed_ww_items: Optional[int] = Field(default=None, ge=0, le=100)
+    missed_pt_items: Optional[int] = Field(default=None, ge=0, le=100)
+    extracurricular_count: Optional[int] = Field(default=None, ge=0, le=50)
+
+
+class PaceCreate(PaceBase, AssessmentFields):
+    pass
+
+
+class PaceUpdate(AssessmentFields):
+    subject: Optional[str] = None
+    current_pace: Optional[int] = None
+    expected_pace: Optional[int] = None
+    total_paces: Optional[int] = None
+    attendance: Optional[float] = None
+    average_score: Optional[float] = None
+    remarks: Optional[str] = None
+
+
+class PaceResponse(ORMModel, PaceBase, AssessmentFields):
+    pace_id: int
+    pace_percent: float = 0.0
+    paces_behind: int = 0
+    updated_at: Optional[datetime] = None
+    student_name: Optional[str] = None
+    section_name: Optional[str] = None
+    grade_level_name: Optional[str] = None
+    risk_level: str = "low"
+    # Filled in by the router from the newest ai_risk_predictions row, when
+    # there is one. `ai_` prefixed so it can never be confused with the
+    # rule-based risk_level above. The threshold, version and
+    # partial-input flag travel with the score so the UI never has to assume
+    # any of them.
+    ai_risk_score: Optional[float] = None
+    ai_risk_level: Optional[str] = None
+    ai_source: Optional[str] = None
+    ai_used_threshold: Optional[float] = None
+    ai_model_version: Optional[str] = None
+    ai_used_baseline_defaults: Optional[bool] = None
+    ai_primary_factor: Optional[str] = None
+
+
+class BulkPaceEntry(AssessmentFields):
+    student_id: int
+    enrollment_id: int
+    subject: str
+    current_pace: int
+    expected_pace: int
+    total_paces: int = 12
+    attendance: float = 100.0
+    average_score: float = 0.0
+
+
+class BulkPaceRequest(BaseModel):
+    entries: List[BulkPaceEntry]
+
+
+# ── Early warning ─────────────────────────────────────────────────────────────
+class WarningBase(BaseModel):
+    student_id: int
+    enrollment_id: Optional[int] = None
+    subject: str
+    teacher: str = "Unassigned"
+    risk_level: Literal["critical", "high", "moderate", "low"]
+    risk_score: float = 0.0
+    paces_behind: int = 0
+    pace_percent: float = 0.0
+    attendance: float = 100.0
+    status: str = "On Track"
+    trend: str = "stable"
+    last_activity: str = "Today"
+    intervention: Optional[str] = None
+
+
+class WarningCreate(WarningBase):
+    pass
+
+
+class WarningUpdate(BaseModel):
+    risk_level: Optional[str] = None
+    status: Optional[str] = None
+    trend: Optional[str] = None
+    intervention: Optional[str] = None
+    is_resolved: Optional[bool] = None
+
+
+class WarningResponse(ORMModel, WarningBase):
+    warning_id: int
+    is_resolved: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    student_name: Optional[str] = None
+    grade_level_name: Optional[str] = None
+    section_name: Optional[str] = None
+
+
+# ── AI risk prediction ────────────────────────────────────────────────────────
+class AIPredictionResponse(ORMModel):
+    """One logged answer from the classifier.
+
+    ``source`` must be shown wherever ``risk_score`` is shown. "fallback" means
+    the AI service was unreachable and the rule-based engine produced this row
+    instead; it is not a model prediction.
+    """
+
+    prediction_id: int
+    student_id: int
+    enrollment_id: Optional[int] = None
+    pace_id: Optional[int] = None
+    subject: str = ""
+
+    risk_score: float = 0.0
+    risk_level: str = "LOW"
+    used_threshold: float = 0.5
+    primary_factor: Optional[str] = None
+    suggested_action: Optional[str] = None
+
+    source: Literal["model", "fallback"] = "model"
+    model_version: str = "unknown"
+    used_baseline_defaults: bool = False
+    imputed_fields: List[str] = []
+    # The exact input the model was given, so any prediction shown in the
+    # system can be reproduced by hand.
+    features: Optional[dict] = None
+    latency_ms: Optional[int] = None
+    error: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    # Both columns are stored as JSON text; parse them on the way out.
+    @field_validator("imputed_fields", mode="before")
+    @classmethod
+    def _parse_imputed(cls, value):
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except (TypeError, ValueError):
+                return []
+            return parsed if isinstance(parsed, list) else []
+        return value if value is not None else []
+
+    @field_validator("features", mode="before")
+    @classmethod
+    def _parse_features(cls, value):
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except (TypeError, ValueError):
+                return None
+            return parsed if isinstance(parsed, dict) else None
+        return value
+
+    # Display labels filled in by the router (see the note on EnrollmentResponse
+    # — never name these after a relationship on the ORM row).
+    student_name: Optional[str] = None
+    section_name: Optional[str] = None
+    grade_level_name: Optional[str] = None
+
+
+class AIStatusResponse(BaseModel):
+    enabled: bool
+    reachable: bool
+    service_url: str
+    model_version: Optional[str] = None
+    model_loaded: bool = False
+    detail: Optional[str] = None
+    latency_ms: Optional[int] = None
+
+
+class RescoreRequest(BaseModel):
+    """Re-run the classifier over stored PACE records.
+
+    With no filters it re-scores every PACE record that has an active
+    enrolment. Nothing is overwritten — each run appends new prediction rows.
+    """
+
+    section_id: Optional[int] = None
+    student_id: Optional[int] = None
+    subject: Optional[str] = None
+    limit: int = Field(default=500, ge=1, le=2000)
+
+
+class RescoreResponse(BaseModel):
+    requested: int
+    scored: int
+    fallback: int
+    source: Literal["model", "fallback", "mixed", "none"] = "none"
+    model_version: Optional[str] = None
+    detail: Optional[str] = None
+
+
+# ── Data quality ──────────────────────────────────────────────────────────────
+class DataQualityCreate(BaseModel):
+    student_id: int
+    teacher_id: Optional[uuid.UUID] = None
+    student_pace_id: Optional[int] = None
+    issue_type: str
+    detail: Optional[str] = None
+
+
+class DataQualityResponse(ORMModel, DataQualityCreate):
+    log_id: int
+    resolved: bool = False
+    resolved_date: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    student_name: Optional[str] = None
+
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+class DashboardStats(BaseModel):
+    total_students: int = 0
+    active_enrollments: int = 0
+    total_teachers: int = 0
+    pending_approvals: int = 0
+    total_sections: int = 0
+    total_subjects: int = 0
+    average_pace: float = 0.0
+    average_attendance: float = 0.0
+    on_track: int = 0
+    at_risk: int = 0
+    critical: int = 0
+    risk_distribution: List[dict] = []
+    pace_by_section: List[dict] = []
+    pace_by_subject: List[dict] = []
+    trend: List[dict] = []
+    recent_activity: List[dict] = []
+    top_concerns: List[dict] = []
+    school_year: Optional[str] = None

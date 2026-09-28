@@ -1,0 +1,221 @@
+{
+  "version": "v2 (post-audit)",
+  "model": "Random Forest",
+  "model_choice_rationale": "Five candidates compared under the nested protocol; no model was significantly better (paired p > 0.05). Retained for continuity with the manuscript, not superiority.",
+  "target": "HIGH if Quarterly Grade < 75 or grade missing",
+  "features": [
+    "No of Absences",
+    "WW Total (Raw)",
+    "WW % Score",
+    "PT Total (Raw)",
+    "PT % Score",
+    "Missed WW Items",
+    "Missed PT Items",
+    "Extracurricular Activities",
+    "Grade Level"
+  ],
+  "protocol": {
+    "split": "GroupShuffleSplit by Student ID, 30% test",
+    "threshold_selection": "inner StratifiedGroupKFold(5) on training students only",
+    "imputation": "training medians applied to test",
+    "test_set_use": "single final evaluation"
+  },
+  "threshold": 0.8,
+  "test_results_single_split": {
+    "model": {
+      "TP": 45,
+      "TN": 301,
+      "FP": 4,
+      "FN": 14,
+      "accuracy": 0.9505494505494505,
+      "recall_sensitivity": 0.7627118644067796,
+      "precision": 0.9183673469387755,
+      "specificity": 0.9868852459016394,
+      "f1_high": 0.8333333333333334,
+      "f1_macro": 0.9021505376344086,
+      "roc_auc": 0.994387329813837,
+      "pr_auc": 0.9706773527848442
+    },
+    "attendance_only_model": {
+      "TP": 48,
+      "TN": 301,
+      "FP": 4,
+      "FN": 11,
+      "accuracy": 0.9587912087912088,
+      "recall_sensitivity": 0.8135593220338984,
+      "precision": 0.9230769230769231,
+      "specificity": 0.9868852459016394,
+      "f1_high": 0.8648648648648649,
+      "f1_macro": 0.9202768408603093,
+      "roc_auc": 0.9908863573214781,
+      "pr_auc": 0.9217924918772376
+    },
+    "rule_absences_ge_3": {
+      "TP": 59,
+      "TN": 279,
+      "FP": 26,
+      "FN": 0,
+      "accuracy": 0.9285714285714286,
+      "recall_sensitivity": 1.0,
+      "precision": 0.6941176470588235,
+      "specificity": 0.9147540983606557,
+      "f1_high": 0.8194444444444444,
+      "f1_macro": 0.8874619482496195
+    }
+  },
+  "test_results_10_splits_mean": {
+    "rule": {
+      "TP": {
+        "mean": 48.7,
+        "std": 4.517742799230607
+      },
+      "TN": {
+        "mean": 282.6,
+        "std": 10.8
+      },
+      "FP": {
+        "mean": 30.3,
+        "std": 4.172529209005013
+      },
+      "FN": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "accuracy": {
+        "mean": 0.9161212512337773,
+        "std": 0.011925400630736088
+      },
+      "recall_sensitivity": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "precision": {
+        "mean": 0.6166832563489901,
+        "std": 0.041653051824736886
+      },
+      "specificity": {
+        "mean": 0.9030879100214607,
+        "std": 0.013520196198188623
+      },
+      "f1_high": {
+        "mean": 0.7620778298907788,
+        "std": 0.031896582221358105
+      },
+      "f1_macro": {
+        "mean": 0.855550401422126,
+        "std": 0.01919127389397956
+      }
+    },
+    "attendance_only": {
+      "TP": {
+        "mean": 45.1,
+        "std": 5.838664230798
+      },
+      "TN": {
+        "mean": 303.3,
+        "std": 9.497894503520241
+      },
+      "FP": {
+        "mean": 9.6,
+        "std": 3.7202150475476548
+      },
+      "FN": {
+        "mean": 3.6,
+        "std": 5.517245689653488
+      },
+      "accuracy": {
+        "mean": 0.96347319169671,
+        "std": 0.010490611967035981
+      },
+      "recall_sensitivity": {
+        "mean": 0.9287406839764394,
+        "std": 0.11068865680680097
+      },
+      "precision": {
+        "mean": 0.8292595230650802,
+        "std": 0.04800355391085505
+      },
+      "specificity": {
+        "mean": 0.9694332572859017,
+        "std": 0.011788410988362532
+      },
+      "f1_high": {
+        "mean": 0.8703873093904079,
+        "std": 0.04424645930474047
+      },
+      "f1_macro": {
+        "mean": 0.9245414466908197,
+        "std": 0.024930471377252447
+      },
+      "roc_auc": {
+        "mean": 0.9918668871169004,
+        "std": 0.003887505672123097
+      },
+      "pr_auc": {
+        "mean": 0.9237801878203526,
+        "std": 0.03984237499371303
+      }
+    },
+    "full": {
+      "TP": {
+        "mean": 43.4,
+        "std": 4.673328578219169
+      },
+      "TN": {
+        "mean": 310.0,
+        "std": 9.848857801796104
+      },
+      "FP": {
+        "mean": 2.9,
+        "std": 1.5132745950421556
+      },
+      "FN": {
+        "mean": 5.3,
+        "std": 3.7696153649941526
+      },
+      "accuracy": {
+        "mean": 0.9772882465548063,
+        "std": 0.010718165132882592
+      },
+      "recall_sensitivity": {
+        "mean": 0.8923452491324542,
+        "std": 0.0691884230222209
+      },
+      "precision": {
+        "mean": 0.9394854276423052,
+        "std": 0.027765037326546012
+      },
+      "specificity": {
+        "mean": 0.9907701674955852,
+        "std": 0.004731742403528167
+      },
+      "f1_high": {
+        "mean": 0.9135391451697898,
+        "std": 0.03767949471955851
+      },
+      "f1_macro": {
+        "mean": 0.9502221136411846,
+        "std": 0.021884224065864318
+      },
+      "roc_auc": {
+        "mean": 0.9971332532260042,
+        "std": 0.0013279909715083894
+      },
+      "pr_auc": {
+        "mean": 0.9825178218869016,
+        "std": 0.007245650488193018
+      }
+    }
+  },
+  "feature_importance": {
+    "attendance": 0.5598,
+    "missed performance tasks": 0.1746,
+    "written works score": 0.0927,
+    "performance task score": 0.0635,
+    "missed written works": 0.0572,
+    "written works raw total": 0.0221,
+    "performance task raw total": 0.017,
+    "extracurricular load": 0.0121,
+    "grade level": 0.001
+  }
+}

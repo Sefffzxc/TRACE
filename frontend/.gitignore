@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-ssr/
+# Local configuration. `.env.example` is the template that is committed.
+# Render sets VITE_API_URL as a real environment variable at build time and
+# Vite gives those priority over .env files, so a stray committed .env would
+# not break the deployment — but it would still point a teammate's build at
+# localhost, so it stays out of the repository.
+.env
+.env.local
+*.local
+.DS_Store
+*.log
+.vite/

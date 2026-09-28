@@ -1,0 +1,182 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# LBCA Monitoring System — Render blueprint
+#
+# One commit, four pieces:
+#
+#   lbca-db    PostgreSQL          the database
+#   lbca-ai    Python web service  the trained risk model, inference only
+#   lbca-api   Python web service  the FastAPI monitoring backend
+#   lbca-web   Static site         the React app
+#
+# Deploy with: New → Blueprint, point it at this repository, Apply.
+# Then run the one-time seed described in DEPLOYMENT.md.
+#
+# ── Read this before you deploy ───────────────────────────────────────────────
+#
+# 1. A free Render Postgres EXPIRES 30 DAYS AFTER IT IS CREATED. There is a
+#    14-day grace period to upgrade, and after that Render deletes it. So
+#    create this database with your defence date in mind: if you deploy today
+#    and defend in six weeks, the database will be gone. DEPLOYMENT.md explains
+#    how to check the expiry date and how to move to a new one.
+#
+# 2. Free web services sleep after 15 minutes with no traffic and take about a
+#    minute to wake. The first request after a quiet period is slow, and the
+#    first PACE save after a quiet period will usually be scored by the
+#    rule-based fallback rather than the model — the app says so on screen
+#    rather than hiding it. Open the app a minute before a demo.
+#
+# 3. The 750 free instance hours a month are shared across BOTH web services.
+#    Two services that sleep normally fit; two kept permanently awake by an
+#    uptime pinger will not (2 × 730 = 1460 hours).
+# ══════════════════════════════════════════════════════════════════════════════
+
+databases:
+  - name: lbca-db
+    plan: free
+    databaseName: lbca
+    user: lbca
+    # No postgresMajorVersion on purpose: Render's current default is what the
+    # asyncpg driver is tested against, and pinning a version that a future
+    # Render no longer offers would fail the whole blueprint.
+
+services:
+  # ── The model ───────────────────────────────────────────────────────────────
+  # Deployed first and separately so it can be retrained and redeployed without
+  # touching the monitoring system. It holds no data and knows nothing about
+  # students; it takes nine numbers and returns a probability.
+  - type: web
+    name: lbca-ai
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      # Generated once by Render and shared with the backend below, so the
+      # shared secret never appears in this file or in the repository.
+      - key: AI_SERVICE_TOKEN
+        generateValue: true
+      - key: MODEL_VERSION
+        value: v2-2026-09
+      - key: MODEL_DIR
+        value: model
+      # Nothing in a browser calls this service — the backend does, over
+      # HTTP with the token above — so no origin is allowed. If you ever want
+      # to try it from the browser, set this to the site's address.
+      - key: ALLOWED_ORIGINS
+        value: ""
+
+  # ── The monitoring API ──────────────────────────────────────────────────────
+  - type: web
+    name: lbca-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+
+      # Render hands out a postgres:// URL; app/core/config.py rewrites it into
+      # the postgresql+asyncpg:// form and moves sslmode into connect_args, so
+      # this value is used exactly as Render provides it.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lbca-db
+          property: connectionString
+
+      - key: SECRET_KEY
+        generateValue: true
+
+      # Both halves of the AI link come from the service itself: Render can
+      # inject a hostname but not a full URL, so the backend accepts a bare
+      # host and treats it as https.
+      - key: AI_ENABLED
+        value: "true"
+      - key: AI_SERVICE_URL
+        fromService:
+          name: lbca-ai
+          type: web
+          property: host
+      - key: AI_SERVICE_TOKEN
+        fromService:
+          name: lbca-ai
+          type: web
+          envVarKey: AI_SERVICE_TOKEN
+
+      # A save must never wait on a sleeping model service.
+      - key: AI_TIMEOUT_SECONDS
+        value: "6"
+      - key: AI_WAKE_TIMEOUT_SECONDS
+        value: "90"
+
+      # Who may call this API from a browser.
+      #
+      # This is the one value the blueprint cannot fill in for you, and it is
+      # deliberate: the static site below already points at this API with a
+      # fromService reference, and pointing this API back at the static site
+      # the same way would make the two services depend on each other in a
+      # loop. Render prompts for this when you Apply the blueprint — paste the
+      # static site's address (for example lbca-web.onrender.com; the scheme is
+      # optional). Get it wrong and the browser will report a CORS error even
+      # though the API itself is healthy.
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+      # There is no mail server wired up, so the two-factor code is shown on
+      # screen. That is fine for a defence demo and NOT fine with real student
+      # records in the database — see DEPLOYMENT.md.
+      - key: DEBUG_OTP
+        value: "true"
+
+  # ── The React app ───────────────────────────────────────────────────────────
+  # A static site: free, always awake, and it does not consume the shared
+  # instance hours. VITE_API_URL is baked in at build time, so changing the
+  # API's name means rebuilding this site, not just restarting it.
+  - type: web
+    name: lbca-web
+    runtime: static
+    plan: free
+    rootDir: frontend
+    # No region: static sites are served from Render's CDN everywhere.
+    # `npm install`, not `npm ci`, because this repository has no committed
+    # package-lock.json and `npm ci` refuses to run without one. Once you run
+    # npm install locally and commit the lockfile, change this to `npm ci` —
+    # it is faster and pins exact dependency versions, which is worth having
+    # for a build you will point examiners at.
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22.11.0"
+      - key: VITE_API_URL
+        fromService:
+          name: lbca-api
+          type: web
+          property: host
+    routes:
+      # The app is a single-page router: every unknown path has to be served
+      # index.html or a refresh on /students/12 returns 404.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

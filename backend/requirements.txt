@@ -1,0 +1,20 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+sqlalchemy==2.0.36
+pydantic==2.10.4
+pydantic-settings==2.7.0
+email-validator==2.2.0
+python-jose[cryptography]==3.3.0
+bcrypt==4.2.1
+python-multipart==0.0.20
+python-dotenv==1.0.1
+
+# Calls the separate AI risk-classification service over HTTP. The model's own
+# libraries (scikit-learn, numpy, pandas) are deliberately NOT installed here —
+# they live in ai-service/requirements.txt, which keeps this container small
+# and lets the model be retrained without redeploying the API.
+httpx==0.28.1
+
+# Database drivers — SQLite works out of the box, PostgreSQL for deployment
+aiosqlite==0.20.0
+asyncpg==0.30.0

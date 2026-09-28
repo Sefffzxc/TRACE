@@ -1,0 +1,157 @@
+/* ==========================================================================
+   Design tokens — the single source of truth for colour, type and spacing.
+   Every component reads from these variables, so the whole system can be
+   rebranded by editing this one file.
+   ========================================================================== */
+
+:root {
+  /* ── Brand ──────────────────────────────────────────────────────────────
+     A deep academic navy with a warm gold accent, the way school seals and
+     diplomas tend to be coloured.                                          */
+  --brand-50:  #eef4ff;
+  --brand-100: #d9e6ff;
+  --brand-200: #bcd3ff;
+  --brand-300: #8eb5ff;
+  --brand-400: #598eff;
+  --brand-500: #3366f2;
+  --brand-600: #1f4bd8;
+  --brand-700: #1a3cae;
+  --brand-800: #1b3688;
+  --brand-900: #16275e;
+  --brand-950: #0e1937;
+
+  --gold-300: #f7d070;
+  --gold-400: #f0b429;
+  --gold-500: #de9c11;
+  --gold-600: #b87708;
+
+  /* ── Status ─────────────────────────────────────────────────────────────
+     Four risk levels. Hue and lightness both change between them, so the
+     badges stay distinguishable in greyscale and for colour-blind readers. */
+  --ok-50:  #e8f8f0;  --ok-200: #9ee2c0;  --ok-500: #12946a;  --ok-700: #0b6b4c;
+  --warn-50:#fff7e6;  --warn-200:#fcd98b;  --warn-500:#c07b05;  --warn-700:#8a5702;
+  --risk-50:#fff0ea;  --risk-200:#fcbfa4;  --risk-500:#d9541f;  --risk-700:#a13c12;
+  --crit-50:#feecef;  --crit-200:#f8b3bf;  --crit-500:#d32345;  --crit-700:#9d1730;
+  --info-50:#e9f3fd;  --info-500:#1b74c4;
+
+  /* The classifier gets a hue of its own — violet, used nowhere else — so a
+     model prediction is never visually confused with the school's own
+     rule-based risk badges. */
+  --ai-50:#f2eefe;  --ai-200:#cbbaf7;  --ai-300:#a68bf0;  --ai-500:#6d43e0;  --ai-700:#4a2aa8;
+
+  /* ── Neutrals (light theme) ─────────────────────────────────────────── */
+  --surface-page:    #f4f6fb;
+  --surface-card:    #ffffff;
+  --surface-raised:  #ffffff;
+  --surface-sunken:  #eef1f8;
+  --surface-hover:   #f4f6fb;
+  --surface-inverse: #101828;
+
+  --text-strong: #101828;
+  --text-body:   #344054;
+  --text-muted:  #667085;
+  --text-faint:  #98a2b3;
+  --text-invert: #ffffff;
+
+  --border-subtle: #e6e9f0;
+  --border-strong: #d0d5dd;
+  --border-focus:  var(--brand-500);
+
+  /* ── Elevation ──────────────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 10px -2px rgba(16, 24, 40, 0.08), 0 2px 6px -2px rgba(16, 24, 40, 0.05);
+  --shadow-lg: 0 14px 28px -8px rgba(16, 24, 40, 0.14), 0 6px 12px -6px rgba(16, 24, 40, 0.08);
+  --shadow-xl: 0 26px 50px -12px rgba(16, 24, 40, 0.24);
+
+  /* ── Shape ──────────────────────────────────────────────────────────── */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-full: 999px;
+
+  /* ── Type ───────────────────────────────────────────────────────────── */
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue",
+               Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, monospace;
+
+  --text-2xs: 0.6875rem;  /* 11px — table meta */
+  --text-xs:  0.75rem;    /* 12px — labels     */
+  --text-sm:  0.8125rem;  /* 13px — table body */
+  --text-md:  0.875rem;   /* 14px — body       */
+  --text-lg:  1rem;       /* 16px              */
+  --text-xl:  1.25rem;    /* 20px — card title */
+  --text-2xl: 1.625rem;   /* 26px — page title */
+  --text-3xl: 2.125rem;   /* 34px — stat value */
+  --text-4xl: 2.75rem;    /* 44px — hero       */
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  --sidebar-width: 264px;
+  --sidebar-collapsed: 76px;
+  --header-height: 68px;
+  --content-max: 1560px;
+
+  /* ── Motion ─────────────────────────────────────────────────────────── */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --fast: 140ms var(--ease);
+  --base: 220ms var(--ease);
+  --slow: 380ms var(--ease);
+}
+
+/* ── Dark theme ───────────────────────────────────────────────────────────
+   Applied by the theme switch (data-theme="dark") and also honoured for
+   people whose system is set to dark and who have not chosen otherwise.   */
+:root[data-theme="dark"] {
+  --brand-50:  #0f1a33;
+  --brand-100: #16254a;
+
+  --ok-50:  #0d2b20;  --ok-200: #14543c;
+  --warn-50:#2e2208;  --warn-200:#5a4210;
+  --risk-50:#331508;  --risk-200:#63290f;
+  --crit-50:#330f18;  --crit-200:#6b1c2f;
+  --info-50:#0e2338;
+  --ai-50:#1b1436;    --ai-200:#39276e;
+
+  --ok-500:   #34d399;
+  --warn-500: #fbbf4c;
+  --risk-500: #fb8a5c;
+  --crit-500: #f87a91;
+  --info-500: #5cb0f5;
+  --ai-300:   #c0a9fb;
+  --ai-500:   #a48bf5;
+
+  --surface-page:    #0b1220;
+  --surface-card:    #121a2b;
+  --surface-raised:  #182134;
+  --surface-sunken:  #0e1626;
+  --surface-hover:   #1b2439;
+  --surface-inverse: #f4f6fb;
+
+  --text-strong: #f2f5fa;
+  --text-body:   #ccd4e3;
+  --text-muted:  #94a1b8;
+  --text-faint:  #6b7890;
+  --text-invert: #0b1220;
+
+  --border-subtle: #222d44;
+  --border-strong: #31405c;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 28px 56px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
