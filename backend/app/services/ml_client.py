@@ -29,6 +29,7 @@ for a free Render instance.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from dataclasses import dataclass, field
@@ -203,6 +204,53 @@ def _url(path: str) -> str:
     return f"{settings.AI_SERVICE_URL.rstrip('/')}{path}"
 
 
+# A free Render instance stops after 15 idle minutes, and the request that
+# arrives next is what starts it again. While the container boots — importing
+# scikit-learn on a 0.1-CPU instance is most of it — Render's proxy answers
+# 502/503 rather than holding the request open. So the very first attempt after
+# a quiet period is *expected* to fail, and reporting "the AI service is
+# unreachable" on the strength of it is wrong: the service is starting up
+# precisely because we asked.
+COLD_START_STATUSES = {502, 503, 504}
+WAKE_ATTEMPTS = 4
+WAKE_RETRY_PAUSE = 15.0
+
+
+async def _send_with_wake(
+    method: str,
+    path: str,
+    *,
+    json_body: Optional[dict] = None,
+    timeout: Optional[float] = None,
+) -> httpx.Response:
+    """Send a request, tolerating a cold start. Only the paths where waiting is
+    acceptable use this — the inline save never does, because a teacher's save
+    must not sit behind a container boot.
+
+    An authentication or validation failure is NOT a cold start and is raised on
+    the first attempt, so a wrong token still surfaces immediately instead of
+    being retried for a minute and then reported as a timeout.
+    """
+    timeout = timeout or settings.AI_WAKE_TIMEOUT_SECONDS
+    for attempt in range(WAKE_ATTEMPTS):
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.request(
+                    method, _url(path), json=json_body, headers=_headers()
+                )
+                response.raise_for_status()
+                return response
+        except Exception as exc:  # noqa: BLE001
+            waking = isinstance(exc, (httpx.TimeoutException, httpx.ConnectError)) or (
+                isinstance(exc, httpx.HTTPStatusError)
+                and exc.response.status_code in COLD_START_STATUSES
+            )
+            if not waking or attempt == WAKE_ATTEMPTS - 1:
+                raise
+            await asyncio.sleep(WAKE_RETRY_PAUSE)
+    raise RuntimeError("unreachable")  # pragma: no cover
+
+
 def _from_payload(payload: dict, features: Dict[str, Any], latency_ms: int) -> PredictionResult:
     return PredictionResult(
         risk_score=float(payload.get("risk_score", 0.0)),
@@ -271,22 +319,18 @@ async def predict_many(
 
     started = time.perf_counter()
     try:
-        async with httpx.AsyncClient(
-            timeout=timeout or settings.AI_WAKE_TIMEOUT_SECONDS
-        ) as client:
-            response = await client.post(
-                _url("/predict/batch"), json=payload, headers=_headers()
+        response = await _send_with_wake(
+            "POST", "/predict/batch", json_body=payload, timeout=timeout
+        )
+        body = response.json()
+        predictions = body["predictions"]
+        if len(predictions) != len(prepared):
+            raise ValueError(
+                f"service returned {len(predictions)} predictions "
+                f"for {len(prepared)} records"
             )
-            response.raise_for_status()
-            body = response.json()
-            predictions = body["predictions"]
-            if len(predictions) != len(prepared):
-                raise ValueError(
-                    f"service returned {len(predictions)} predictions "
-                    f"for {len(prepared)} records"
-                )
     except Exception as exc:  # noqa: BLE001
-        reason = _describe(exc)
+        reason = _describe(exc, timeout or settings.AI_WAKE_TIMEOUT_SECONDS)
         return [fallback_prediction(p, reason, f) for p, f in prepared]
 
     elapsed = int((time.perf_counter() - started) * 1000)
@@ -311,18 +355,14 @@ async def service_status(timeout: Optional[float] = None) -> dict:
 
     started = time.perf_counter()
     try:
-        async with httpx.AsyncClient(
-            timeout=timeout or settings.AI_WAKE_TIMEOUT_SECONDS
-        ) as client:
-            response = await client.get(_url("/health"))
-            response.raise_for_status()
-            body = response.json()
+        response = await _send_with_wake("GET", "/health", timeout=timeout)
+        body = response.json()
     except Exception as exc:  # noqa: BLE001
         return {
             "enabled": True,
             "reachable": False,
             "service_url": settings.AI_SERVICE_URL,
-            "detail": _describe(exc),
+            "detail": _describe(exc, timeout or settings.AI_WAKE_TIMEOUT_SECONDS),
         }
 
     return {
@@ -343,25 +383,39 @@ async def model_card(timeout: Optional[float] = None) -> Optional[dict]:
     if not settings.AI_ENABLED:
         return None
     try:
-        async with httpx.AsyncClient(
-            timeout=timeout or settings.AI_WAKE_TIMEOUT_SECONDS
-        ) as client:
-            response = await client.get(_url("/model-card"), headers=_headers())
-            response.raise_for_status()
-            return response.json()
+        response = await _send_with_wake("GET", "/model-card", timeout=timeout)
+        return response.json()
     except Exception:  # noqa: BLE001
         return None
 
 
-def _describe(exc: Exception) -> str:
-    """A short, honest reason string for the ``error`` column."""
+def _describe(exc: Exception, timeout: Optional[float] = None) -> str:
+    """A short, honest reason string for the ``error`` column.
+
+    ``timeout`` is the limit that actually applied to the call, so a message
+    never quotes a number the request was not held to.
+    """
+    limit = settings.AI_TIMEOUT_SECONDS if timeout is None else timeout
     if isinstance(exc, httpx.TimeoutException):
         return (
-            f"AI service did not answer within "
-            f"{settings.AI_TIMEOUT_SECONDS:g}s (it may be waking from idle)."
+            f"AI service did not answer within {limit:g}s "
+            f"(it may be waking from idle)."
         )
     if isinstance(exc, httpx.HTTPStatusError):
-        return f"AI service returned HTTP {exc.response.status_code}."
+        code = exc.response.status_code
+        if code in COLD_START_STATUSES:
+            return (
+                f"AI service returned HTTP {code} on every one of "
+                f"{WAKE_ATTEMPTS} attempts over "
+                f"{WAKE_RETRY_PAUSE * (WAKE_ATTEMPTS - 1):g}s — it is either "
+                f"still starting up or failing to start. Check its logs."
+            )
+        if code == 401:
+            return (
+                "AI service rejected the token (HTTP 401). AI_SERVICE_TOKEN "
+                "does not match the value set on the model service."
+            )
+        return f"AI service returned HTTP {code}."
     if isinstance(exc, httpx.ConnectError):
         return f"Could not connect to the AI service at {settings.AI_SERVICE_URL}."
     return f"{type(exc).__name__}: {exc}"

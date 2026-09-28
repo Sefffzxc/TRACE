@@ -467,7 +467,7 @@ async def score() -> None:
             for row in rows
         ]
 
-        fallback, versions = 0, set()
+        fallback, versions, reason = 0, set(), None
         batch = 500
         for start in range(0, len(pairs), batch):
             part = pairs[start:start + batch]
@@ -475,6 +475,7 @@ async def score() -> None:
             for (row, _label), result in zip(part, results):
                 if result.source == "fallback":
                     fallback += 1
+                    reason = reason or result.error
                 else:
                     versions.add(result.model_version)
                 db.add(
@@ -491,11 +492,15 @@ async def score() -> None:
         print(f"Scored {len(pairs)} PACE record(s).")
         if fallback:
             print(
-                f"  WARNING: {fallback} of them fell back to the PACE rules because the "
-                f"AI service was unreachable at {ml_client.settings.AI_SERVICE_URL}."
+                f"  WARNING: {fallback} of them fell back to the PACE rules rather "
+                f"than the model."
             )
-            print("  They are labelled 'rule-based' in the UI. Start the AI service and")
-            print("  press 'Re-score records' on the AI Risk Model page to replace them.")
+            print(f"    service : {ml_client.settings.AI_SERVICE_URL}")
+            print(f"    token   : {'set' if ml_client.settings.AI_SERVICE_TOKEN else 'NOT SET'}")
+            print(f"    reason  : {reason}")
+            print("  They are labelled 'rule-based' in the UI, not passed off as model")
+            print("  output. Fix the cause above, then either re-run this with")
+            print("  --score-only or press 'Re-score records' on the AI Risk Model page.")
         else:
             print(f"  All scored by the model: {', '.join(sorted(versions))}")
 
