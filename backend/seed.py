@@ -11,7 +11,7 @@ track PACE booklets, so the pair also demonstrates that `tracks_units` — not
 
 Accounts created (password for all of them: Lbca@2026):
 
-    superadmin@system.local    system operator, belongs to no school
+    superadmin@example.com    system operator, belongs to no school
 
     Lord's Blessing Christian Academy (private, tracks PACEs)
     admin@lbca.edu.ph          principal
@@ -64,10 +64,15 @@ from app.models.students import EarlyWarning, Student, StudentEnrollment, Studen
 from app.services import risk
 
 PASSWORD = "Lbca@2026"
-# The demo's system operator. A `.local` address on purpose: it is not a real
-# mailbox and is never meant to receive anything, so nobody mistakes it for a
-# school's account.
-SUPERADMIN_EMAIL = "superadmin@system.local"
+# The demo's system operator.
+#
+# `example.com` rather than something like `system.local`: `.local` is reserved
+# for multicast DNS, and the address validation the API applies at sign-in
+# refuses reserved domains outright. An account created at such an address can
+# be written to the database and then never signed into — which is exactly what
+# happened here before this was changed. `example.com` is reserved by RFC 2606
+# for documentation, so it can never belong to anyone, and it passes validation.
+SUPERADMIN_EMAIL = "superadmin@example.com"
 random.seed(20260920)
 
 FIRST_NAMES_M = [
@@ -300,6 +305,52 @@ def make_staff(school_id, email, first, last, role, contact, department,
     )
 
 
+def check_signinable(email: str) -> str:
+    """Refuse an address the API's own sign-in validation would reject.
+
+    The API validates the email field on sign-in with pydantic's EmailStr,
+    which rejects reserved domains such as `.local`, `.test` and `.invalid`.
+    Nothing stops this script writing such an address straight into the
+    database, so without this check the script can cheerfully create an account
+    that is impossible to sign in to — and the failure surfaces much later, as
+    a validation error on the login screen that looks like a bug in the form.
+
+    Better to fail here, where the cause is obvious.
+    """
+    def refuse(reason: str):
+        raise SystemExit(
+            f"\n'{email}' cannot be used as a sign-in address.\n"
+            f"  {reason}\n"
+            "  The sign-in form applies the same rule, so this account would be\n"
+            "  created and then be impossible to sign in to. Use a real domain,\n"
+            "  or example.com for a demo account.\n"
+        )
+
+    # Checked directly, not only through email-validator, so the guard still
+    # works when this script runs somewhere that package is not installed —
+    # which is precisely when a silent bad account would go unnoticed.
+    # RFC 2606 and RFC 6761 reserve these; no mail is deliverable to any of them.
+    reserved = ("local", "localhost", "test", "invalid", "example", "internal",
+                "onion", "arpa")
+    domain = email.rpartition("@")[2].lower().strip(".")
+    if not domain or "." not in domain and domain not in ("",):
+        if not domain:
+            refuse("There is no domain after the @ sign.")
+    tld = domain.rpartition(".")[2] if "." in domain else domain
+    if tld in reserved or domain in reserved:
+        refuse(f"'.{tld}' is a reserved domain and cannot receive mail.")
+
+    try:
+        from email_validator import EmailNotValidError, validate_email
+    except ImportError:  # pragma: no cover
+        return email
+    try:
+        validate_email(email, check_deliverability=False)
+    except EmailNotValidError as exc:
+        refuse(str(exc))
+    return email
+
+
 def make_super_admin(email: str, password: str) -> Staff:
     """The operator of the deployment, who belongs to no school.
 
@@ -311,7 +362,7 @@ def make_super_admin(email: str, password: str) -> Staff:
     """
     return Staff(
         school_id=None,
-        email=email,
+        email=check_signinable(email),
         password_hash=get_password_hash(password),
         first_name="System",
         last_name="Administrator",
@@ -704,8 +755,10 @@ async def create_super_admin(email: str, password: str | None) -> None:
     behaviour anyone wants to discover afterwards.
     """
     # Sign-in lower-cases the address before looking it up, so an account
-    # stored with capitals could never be signed into.
-    email = email.strip().lower()
+    # stored with capitals could never be signed into. The same reasoning
+    # applies to the domain, which is why it is validated before anything is
+    # written — see check_signinable.
+    email = check_signinable(email.strip().lower())
     generated = password is None
     password = password or secrets.token_urlsafe(12)
 
