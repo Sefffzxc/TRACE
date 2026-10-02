@@ -18,13 +18,8 @@ import {
 import { Avatar, EmptyState, ErrorNote, ProgressBar, RiskBadge } from '../../components/common/ui';
 import { AI_HELP, AiReason, AiRiskBadge } from '../../components/common/ai';
 import { studentApi } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import { IMAGES } from '../../config/images';
-
-const TABS = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'pace', label: 'PACE progress' },
-  { key: 'history', label: 'Enrolment history' },
-];
 
 function TrendIcon({ trend }) {
   if (trend === 'improving') return <TrendingUp size={14} style={{ color: 'var(--ok-500)' }} />;
@@ -35,6 +30,18 @@ function TrendIcon({ trend }) {
 export default function StudentProfilePage() {
   const { studentId } = useParams();
   const navigate = useNavigate();
+  const { tracksUnits, unitLabel, unitLabelPlural } = useAuth();
+
+  /* A school that does not track lesson units has no unit progress to show, so
+     the tab is not there at all — the student still has subjects and grades,
+     which live on the overview and in the enrolment history. The tab list is
+     built per school rather than filtered on render, so "Overview" stays the
+     landing tab either way. */
+  const tabs = [
+    { key: 'overview', label: 'Overview' },
+    ...(tracksUnits ? [{ key: 'pace', label: `${unitLabel} progress` }] : []),
+    { key: 'history', label: 'Enrolment history' },
+  ];
 
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -148,7 +155,7 @@ export default function StudentProfilePage() {
                 {student.paces_behind}
               </div>
               <div style={{ fontSize: 'var(--text-xs)', opacity: 0.75, marginTop: 4 }}>
-                PACEs behind (worst subject)
+                {unitLabelPlural} behind (worst subject)
               </div>
             </div>
           </div>
@@ -156,7 +163,7 @@ export default function StudentProfilePage() {
       </section>
 
       <div className="tabs no-print">
-        {TABS.map((item) => (
+        {tabs.map((item) => (
           <button
             key={item.key}
             type="button"
@@ -254,15 +261,15 @@ export default function StudentProfilePage() {
         </section>
       )}
 
-      {/* ── PACE ─────────────────────────────────────────────────────────── */}
-      {tab === 'pace' && (
+      {/* ── Unit progress ────────────────────────────────────────────────── */}
+      {tab === 'pace' && tracksUnits && (
         <section>
           {subjects.length === 0 ? (
             <div className="card">
               <EmptyState
                 icon={BookOpen}
-                title="No PACE records yet"
-                description="Progress appears here once a teacher encodes this student's PACE completion."
+                title={`No ${unitLabel} records yet`}
+                description={`Progress appears here once a teacher encodes this student's ${unitLabel} completion.`}
               />
             </div>
           ) : (
@@ -278,7 +285,7 @@ export default function StudentProfilePage() {
                     <div>
                       <div className="sc-name">{subject.subject}</div>
                       <div className="sc-sub">
-                        PACE {subject.current_pace} of {subject.total_paces}
+                        {unitLabel} {subject.current_pace} of {subject.total_paces}
                         {subject.paces_behind > 0 && ` · ${subject.paces_behind} behind`}
                       </div>
                     </div>

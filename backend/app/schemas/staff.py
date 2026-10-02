@@ -16,13 +16,23 @@ class ORMModel(BaseModel):
 
 # ── Registration / profile ────────────────────────────────────────────────────
 class StaffRegisterRequest(BaseModel):
+    """A teacher joining a school that already exists.
+
+    A school's first account — its principal — is created by
+    `POST /api/schools/register` instead, together with the school itself.
+    This form cannot create one, which is why `role` no longer accepts
+    "admin": self-registering as an administrator would have let anyone award
+    themselves control of a school they merely picked from a list.
+    """
+
+    school_id: int = Field(description="Chosen from GET /api/schools/directory")
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     middle_name: Optional[str] = Field(default=None, max_length=100)
     contact_number: str = Field(min_length=7, max_length=20)
-    role: Literal["admin", "teacher"] = "teacher"
+    role: Literal["teacher"] = "teacher"
     employee_no: Optional[str] = Field(default=None, max_length=30)
     department: Optional[str] = Field(default=None, max_length=100)
 

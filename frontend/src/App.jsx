@@ -23,6 +23,8 @@ import TeachersPage from './pages/app/TeachersPage';
 import ApprovalsPage from './pages/app/ApprovalsPage';
 import ClassManagementPage from './pages/app/ClassManagementPage';
 import SchedulePage from './pages/app/SchedulePage';
+import SchoolsAdminPage from './pages/app/SchoolsAdminPage';
+import SchoolSettingsPage from './pages/app/SchoolSettingsPage';
 import AccountPage from './pages/app/AccountPage';
 import NotFoundPage from './pages/app/NotFoundPage';
 
@@ -65,6 +67,42 @@ function RequireGuest({ children }) {
 function RequireAdmin({ children }) {
   const { isAdmin } = useAuth();
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+/**
+ * System-operator-only routes. The mirror of RequireAdmin one level up: the
+ * operator's console is about schools, not students, and nobody attached to a
+ * school has any use for it.
+ */
+function RequireSuperAdmin({ children }) {
+  const { isSuperAdmin } = useAuth();
+  if (!isSuperAdmin) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+/**
+ * The operator has no school, so every monitoring screen — the dashboard
+ * included — would be empty for them. Send them where their work actually is.
+ */
+function Landing({ children }) {
+  const { isSuperAdmin } = useAuth();
+  if (isSuperAdmin) return <Navigate to="/schools" replace />;
+  return children;
+}
+
+/**
+ * Lesson-unit progress is not merely hidden from a school that does not track
+ * units — the route itself goes away, so a bookmark or a typed URL cannot reach
+ * a screen that has nothing to record.
+ */
+function RequireUnitTracking({ children }) {
+  const { school, tracksUnits } = useAuth();
+  /* Decide only once the school's settings have actually arrived. While the
+     lookup is still in flight `tracksUnits` is false for want of an answer, and
+     bouncing a teacher off their own screen on every refresh would be worse
+     than showing it a moment early. */
+  if (school && !tracksUnits) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -121,14 +159,44 @@ function Router() {
           </RequireAuth>
         }
       >
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <Landing>
+              <DashboardPage />
+            </Landing>
+          }
+        />
         <Route path="/students" element={<StudentsPage />} />
         <Route path="/students/:studentId" element={<StudentProfilePage />} />
-        <Route path="/pace" element={<PacePage />} />
+        <Route
+          path="/pace"
+          element={
+            <RequireUnitTracking>
+              <PacePage />
+            </RequireUnitTracking>
+          }
+        />
         <Route path="/early-warning" element={<EarlyWarningPage />} />
         <Route path="/ai-risk" element={<AiInsightsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/account" element={<AccountPage />} />
+        <Route
+          path="/schools"
+          element={
+            <RequireSuperAdmin>
+              <SchoolsAdminPage />
+            </RequireSuperAdmin>
+          }
+        />
+        <Route
+          path="/school-settings"
+          element={
+            <RequireAdmin>
+              <SchoolSettingsPage />
+            </RequireAdmin>
+          }
+        />
         <Route
           path="/teachers"
           element={

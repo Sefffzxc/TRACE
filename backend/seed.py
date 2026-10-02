@@ -1,20 +1,37 @@
-"""Populate the database with a realistic demo school.
+"""Populate the database with two realistic demo schools.
 
-    python seed.py            # create tables and seed if empty
-    python seed.py --reset    # drop everything first
+    python seed.py                              # create tables and seed if empty
+    python seed.py --reset                      # drop everything first
+    python seed.py --create-superadmin EMAIL    # only add a system operator
+
+Two schools, not one, on purpose: a demo with a single school proves nothing
+about multi-tenancy. The second school is a public DepEd school that does not
+track PACE booklets, so the pair also demonstrates that `tracks_units` — not
+`school_type` — is what decides what a teacher sees.
 
 Accounts created (password for all of them: Lbca@2026):
-    admin@lbca.edu.ph          administrator
+
+    superadmin@system.local    system operator, belongs to no school
+
+    Lord's Blessing Christian Academy (private, tracks PACEs)
+    admin@lbca.edu.ph          principal
     mramos@lbca.edu.ph         teacher (adviser, Grade 7 - Faith)
     jsantos@lbca.edu.ph        teacher (adviser, Grade 8 - Hope)
     alim@lbca.edu.ph           teacher (adviser, Grade 9 - Love)
+    rcruz@lbca.edu.ph          teacher
     pending@lbca.edu.ph        teacher, still awaiting approval
+
+    Mabini National High School (public, no unit tracking)
+    principal@mabini.edu.ph    principal
+    tdelacruz@mabini.edu.ph    teacher (adviser, Grade 7 - Narra)
+    mbaluyot@mabini.edu.ph     teacher (adviser, Grade 8 - Molave)
 """
 from __future__ import annotations
 
 import argparse
 import asyncio
 import random
+import secrets
 from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import func, select
@@ -29,8 +46,15 @@ from app.models.academic import (
     Subject,
     TeacherAssignment,
 )
+from app.models.schools import (
+    SCHOOL_APPROVED,
+    TYPE_PRIVATE,
+    TYPE_PUBLIC,
+    School,
+)
 from app.models.staff import (
     ROLE_ADMIN,
+    ROLE_SUPER_ADMIN,
     ROLE_TEACHER,
     STATUS_APPROVED,
     STATUS_PENDING,
@@ -40,6 +64,10 @@ from app.models.students import EarlyWarning, Student, StudentEnrollment, Studen
 from app.services import risk
 
 PASSWORD = "Lbca@2026"
+# The demo's system operator. A `.local` address on purpose: it is not a real
+# mailbox and is never meant to receive anything, so nobody mistakes it for a
+# school's account.
+SUPERADMIN_EMAIL = "superadmin@system.local"
 random.seed(20260920)
 
 FIRST_NAMES_M = [
@@ -73,19 +101,132 @@ SUBJECT_PLAN = [
     ("Bible Reading", "BIB", 8),
 ]
 
+# The second school follows the DepEd curriculum, so its subject list is the
+# DepEd one. The unit totals are still filled in because a StudentPace row also
+# carries the class record the risk model reads — see `build_school`.
+DEPED_SUBJECT_PLAN = [
+    ("Mathematics", "MATH", 12),
+    ("English", "ENG", 12),
+    ("Science", "SCI", 12),
+    ("Filipino", "FIL", 10),
+    ("Araling Panlipunan", "AP", 10),
+]
+
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 PERIODS = [("08:00", "09:00"), ("09:15", "10:15"), ("10:30", "11:30"),
            ("13:00", "14:00"), ("14:15", "15:15")]
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# The two schools, as data
+# ══════════════════════════════════════════════════════════════════════════════
+# Kept as plain dictionaries rather than two copies of the seeding code, so the
+# schools differ only in the ways a reader cares about — curriculum, unit
+# tracking, size, accounts — and so a third school is a dict rather than a
+# branch. Everything here is invented demo data.
+SCHOOL_PLANS = [
+    {
+        "school": {
+            "name": "Lord's Blessing Christian Academy",
+            "short_name": "LBCA",
+            "school_type": TYPE_PRIVATE,
+            "address": "Purok 3, Zone 5, Gusa",
+            "city": "Cagayan de Oro",
+            "province": "Misamis Oriental",
+            "region": "Region X (Northern Mindanao)",
+            "contact_number": "(088) 856 1024",
+            "contact_email": "office@lbca.edu.ph",
+            # A School of Tomorrow school: progress is counted in PACE
+            # booklets, so the unit screens are the ones its teachers live in.
+            "tracks_units": True,
+            "unit_label_singular": "PACE",
+            "unit_label_plural": "PACEs",
+            "default_units_per_subject": 12,
+            "passing_mark": 75.0,
+        },
+        "admin": {
+            "email": "admin@lbca.edu.ph", "first": "Grace", "last": "Mercado",
+            "contact": "0917 555 0100", "department": "School Administration",
+        },
+        "teachers": [
+            {"email": "mramos@lbca.edu.ph", "first": "Maria", "last": "Ramos",
+             "contact": "0917 555 0111", "department": "Junior High School"},
+            {"email": "jsantos@lbca.edu.ph", "first": "Jonathan", "last": "Santos",
+             "contact": "0917 555 0122", "department": "Junior High School"},
+            {"email": "alim@lbca.edu.ph", "first": "Angeline", "last": "Lim",
+             "contact": "0917 555 0133", "department": "Junior High School"},
+            {"email": "rcruz@lbca.edu.ph", "first": "Ruben", "last": "Cruz",
+             "contact": "0917 555 0144", "department": "Values Education"},
+        ],
+        # One account left unapproved so the principal's approval queue is not
+        # empty in the demo.
+        "pending": {
+            "email": "pending@lbca.edu.ph", "first": "Katrina", "last": "Velasco",
+            "contact": "0917 555 0155", "department": "Junior High School",
+        },
+        "levels": [7, 8, 9, 10],
+        "sections": {
+            7: ["Faith", "Charity"],
+            8: ["Hope", "Patience"],
+            9: ["Love", "Kindness"],
+            10: ["Joy"],
+        },
+        "subjects": SUBJECT_PLAN,
+        "roster": (14, 20),
+        "timetable_sections": 3,
+    },
+    {
+        "school": {
+            "name": "Mabini National High School",
+            "short_name": "MNHS",
+            "school_type": TYPE_PUBLIC,
+            "address": "Mabini Extension, Barangay Carmen",
+            "city": "Cagayan de Oro",
+            "province": "Misamis Oriental",
+            "region": "Region X (Northern Mindanao)",
+            "contact_number": "(088) 858 7731",
+            "contact_email": "mabini.nhs@deped.gov.ph",
+            # No booklets here. The unit labels are deliberately left at their
+            # model defaults: an unused label that says "Module" is honest,
+            # whereas copying "PACE" across would put a word on the screen that
+            # this school has never used.
+            "tracks_units": False,
+            "passing_mark": 75.0,
+        },
+        "admin": {
+            "email": "principal@mabini.edu.ph", "first": "Rodolfo", "last": "Bagamasbad",
+            "contact": "0918 442 0190", "department": "Office of the Principal",
+        },
+        "teachers": [
+            {"email": "tdelacruz@mabini.edu.ph", "first": "Teresita", "last": "Dela Cruz",
+             "contact": "0918 442 0191", "department": "Junior High School"},
+            {"email": "mbaluyot@mabini.edu.ph", "first": "Melchor", "last": "Baluyot",
+             "contact": "0918 442 0192", "department": "Junior High School"},
+        ],
+        # Deliberately about half of the first school: the point of the second
+        # tenant is that the scoping holds, not that it is large, and a seed
+        # that takes twice as long to run is a seed people stop running.
+        "levels": [7, 8, 9],
+        "sections": {
+            7: ["Narra"],
+            8: ["Molave"],
+            9: ["Acacia"],
+        },
+        "subjects": DEPED_SUBJECT_PLAN,
+        "roster": (10, 14),
+        "timetable_sections": 2,
+    },
+]
+
+
 def assessment_record(profile: str) -> dict:
     """Invent a DepEd class record that matches a demo student's profile.
 
-    These are the nine inputs the risk model reads. They are made up — this is
-    a demo school with invented students, not LBCA data — but they are made up
-    *coherently*: a struggling learner gets absences, low percentage scores and
-    unsubmitted items together, so the model's output on the demo is
-    interpretable rather than random.
+    These are the nine inputs the risk model reads. They are made up — these
+    are demo schools with invented students, not real school data — but they
+    are made up *coherently*: a struggling learner gets absences, low
+    percentage scores and unsubmitted items together, so the model's output on
+    the demo is interpretable rather than random.
 
     One row in eight is left partly blank on purpose, so the "scored with
     partial data" state that a real half-finished quarter produces is visible
@@ -134,8 +275,16 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def make_staff(email, first, last, role, contact, department, approved=True, employee_no=None):
+def make_staff(school_id, email, first, last, role, contact, department,
+               approved=True, employee_no=None):
+    """One school's staff account.
+
+    ``school_id`` is first and required because it is the field that decides
+    what this person can ever see — forgetting it is the one mistake in this
+    script that would quietly break tenant isolation, so it cannot be omitted.
+    """
     return Staff(
+        school_id=school_id,
         email=email,
         password_hash=get_password_hash(PASSWORD),
         first_name=first,
@@ -151,6 +300,334 @@ def make_staff(email, first, last, role, contact, department, approved=True, emp
     )
 
 
+def make_super_admin(email: str, password: str) -> Staff:
+    """The operator of the deployment, who belongs to no school.
+
+    ``school_id`` stays NULL, and that is the whole safety story: every
+    student-data query is filtered by the caller's school, so for this account
+    there is no school to filter by and nothing to return. It is not a
+    permission flag someone can forget to check — see ROLE_SUPER_ADMIN in
+    app/models/staff.py and `school_scope` in app/api/deps.py.
+    """
+    return Staff(
+        school_id=None,
+        email=email,
+        password_hash=get_password_hash(password),
+        first_name="System",
+        last_name="Administrator",
+        contact_number="0917 555 0000",
+        role=ROLE_SUPER_ADMIN,
+        department="Platform Operations",
+        account_status=STATUS_APPROVED,
+        is_approved=True,
+        is_active=True,
+        approved_at=_now(),
+    )
+
+
+async def build_school(db, plan: dict, approved_by) -> dict:
+    """Create one school and a full year of its work.
+
+    Called once per school. Every row written here takes its ``school_id`` from
+    the school created at the top — nothing is derived from "the only school in
+    the database", because after this script runs there is no such thing.
+
+    Returns a small summary for the printed report at the end.
+    """
+    school = School(
+        status=SCHOOL_APPROVED,
+        approved_at=_now(),
+        # Recording which operator approved the school makes the approval chain
+        # visible in the demo data rather than only in the docstrings.
+        approved_by=approved_by,
+        **plan["school"],
+    )
+    db.add(school)
+    # Flushed on its own first: every insert below needs the generated id.
+    await db.flush()
+    school_id = school.school_id
+
+    # ── Staff ────────────────────────────────────────────────────────────────
+    # Employee numbers restart at EMP-0001 for each school, which the schema
+    # allows (they are unique per school, not globally) and which is what a
+    # school actually does.
+    admin = make_staff(
+        school_id, role=ROLE_ADMIN, employee_no="EMP-0001", **plan["admin"]
+    )
+    teachers = [
+        make_staff(school_id, role=ROLE_TEACHER, employee_no=f"EMP-{number:04d}",
+                   **teacher)
+        for number, teacher in enumerate(plan["teachers"], start=2)
+    ]
+    pending = (
+        make_staff(school_id, role=ROLE_TEACHER, approved=False, **plan["pending"])
+        if plan.get("pending")
+        else None
+    )
+    accounts = [admin, *teachers]
+    if pending:
+        accounts.append(pending)
+    db.add_all(accounts)
+    await db.flush()
+
+    # ── School year ──────────────────────────────────────────────────────────
+    # Both schools run the same calendar, and "2026-2027" is unique per school
+    # rather than globally, so each gets its own row.
+    year = SchoolYear(
+        school_id=school_id,
+        year="2026-2027",
+        start_date=date(2026, 6, 1),
+        end_date=date(2027, 3, 31),
+        is_current=True,
+    )
+    previous = SchoolYear(
+        school_id=school_id,
+        year="2025-2026",
+        start_date=date(2025, 6, 2),
+        end_date=date(2026, 3, 31),
+        is_current=False,
+    )
+    db.add_all([year, previous])
+    await db.flush()
+
+    # ── Grade levels, sections, subjects ─────────────────────────────────────
+    levels = []
+    for index, number in enumerate(plan["levels"], start=1):
+        levels.append(
+            GradeLevel(
+                school_id=school_id,
+                level=str(number),
+                name=f"Grade {number}",
+                sort_order=index,
+            )
+        )
+    db.add_all(levels)
+    await db.flush()
+
+    section_names = plan["sections"]
+    sections = []
+    for level in levels:
+        for name in section_names[int(level.level)]:
+            sections.append(
+                Section(
+                    school_id=school_id,
+                    grade_level_id=level.grade_level_id,
+                    section_code=f"G{level.level}-{name[:3].upper()}",
+                    name=f"Grade {level.level} - {name}",
+                    room=f"Room {level.level}0{len(sections) % 3 + 1}",
+                    capacity=40,
+                )
+            )
+    db.add_all(sections)
+    await db.flush()
+
+    subjects = []
+    for level in levels:
+        for name, code, total in plan["subjects"]:
+            subjects.append(
+                Subject(
+                    school_id=school_id,
+                    grade_level_id=level.grade_level_id,
+                    subject_name=name,
+                    subject_code=f"{code}{level.level}",
+                    total_paces=total,
+                    is_active=True,
+                )
+            )
+    db.add_all(subjects)
+    await db.flush()
+
+    # ── Teacher assignments (one adviser per section) ────────────────────────
+    assignments = []
+    for index, section in enumerate(sections):
+        adviser = teachers[index % len(teachers)]
+        assignments.append(
+            TeacherAssignment(
+                school_id=school_id,
+                teacher_id=adviser.id,
+                section_id=section.section_id,
+                is_adviser=True,
+            )
+        )
+    db.add_all(assignments)
+    await db.flush()
+
+    # ── Timetable for the first few sections ─────────────────────────────────
+    schedules = []
+    for section in sections[:plan["timetable_sections"]]:
+        level_subjects = [
+            s for s in subjects if s.grade_level_id == section.grade_level_id
+        ]
+        adviser = next(a for a in assignments if a.section_id == section.section_id)
+        for day_index, day in enumerate(DAYS):
+            for period_index, (start, end) in enumerate(PERIODS[:4]):
+                subject = level_subjects[
+                    (day_index + period_index) % len(level_subjects)
+                ]
+                schedules.append(
+                    ClassSchedule(
+                        school_id=school_id,
+                        school_year_id=year.school_year_id,
+                        section_id=section.section_id,
+                        subject_id=subject.subject_id,
+                        teacher_id=adviser.teacher_id,
+                        day_of_week=day,
+                        start_time=start,
+                        end_time=end,
+                        room=section.room or "TBA",
+                    )
+                )
+    db.add_all(schedules)
+
+    # ── Students, enrolments, PACE records ───────────────────────────────────
+    # Roughly 14 weeks into a 40-week year, so ~4 of 12 booklets expected.
+    weeks_elapsed = 14
+    total_weeks = 36
+
+    adviser_names = {
+        a.section_id: next(t for t in teachers if t.id == a.teacher_id).full_name
+        for a in assignments
+    }
+
+    student_count = 0
+    warning_count = 0
+    for section in sections:
+        level = next(
+            l for l in levels if l.grade_level_id == section.grade_level_id
+        )
+        level_subjects = [
+            s for s in subjects if s.grade_level_id == section.grade_level_id
+        ]
+        roster_size = random.randint(*plan["roster"])
+
+        for _ in range(roster_size):
+            gender = random.choice(["Male", "Female"])
+            first = random.choice(
+                FIRST_NAMES_M if gender == "Male" else FIRST_NAMES_F
+            )
+            last = random.choice(LAST_NAMES)
+            guardian_first = random.choice(FIRST_NAMES_M + FIRST_NAMES_F)
+            age = 12 + int(level.level) - 7
+
+            student = Student(
+                school_id=school_id,
+                first_name=first,
+                last_name=last,
+                gender=gender,
+                birth_date=date(2026 - age, random.randint(1, 12), random.randint(1, 28)),
+                address=f"{random.randint(1, 240)} {random.choice(STREETS)}, "
+                        f"Brgy. {random.choice(BARANGAYS)}",
+                guardian_first_name=guardian_first,
+                guardian_last_name=last,
+                guardian_contact=f"09{random.randint(10, 99)} {random.randint(100, 999)} {random.randint(1000, 9999)}",
+                guardian_relationship=random.choice(["Parent", "Parent", "Guardian"]),
+                created_by=admin.id,
+            )
+            db.add(student)
+            await db.flush()
+            student.login_id = f"S{student.student_id:04d}"
+            student_count += 1
+
+            enrollment = StudentEnrollment(
+                school_id=school_id,
+                student_id=student.student_id,
+                grade_level_id=section.grade_level_id,
+                section_id=section.section_id,
+                school_year_id=year.school_year_id,
+                enrolled_by=admin.id,
+                enrollment_date=date(2026, 6, 3),
+                is_active=True,
+            )
+            db.add(enrollment)
+            await db.flush()
+
+            # A few learners are deliberately struggling so the early-warning
+            # screens have something real to show.
+            profile = random.choices(
+                ["strong", "steady", "slipping", "struggling"],
+                weights=[25, 45, 20, 10],
+            )[0]
+
+            for subject in level_subjects:
+                expected = max(
+                    1, round(subject.total_paces * weeks_elapsed / total_weeks)
+                )
+                if profile == "strong":
+                    current = min(subject.total_paces, expected + random.randint(0, 2))
+                    attendance = round(random.uniform(96, 100), 1)
+                elif profile == "steady":
+                    current = max(0, expected - random.randint(0, 1))
+                    attendance = round(random.uniform(92, 99), 1)
+                elif profile == "slipping":
+                    current = max(0, expected - random.randint(1, 3))
+                    attendance = round(random.uniform(84, 94), 1)
+                else:
+                    current = max(0, expected - random.randint(3, 5))
+                    attendance = round(random.uniform(70, 86), 1)
+
+                evaluation = risk.evaluate(
+                    current, expected, subject.total_paces, attendance
+                )
+                # A StudentPace row is written for both schools even though only
+                # one of them counts booklets: the row is also where the DepEd
+                # class record lives, and that is what the risk model reads. A
+                # school with `tracks_units = False` simply never shows the
+                # unit columns — the screens hide them, the data stays uniform.
+                pace = StudentPace(
+                    school_id=school_id,
+                    student_id=student.student_id,
+                    enrollment_id=enrollment.enrollment_id,
+                    subject_id=subject.subject_id,
+                    subject=subject.subject_name,
+                    current_pace=current,
+                    expected_pace=expected,
+                    total_paces=subject.total_paces,
+                    pace_percent=evaluation["pace_percent"],
+                    paces_behind=evaluation["paces_behind"],
+                    attendance=attendance,
+                    average_score=round(random.uniform(74, 97), 1),
+                    recorded_by=admin.id,
+                    **assessment_record(profile),
+                )
+                db.add(pace)
+
+                if evaluation["risk_level"] != "low":
+                    warning_count += 1
+                    db.add(
+                        EarlyWarning(
+                            school_id=school_id,
+                            student_id=student.student_id,
+                            enrollment_id=enrollment.enrollment_id,
+                            subject=subject.subject_name,
+                            teacher=adviser_names.get(section.section_id, "Unassigned"),
+                            risk_level=evaluation["risk_level"],
+                            risk_score=evaluation["risk_score"],
+                            paces_behind=evaluation["paces_behind"],
+                            pace_percent=evaluation["pace_percent"],
+                            attendance=attendance,
+                            status=evaluation["status"],
+                            trend=random.choice(
+                                ["declining", "stable", "stable", "improving"]
+                            ),
+                            last_activity=random.choice(
+                                ["Today", "Yesterday", "2 days ago", "This week"]
+                            ),
+                            intervention=evaluation["intervention"],
+                        )
+                    )
+
+    return {
+        "school": school,
+        "admin": admin,
+        "teachers": teachers,
+        "pending": pending,
+        "sections": len(sections),
+        "subjects": len(subjects),
+        "students": student_count,
+        "warnings": warning_count,
+    }
+
+
 async def seed() -> None:
     async with AsyncSessionLocal() as db:
         existing = (await db.execute(select(func.count()).select_from(Staff))).scalar_one()
@@ -159,275 +636,101 @@ async def seed() -> None:
             print("Run `python seed.py --reset` to rebuild the demo data.")
             return
 
-        # ── Staff ────────────────────────────────────────────────────────────
-        admin = make_staff(
-            "admin@lbca.edu.ph", "Grace", "Mercado", ROLE_ADMIN,
-            "0917 555 0100", "School Administration", employee_no="EMP-0001",
-        )
-        teachers = [
-            make_staff("mramos@lbca.edu.ph", "Maria", "Ramos", ROLE_TEACHER,
-                       "0917 555 0111", "Junior High School", employee_no="EMP-0002"),
-            make_staff("jsantos@lbca.edu.ph", "Jonathan", "Santos", ROLE_TEACHER,
-                       "0917 555 0122", "Junior High School", employee_no="EMP-0003"),
-            make_staff("alim@lbca.edu.ph", "Angeline", "Lim", ROLE_TEACHER,
-                       "0917 555 0133", "Junior High School", employee_no="EMP-0004"),
-            make_staff("rcruz@lbca.edu.ph", "Ruben", "Cruz", ROLE_TEACHER,
-                       "0917 555 0144", "Values Education", employee_no="EMP-0005"),
+        # ── The operator account ─────────────────────────────────────────────
+        # Created before the schools because it is the account that approves
+        # them: a full seed should leave a demo that is usable immediately,
+        # including the one screen only this role can open.
+        superadmin = make_super_admin(SUPERADMIN_EMAIL, PASSWORD)
+        db.add(superadmin)
+        await db.flush()
+
+        results = [
+            await build_school(db, plan, approved_by=superadmin.id)
+            for plan in SCHOOL_PLANS
         ]
-        pending = make_staff(
-            "pending@lbca.edu.ph", "Katrina", "Velasco", ROLE_TEACHER,
-            "0917 555 0155", "Junior High School", approved=False,
-        )
-        db.add_all([admin, *teachers, pending])
-        await db.flush()
-
-        # ── School year ──────────────────────────────────────────────────────
-        year = SchoolYear(
-            year="2026-2027",
-            start_date=date(2026, 6, 1),
-            end_date=date(2027, 3, 31),
-            is_current=True,
-        )
-        previous = SchoolYear(
-            year="2025-2026",
-            start_date=date(2025, 6, 2),
-            end_date=date(2026, 3, 31),
-            is_current=False,
-        )
-        db.add_all([year, previous])
-        await db.flush()
-
-        # ── Grade levels, sections, subjects ─────────────────────────────────
-        levels = []
-        for index, number in enumerate([7, 8, 9, 10], start=1):
-            levels.append(
-                GradeLevel(level=str(number), name=f"Grade {number}", sort_order=index)
-            )
-        db.add_all(levels)
-        await db.flush()
-
-        section_names = {
-            7: ["Faith", "Charity"],
-            8: ["Hope", "Patience"],
-            9: ["Love", "Kindness"],
-            10: ["Joy"],
-        }
-        sections = []
-        for level in levels:
-            for name in section_names[int(level.level)]:
-                sections.append(
-                    Section(
-                        grade_level_id=level.grade_level_id,
-                        section_code=f"G{level.level}-{name[:3].upper()}",
-                        name=f"Grade {level.level} - {name}",
-                        room=f"Room {level.level}0{len(sections) % 3 + 1}",
-                        capacity=40,
-                    )
-                )
-        db.add_all(sections)
-        await db.flush()
-
-        subjects = []
-        for level in levels:
-            for name, code, total in SUBJECT_PLAN:
-                subjects.append(
-                    Subject(
-                        grade_level_id=level.grade_level_id,
-                        subject_name=name,
-                        subject_code=f"{code}{level.level}",
-                        total_paces=total,
-                        is_active=True,
-                    )
-                )
-        db.add_all(subjects)
-        await db.flush()
-
-        # ── Teacher assignments (one adviser per section) ────────────────────
-        assignments = []
-        for index, section in enumerate(sections):
-            adviser = teachers[index % len(teachers)]
-            assignments.append(
-                TeacherAssignment(
-                    teacher_id=adviser.id,
-                    section_id=section.section_id,
-                    is_adviser=True,
-                )
-            )
-        db.add_all(assignments)
-        await db.flush()
-
-        # ── Timetable for the first three sections ───────────────────────────
-        schedules = []
-        for section in sections[:3]:
-            level_subjects = [
-                s for s in subjects if s.grade_level_id == section.grade_level_id
-            ]
-            adviser = next(a for a in assignments if a.section_id == section.section_id)
-            for day_index, day in enumerate(DAYS):
-                for period_index, (start, end) in enumerate(PERIODS[:4]):
-                    subject = level_subjects[
-                        (day_index + period_index) % len(level_subjects)
-                    ]
-                    schedules.append(
-                        ClassSchedule(
-                            school_year_id=year.school_year_id,
-                            section_id=section.section_id,
-                            subject_id=subject.subject_id,
-                            teacher_id=adviser.teacher_id,
-                            day_of_week=day,
-                            start_time=start,
-                            end_time=end,
-                            room=section.room or "TBA",
-                        )
-                    )
-        db.add_all(schedules)
-
-        # ── Students, enrolments, PACE records ───────────────────────────────
-        # Roughly 14 weeks into a 40-week year, so ~4 of 12 booklets expected.
-        weeks_elapsed = 14
-        total_weeks = 36
-
-        adviser_names = {
-            a.section_id: next(t for t in teachers if t.id == a.teacher_id).full_name
-            for a in assignments
-        }
-
-        student_count = 0
-        for section in sections:
-            level = next(
-                l for l in levels if l.grade_level_id == section.grade_level_id
-            )
-            level_subjects = [
-                s for s in subjects if s.grade_level_id == section.grade_level_id
-            ]
-            roster_size = random.randint(14, 20)
-
-            for _ in range(roster_size):
-                gender = random.choice(["Male", "Female"])
-                first = random.choice(
-                    FIRST_NAMES_M if gender == "Male" else FIRST_NAMES_F
-                )
-                last = random.choice(LAST_NAMES)
-                guardian_first = random.choice(FIRST_NAMES_M + FIRST_NAMES_F)
-                age = 12 + int(level.level) - 7
-
-                student = Student(
-                    first_name=first,
-                    last_name=last,
-                    gender=gender,
-                    birth_date=date(2026 - age, random.randint(1, 12), random.randint(1, 28)),
-                    address=f"{random.randint(1, 240)} {random.choice(STREETS)}, "
-                            f"Brgy. {random.choice(BARANGAYS)}",
-                    guardian_first_name=guardian_first,
-                    guardian_last_name=last,
-                    guardian_contact=f"09{random.randint(10, 99)} {random.randint(100, 999)} {random.randint(1000, 9999)}",
-                    guardian_relationship=random.choice(["Parent", "Parent", "Guardian"]),
-                    created_by=admin.id,
-                )
-                db.add(student)
-                await db.flush()
-                student.login_id = f"S{student.student_id:04d}"
-                student_count += 1
-
-                enrollment = StudentEnrollment(
-                    student_id=student.student_id,
-                    grade_level_id=section.grade_level_id,
-                    section_id=section.section_id,
-                    school_year_id=year.school_year_id,
-                    enrolled_by=admin.id,
-                    enrollment_date=date(2026, 6, 3),
-                    is_active=True,
-                )
-                db.add(enrollment)
-                await db.flush()
-
-                # A few learners are deliberately struggling so the early-warning
-                # screens have something real to show.
-                profile = random.choices(
-                    ["strong", "steady", "slipping", "struggling"],
-                    weights=[25, 45, 20, 10],
-                )[0]
-
-                for subject in level_subjects:
-                    expected = max(
-                        1, round(subject.total_paces * weeks_elapsed / total_weeks)
-                    )
-                    if profile == "strong":
-                        current = min(subject.total_paces, expected + random.randint(0, 2))
-                        attendance = round(random.uniform(96, 100), 1)
-                    elif profile == "steady":
-                        current = max(0, expected - random.randint(0, 1))
-                        attendance = round(random.uniform(92, 99), 1)
-                    elif profile == "slipping":
-                        current = max(0, expected - random.randint(1, 3))
-                        attendance = round(random.uniform(84, 94), 1)
-                    else:
-                        current = max(0, expected - random.randint(3, 5))
-                        attendance = round(random.uniform(70, 86), 1)
-
-                    evaluation = risk.evaluate(
-                        current, expected, subject.total_paces, attendance
-                    )
-                    pace = StudentPace(
-                        student_id=student.student_id,
-                        enrollment_id=enrollment.enrollment_id,
-                        subject_id=subject.subject_id,
-                        subject=subject.subject_name,
-                        current_pace=current,
-                        expected_pace=expected,
-                        total_paces=subject.total_paces,
-                        pace_percent=evaluation["pace_percent"],
-                        paces_behind=evaluation["paces_behind"],
-                        attendance=attendance,
-                        average_score=round(random.uniform(74, 97), 1),
-                        recorded_by=adviser_names and admin.id,
-                        **assessment_record(profile),
-                    )
-                    db.add(pace)
-
-                    if evaluation["risk_level"] != "low":
-                        db.add(
-                            EarlyWarning(
-                                student_id=student.student_id,
-                                enrollment_id=enrollment.enrollment_id,
-                                subject=subject.subject_name,
-                                teacher=adviser_names.get(section.section_id, "Unassigned"),
-                                risk_level=evaluation["risk_level"],
-                                risk_score=evaluation["risk_score"],
-                                paces_behind=evaluation["paces_behind"],
-                                pace_percent=evaluation["pace_percent"],
-                                attendance=attendance,
-                                status=evaluation["status"],
-                                trend=random.choice(
-                                    ["declining", "stable", "stable", "improving"]
-                                ),
-                                last_activity=random.choice(
-                                    ["Today", "Yesterday", "2 days ago", "This week"]
-                                ),
-                                intervention=evaluation["intervention"],
-                            )
-                        )
 
         await db.commit()
 
-        warnings = (
-            await db.execute(select(func.count()).select_from(EarlyWarning))
-        ).scalar_one()
-
         print("Demo data created.")
-        print(f"  staff      : {len(teachers) + 2}")
-        print(f"  sections   : {len(sections)}")
-        print(f"  subjects   : {len(subjects)}")
-        print(f"  students   : {student_count}")
-        print(f"  warnings   : {warnings}")
         print()
-        print("Sign in with:")
-        print(f"  admin@lbca.edu.ph    / {PASSWORD}   (administrator)")
-        print(f"  mramos@lbca.edu.ph   / {PASSWORD}   (teacher)")
+        print("System operator (manages schools and accounts only):")
+        print(f"  {SUPERADMIN_EMAIL}  / {PASSWORD}")
+        print("  Belongs to no school, so it cannot open a student record at all —")
+        print("  its school_id is NULL and every student query is scoped by school.")
+        print("  Use it to review, approve or deactivate the two schools below.")
+
+        for index, result in enumerate(results, start=1):
+            school = result["school"]
+            units = (
+                f"tracks {school.unit_label_plural} — "
+                f"{school.default_units_per_subject} per subject"
+                if school.tracks_units
+                else "no unit tracking (DepEd class record only)"
+            )
+            print()
+            print(f"School {index}: {school.name}")
+            print(f"  {school.school_type}, {school.city} · {school.status}")
+            print(f"  {units} · passing mark {school.passing_mark:g}")
+            print(
+                f"  sections {result['sections']} · subjects {result['subjects']} · "
+                f"students {result['students']} · warnings {result['warnings']}"
+            )
+            print(f"  {result['admin'].email:<26} / {PASSWORD}   (principal)")
+            for teacher in result["teachers"]:
+                print(f"  {teacher.email:<26} / {PASSWORD}   (teacher)")
+            if result["pending"]:
+                print(
+                    f"  {result['pending'].email:<26} / {PASSWORD}   "
+                    f"(teacher, awaiting the principal's approval)"
+                )
+
+        print()
+        print("Neither school can see the other's students, sections or warnings:")
+        print("every row above carries its own school_id and every query is")
+        print("filtered by the signed-in account's school.")
         print()
         print("First sign-in on a new browser asks for a 6-digit code — it is")
         print("printed in this server's console and, while DEBUG_OTP is on, shown")
         print("on the verification screen itself.")
+
+
+async def create_super_admin(email: str, password: str | None) -> None:
+    """Add one system-operator account to an existing database.
+
+    Separate from seeding on purpose: this is the command a real deployment
+    runs once, against a database that already holds real schools, so it must
+    never touch anything else. It refuses to overwrite an existing account —
+    quietly resetting a live operator's password from a seed script is not a
+    behaviour anyone wants to discover afterwards.
+    """
+    # Sign-in lower-cases the address before looking it up, so an account
+    # stored with capitals could never be signed into.
+    email = email.strip().lower()
+    generated = password is None
+    password = password or secrets.token_urlsafe(12)
+
+    async with AsyncSessionLocal() as db:
+        existing = (
+            await db.execute(select(Staff).where(Staff.email == email))
+        ).scalar_one_or_none()
+        if existing:
+            print(f"An account already exists for {email} (role: {existing.role}).")
+            print("Nothing was changed. Use a different address, or reset the")
+            print("password through the application rather than from here.")
+            return
+
+        account = make_super_admin(email, password)
+        db.add(account)
+        await db.commit()
+
+        print(f"Super admin created: {email}")
+        print(f"  password : {password}")
+        if generated:
+            print("  This password was generated now and is NOT stored anywhere in")
+            print("  readable form — it will not be shown again. Copy it before you")
+            print("  close this terminal.")
+        print("  The account manages schools and accounts only; it belongs to no")
+        print("  school and cannot open student records.")
 
 
 async def score() -> None:
@@ -438,6 +741,10 @@ async def score() -> None:
     the rows are marked ``source="fallback"`` exactly as they would be in
     production, and this prints how many, so a demo is never quietly showing
     rule-based numbers under an AI label.
+
+    It scores every school's records in one pass, which is right for an
+    operator-side batch job: the predictions it writes are scoped per row, not
+    per run.
     """
     from app.models.students import AIRiskPrediction
     from app.services import ml_client
@@ -480,6 +787,10 @@ async def score() -> None:
                     versions.add(result.model_version)
                 db.add(
                     AIRiskPrediction(
+                        # Taken from the PACE row rather than from any notion of
+                        # "the current school": a prediction belongs to the same
+                        # tenant as the record it was made from.
+                        school_id=row.school_id,
                         student_id=row.student_id,
                         enrollment_id=row.enrollment_id,
                         pace_id=row.pace_id,
@@ -524,7 +835,29 @@ async def main() -> None:
         action="store_true",
         help="skip seeding and only re-score what is already in the database",
     )
+    parser.add_argument(
+        "--create-superadmin",
+        metavar="EMAIL",
+        help="create a system-operator account for this address and exit, "
+             "seeding nothing",
+    )
+    parser.add_argument(
+        "--password",
+        help="password for --create-superadmin (a strong one is generated and "
+             "printed if omitted)",
+    )
     args = parser.parse_args()
+
+    # Checked before everything else: this is the one command that is run
+    # against a real database holding real schools, so it must not be able to
+    # drag seeding or scoring along with it.
+    if args.create_superadmin:
+        # Tables may not exist yet on a fresh deployment, and this creates only
+        # what is missing.
+        await init_models()
+        await create_super_admin(args.create_superadmin, args.password)
+        await async_engine.dispose()
+        return
 
     if args.score_only:
         await score()

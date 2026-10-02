@@ -14,7 +14,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user
+from app.api.deps import get_current_admin, get_current_user, school_scope
+from app.api.scoping import get_scoped, get_scoped_optional, scoped
 from app.db.session import get_db
 from app.models.academic import GradeLevel, Subject, TeacherAssignment
 from app.models.staff import ROLE_ADMIN, Staff
@@ -58,14 +59,22 @@ def _apply_evaluation(row: StudentPace) -> dict:
 
 
 async def _sync_warning(
-    db: AsyncSession, row: StudentPace, evaluation: dict, teacher_name: str
+    db: AsyncSession,
+    row: StudentPace,
+    evaluation: dict,
+    teacher_name: str,
+    school_id: int,
 ) -> None:
     """Keep the early-warning table in step with a PACE record."""
     existing = (
         await db.execute(
-            select(EarlyWarning).where(
-                EarlyWarning.student_id == row.student_id,
-                EarlyWarning.subject == row.subject,
+            scoped(
+                select(EarlyWarning).where(
+                    EarlyWarning.student_id == row.student_id,
+                    EarlyWarning.subject == row.subject,
+                ),
+                EarlyWarning,
+                school_id,
             )
         )
     ).scalar_one_or_none()
@@ -89,6 +98,7 @@ async def _sync_warning(
     if existing is None:
         db.add(
             EarlyWarning(
+                school_id=school_id,
                 student_id=row.student_id,
                 enrollment_id=row.enrollment_id,
                 subject=row.subject,
@@ -135,19 +145,28 @@ def _attach_ai(item, prediction) -> None:
     item.ai_primary_factor = prediction.primary_factor
 
 
-async def _grade_label(db: AsyncSession, enrollment_id: Optional[int]) -> Optional[str]:
+async def _grade_label(
+    db: AsyncSession, enrollment_id: Optional[int], school_id: int
+) -> Optional[str]:
     """The grade-level name for an enrolment — one of the model's nine inputs."""
     if enrollment_id is None:
         return None
-    enrollment = await db.get(StudentEnrollment, enrollment_id)
+    enrollment = await get_scoped_optional(
+        db, StudentEnrollment, enrollment_id, school_id
+    )
     if enrollment is None:
         return None
-    level = await db.get(GradeLevel, enrollment.grade_level_id)
+    level = await get_scoped_optional(
+        db, GradeLevel, enrollment.grade_level_id, school_id
+    )
     return level.name if level is not None else None
 
 
 async def _record_prediction(
-    db: AsyncSession, row: StudentPace, grade_label: Optional[str]
+    db: AsyncSession,
+    row: StudentPace,
+    grade_label: Optional[str],
+    school_id: int,
 ) -> AIRiskPrediction:
     """Ask the classifier about this record and log the answer.
 
@@ -160,6 +179,7 @@ async def _record_prediction(
     """
     result = await ml_client.predict(row, grade_label)
     prediction = AIRiskPrediction(
+        school_id=school_id,
         student_id=row.student_id,
         enrollment_id=row.enrollment_id,
         pace_id=row.pace_id,
@@ -181,9 +201,14 @@ async def list_paces(
     subject: Optional[str] = None,
     mine: bool = Query(default=False),
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(StudentPace).order_by(StudentPace.student_id, StudentPace.subject)
+    stmt = scoped(
+        select(StudentPace).order_by(StudentPace.student_id, StudentPace.subject),
+        StudentPace,
+        scope,
+    )
     if student_id:
         stmt = stmt.where(StudentPace.student_id == student_id)
     if enrollment_id:
@@ -192,18 +217,29 @@ async def list_paces(
         stmt = stmt.where(StudentPace.subject == subject)
     rows = (await db.execute(stmt)).scalars().all()
 
-    lookups = await Lookups.load(db)
-    students = {s.student_id: s for s in (await db.execute(select(Student))).scalars()}
+    lookups = await Lookups.load(db, school_id=scope)
+    students = {
+        s.student_id: s
+        for s in (
+            await db.execute(scoped(select(Student), Student, scope))
+        ).scalars()
+    }
     enrollments = {
         e.enrollment_id: e
-        for e in (await db.execute(select(StudentEnrollment))).scalars()
+        for e in (
+            await db.execute(
+                scoped(select(StudentEnrollment), StudentEnrollment, scope)
+            )
+        ).scalars()
     }
 
     allowed: Optional[set[int]] = None
     if mine and current.role != ROLE_ADMIN:
-        allowed = set(await sections_for_teacher(db, current.id))
+        allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
 
-    predictions = await latest_predictions(db, [row.pace_id for row in rows])
+    predictions = await latest_predictions(
+        db, [row.pace_id for row in rows], school_id=scope
+    )
 
     out = []
     for row in rows:
@@ -236,13 +272,11 @@ async def create_pace(
     payload: PaceCreate,
     request: Request,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    if await db.get(Student, payload.student_id) is None:
-        raise HTTPException(status_code=404, detail="Student not found.")
-    enrollment = await db.get(StudentEnrollment, payload.enrollment_id)
-    if enrollment is None:
-        raise HTTPException(status_code=404, detail="Enrolment not found.")
+    await get_scoped(db, Student, payload.student_id, scope, "Student")
+    await get_scoped(db, StudentEnrollment, payload.enrollment_id, scope, "Enrolment")
     if payload.current_pace > payload.total_paces:
         raise HTTPException(
             status_code=400,
@@ -251,9 +285,13 @@ async def create_pace(
 
     existing = (
         await db.execute(
-            select(StudentPace).where(
-                StudentPace.enrollment_id == payload.enrollment_id,
-                StudentPace.subject == payload.subject,
+            scoped(
+                select(StudentPace).where(
+                    StudentPace.enrollment_id == payload.enrollment_id,
+                    StudentPace.subject == payload.subject,
+                ),
+                StudentPace,
+                scope,
             )
         )
     ).scalar_one_or_none()
@@ -263,13 +301,13 @@ async def create_pace(
             detail=f"A PACE record for {payload.subject} already exists — edit it instead.",
         )
 
-    row = StudentPace(**payload.model_dump(), recorded_by=current.id)
+    row = StudentPace(**payload.model_dump(), recorded_by=current.id, school_id=scope)
     evaluation = _apply_evaluation(row)
     db.add(row)
     await db.flush()  # assigns pace_id, which the prediction row references
-    await _sync_warning(db, row, evaluation, current.full_name)
+    await _sync_warning(db, row, evaluation, current.full_name, scope)
     prediction = await _record_prediction(
-        db, row, await _grade_label(db, row.enrollment_id)
+        db, row, await _grade_label(db, row.enrollment_id, scope), scope
     )
     await log_event(
         db, Action.PACE_RECORDED, actor_id=current.id,
@@ -289,11 +327,10 @@ async def update_pace(
     pace_id: int,
     payload: PaceUpdate,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(StudentPace, pace_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="PACE record not found.")
+    row = await get_scoped(db, StudentPace, pace_id, scope, "PACE record")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(row, field, value)
     if row.current_pace > row.total_paces:
@@ -304,9 +341,9 @@ async def update_pace(
     row.recorded_by = current.id
     row.updated_at = _now()
     evaluation = _apply_evaluation(row)
-    await _sync_warning(db, row, evaluation, current.full_name)
+    await _sync_warning(db, row, evaluation, current.full_name, scope)
     prediction = await _record_prediction(
-        db, row, await _grade_label(db, row.enrollment_id)
+        db, row, await _grade_label(db, row.enrollment_id, scope), scope
     )
     await db.commit()
     await db.refresh(row)
@@ -322,6 +359,7 @@ async def bulk_upsert_paces(
     payload: BulkPaceRequest,
     request: Request,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     """Encode a whole section in one submit — the teacher's main workflow."""
@@ -335,17 +373,39 @@ async def bulk_upsert_paces(
             )
             continue
 
+        if await get_scoped_optional(db, Student, entry.student_id, scope) is None:
+            skipped.append(
+                f"{entry.subject} for student {entry.student_id}: not found in this school"
+            )
+            continue
+        if (
+            await get_scoped_optional(
+                db, StudentEnrollment, entry.enrollment_id, scope
+            )
+            is None
+        ):
+            skipped.append(
+                f"{entry.subject} for student {entry.student_id}: "
+                "enrolment not found in this school"
+            )
+            continue
+
         row = (
             await db.execute(
-                select(StudentPace).where(
-                    StudentPace.enrollment_id == entry.enrollment_id,
-                    StudentPace.subject == entry.subject,
+                scoped(
+                    select(StudentPace).where(
+                        StudentPace.enrollment_id == entry.enrollment_id,
+                        StudentPace.subject == entry.subject,
+                    ),
+                    StudentPace,
+                    scope,
                 )
             )
         ).scalar_one_or_none()
 
         if row is None:
             row = StudentPace(
+                school_id=scope,
                 student_id=entry.student_id,
                 enrollment_id=entry.enrollment_id,
                 subject=entry.subject,
@@ -371,14 +431,14 @@ async def bulk_upsert_paces(
 
         evaluation = _apply_evaluation(row)
         await db.flush()
-        await _sync_warning(db, row, evaluation, current.full_name)
+        await _sync_warning(db, row, evaluation, current.full_name, scope)
         touched.append(row)
         saved += 1
 
     # One batch call for the whole section instead of one request per student:
     # on a free Render instance that is the difference between a save that
     # feels instant and one that makes forty round trips.
-    ai_summary = await _score_batch(db, touched)
+    ai_summary = await _score_batch(db, touched, scope)
 
     await log_event(
         db, Action.PACE_RECORDED, actor_id=current.id, detail=f"bulk saved={saved}",
@@ -388,7 +448,9 @@ async def bulk_upsert_paces(
     return {"saved": saved, "skipped": skipped, "ai": ai_summary}
 
 
-async def _score_batch(db: AsyncSession, rows: list[StudentPace]) -> dict:
+async def _score_batch(
+    db: AsyncSession, rows: list[StudentPace], school_id: int
+) -> dict:
     """Score a list of saved PACE rows in one call and log every answer."""
     if not rows:
         return {"scored": 0, "fallback": 0, "source": "none"}
@@ -396,7 +458,9 @@ async def _score_batch(db: AsyncSession, rows: list[StudentPace]) -> dict:
     labels: dict[int, Optional[str]] = {}
     for row in rows:
         if row.enrollment_id not in labels:
-            labels[row.enrollment_id] = await _grade_label(db, row.enrollment_id)
+            labels[row.enrollment_id] = await _grade_label(
+                db, row.enrollment_id, school_id
+            )
 
     results = await ml_client.predict_many(
         [(row, labels.get(row.enrollment_id)) for row in rows]
@@ -411,6 +475,7 @@ async def _score_batch(db: AsyncSession, rows: list[StudentPace]) -> dict:
             versions.add(result.model_version)
         db.add(
             AIRiskPrediction(
+                school_id=school_id,
                 student_id=row.student_id,
                 enrollment_id=row.enrollment_id,
                 pace_id=row.pace_id,
@@ -439,11 +504,10 @@ async def _score_batch(db: AsyncSession, rows: list[StudentPace]) -> dict:
 async def delete_pace(
     pace_id: int,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(StudentPace, pace_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="PACE record not found.")
+    row = await get_scoped(db, StudentPace, pace_id, scope, "PACE record")
     await db.delete(row)
     await db.commit()
 
@@ -458,23 +522,37 @@ async def list_warnings(
     include_resolved: bool = False,
     mine: bool = Query(default=False),
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(EarlyWarning).order_by(EarlyWarning.risk_score.desc())
+    stmt = scoped(
+        select(EarlyWarning).order_by(EarlyWarning.risk_score.desc()),
+        EarlyWarning,
+        scope,
+    )
     if not include_resolved:
         stmt = stmt.where(EarlyWarning.is_resolved.is_(False))
     rows = (await db.execute(stmt)).scalars().all()
 
-    lookups = await Lookups.load(db)
-    students = {s.student_id: s for s in (await db.execute(select(Student))).scalars()}
+    lookups = await Lookups.load(db, school_id=scope)
+    students = {
+        s.student_id: s
+        for s in (
+            await db.execute(scoped(select(Student), Student, scope))
+        ).scalars()
+    }
     enrollments = {
         e.enrollment_id: e
-        for e in (await db.execute(select(StudentEnrollment))).scalars()
+        for e in (
+            await db.execute(
+                scoped(select(StudentEnrollment), StudentEnrollment, scope)
+            )
+        ).scalars()
     }
 
     allowed: Optional[set[int]] = None
     if mine and current.role != ROLE_ADMIN:
-        allowed = set(await sections_for_teacher(db, current.id))
+        allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
 
     wanted = (
         {lvl.strip().lower() for lvl in risk_level.split(",")} if risk_level else None
@@ -504,11 +582,17 @@ async def list_warnings(
 
 @router.get("/api/early-warnings/summary")
 async def warning_summary(
-    _: Staff = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
 ):
     rows = (
         await db.execute(
-            select(EarlyWarning).where(EarlyWarning.is_resolved.is_(False))
+            scoped(
+                select(EarlyWarning).where(EarlyWarning.is_resolved.is_(False)),
+                EarlyWarning,
+                scope,
+            )
         )
     ).scalars().all()
 
@@ -536,11 +620,10 @@ async def update_warning(
     warning_id: int,
     payload: WarningUpdate,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(EarlyWarning, warning_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Warning not found.")
+    row = await get_scoped(db, EarlyWarning, warning_id, scope, "Warning")
     data = payload.model_dump(exclude_unset=True)
     if data.get("is_resolved"):
         row.resolved_at = _now()
@@ -559,14 +642,22 @@ async def update_warning(
 async def list_quality_logs(
     resolved: Optional[bool] = None,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(DataQualityLog).order_by(DataQualityLog.created_at.desc())
+    stmt = scoped(
+        select(DataQualityLog).order_by(DataQualityLog.created_at.desc()),
+        DataQualityLog,
+        scope,
+    )
     if resolved is not None:
         stmt = stmt.where(DataQualityLog.resolved.is_(resolved))
     rows = (await db.execute(stmt)).scalars().all()
     students = {
-        s.student_id: s.full_name for s in (await db.execute(select(Student))).scalars()
+        s.student_id: s.full_name
+        for s in (
+            await db.execute(scoped(select(Student), Student, scope))
+        ).scalars()
     }
     out = []
     for row in rows:
@@ -580,9 +671,25 @@ async def list_quality_logs(
 async def create_quality_log(
     payload: DataQualityCreate,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = DataQualityLog(**payload.model_dump())
+    if await get_scoped_optional(db, Student, payload.student_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That student does not exist.")
+    # Both of these default to something already in scope when left out — the
+    # caller for the teacher, nothing at all for the PACE record — so they are
+    # only worth checking when the request actually names one.
+    if payload.teacher_id is not None and (
+        await get_scoped_optional(db, Staff, payload.teacher_id, scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That teacher does not exist.")
+    if payload.student_pace_id is not None and (
+        await get_scoped_optional(db, StudentPace, payload.student_pace_id, scope)
+        is None
+    ):
+        raise HTTPException(status_code=400, detail="That PACE record does not exist.")
+
+    row = DataQualityLog(**payload.model_dump(), school_id=scope)
     if row.teacher_id is None:
         row.teacher_id = current.id
     db.add(row)
@@ -595,11 +702,10 @@ async def create_quality_log(
 async def resolve_quality_log(
     log_id: int,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(DataQualityLog, log_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Log entry not found.")
+    row = await get_scoped(db, DataQualityLog, log_id, scope, "Log entry")
     row.resolved = True
     row.resolved_date = _now()
     await db.commit()

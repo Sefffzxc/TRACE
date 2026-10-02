@@ -13,7 +13,7 @@ const COLLAPSE_KEY = 'lbca.sidebar-collapsed';
  * fetch them itself.
  */
 export default function AppShell() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin, tracksUnits, unitLabel } = useAuth();
   const { pathname } = useLocation();
 
   const [collapsed, setCollapsed] = useState(
@@ -34,6 +34,16 @@ export default function AppShell() {
   }, [pathname]);
 
   const loadChrome = useCallback(async () => {
+    // The system operator belongs to no school, so there are no warnings and
+    // no school year to fetch — and the API would rightly refuse both. Asking
+    // anyway would mean two failing requests every two minutes, which makes a
+    // deliberate boundary look like a broken page in the network tab.
+    if (isSuperAdmin) {
+      setAlerts([]);
+      setSchoolYear(null);
+      setPendingCount(0);
+      return;
+    }
     try {
       const [warnings, year] = await Promise.all([
         warningApi.list({ risk_level: 'critical,high' }),
@@ -52,7 +62,7 @@ export default function AppShell() {
         /* ignore */
       }
     }
-  }, [isAdmin]);
+  }, [isAdmin, isSuperAdmin]);
 
   useEffect(() => {
     loadChrome();

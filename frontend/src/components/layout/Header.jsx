@@ -21,13 +21,15 @@ import { useTheme } from '../../context/ThemeContext';
 const TITLES = {
   '/dashboard': 'Dashboard',
   '/students': 'Students',
-  '/pace': 'PACE Progress',
   '/early-warning': 'Early Warning',
   '/teachers': 'Teachers',
   '/approvals': 'Account Approvals',
   '/class-management': 'Class Management',
   '/schedule': 'Timetable',
   '/account': 'Account Settings',
+  '/ai-risk': 'AI Risk Model',
+  '/schools': 'Schools',
+  '/school-settings': 'School Settings',
 };
 
 function useOutsideClose(onClose) {
@@ -45,7 +47,7 @@ function useOutsideClose(onClose) {
 export default function Header({ collapsed, onToggleCollapse, onOpenMobile, alerts = [], schoolYear }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, unitLabel, school } = useAuth();
   const { isDark, toggle } = useTheme();
 
   const [bellOpen, setBellOpen] = useState(false);
@@ -55,9 +57,14 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
   const bellRef = useOutsideClose(() => setBellOpen(false));
   const menuRef = useOutsideClose(() => setMenuOpen(false));
 
+  // The lesson-progress page is titled with the school's own word for its
+  // units, so it is resolved here rather than sitting in the static map above.
   const title =
+    (pathname === '/pace' && `${unitLabel} Progress`) ||
     TITLES[pathname] ||
-    (pathname.startsWith('/students/') ? 'Student Profile' : 'LBCA Monitoring');
+    (pathname.startsWith('/students/')
+      ? 'Student Profile'
+      : school?.short_name || school?.name || 'Monitoring');
 
   const submitSearch = (event) => {
     event.preventDefault();

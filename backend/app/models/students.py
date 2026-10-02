@@ -31,7 +31,14 @@ class Student(Base):
     __tablename__ = "students"
 
     student_id = Column(Integer, primary_key=True, index=True)
-    login_id = Column(String(20), unique=True, nullable=True, index=True)  # "S0001"
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # Unique per school: two schools may both number their first student S0001.
+    login_id = Column(String(20), nullable=True, index=True)
 
     first_name = Column(String(50), nullable=False)
     middle_name = Column(String(50), nullable=True)
@@ -68,6 +75,10 @@ class Student(Base):
         middle = f" {self.middle_name}" if self.middle_name else ""
         return f"{self.first_name}{middle} {self.last_name}"
 
+    __table_args__ = (
+        UniqueConstraint("school_id", "login_id", name="uq_login_id_per_school"),
+    )
+
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Student {self.last_name}, {self.first_name}>"
 
@@ -78,6 +89,12 @@ class StudentEnrollment(Base):
     __tablename__ = "student_enrollments"
 
     enrollment_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     student_id = Column(
         Integer,
         ForeignKey("students.student_id", ondelete="CASCADE"),
@@ -142,6 +159,12 @@ class StudentPace(Base):
     __tablename__ = "student_paces"
 
     pace_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     student_id = Column(
         Integer,
         ForeignKey("students.student_id", ondelete="CASCADE"),
@@ -202,6 +225,12 @@ class EarlyWarning(Base):
     __tablename__ = "early_warnings"
 
     warning_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     student_id = Column(
         Integer,
         ForeignKey("students.student_id", ondelete="CASCADE"),
@@ -257,6 +286,12 @@ class AIRiskPrediction(Base):
     __tablename__ = "ai_risk_predictions"
 
     prediction_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     student_id = Column(
         Integer,
         ForeignKey("students.student_id", ondelete="CASCADE"),
@@ -310,6 +345,12 @@ class DataQualityLog(Base):
     __tablename__ = "data_quality_logs"
 
     log_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     student_id = Column(
         Integer,
         ForeignKey("students.student_id", ondelete="CASCADE"),

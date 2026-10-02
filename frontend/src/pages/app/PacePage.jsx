@@ -11,12 +11,13 @@ import {
 } from '../../components/common/ui';
 import { AiRiskBadge, AiServiceNote } from '../../components/common/ai';
 import { aiApi, enrollmentApi, paceApi, sectionApi, subjectApi } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 /**
  * The columns of the DepEd class record the risk model reads.
  *
- * They live on the same screen as PACE progress but behind a separate view, so
+ * They live on the same screen as unit progress but behind a separate view, so
  * the everyday encoding task stays as narrow as it was. Every one is optional:
  * a blank cell is saved as "not encoded", the model substitutes its training
  * median, and the prediction is marked as resting on partial data. Blank never
@@ -34,7 +35,7 @@ const ASSESSMENT_COLUMNS = [
 ];
 
 /**
- * Reshape the flat `ai_*` fields on a PACE row into the object AiRiskBadge
+ * Reshape the flat `ai_*` fields on a progress row into the object AiRiskBadge
  * expects. Returns null when the record has never been scored, so an unscored
  * row reads as "not scored" rather than as a zero-risk one.
  */
@@ -56,15 +57,22 @@ function aiOf(pace) {
  * The teacher's main workflow: pick a section and a subject, type in how far
  * each student has got, save the whole roster in one submit.
  *
- * Everything derived — percentage, booklets behind, risk band — is recomputed
- * on the server so the numbers on screen always match the early-warning list.
+ * Everything derived — percentage, units behind, risk band — is recomputed on
+ * the server so the numbers on screen always match the early-warning list.
  * Saving also sends the record to the risk classifier and logs what it said;
  * if that service is asleep or down the save still succeeds and the row is
- * scored by the PACE rules instead, marked as such.
+ * scored by the progress rules instead, marked as such.
+ *
+ * Every word the teacher reads here is the school's own word for a unit —
+ * "PACE" at a School of Tomorrow school, "Module" elsewhere — so the same
+ * screen serves both without either one reading as somebody else's system. The
+ * variables and API fields keep their original `pace` names; only the labels
+ * change.
  */
 export default function PacePage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { unitLabel, unitLabelPlural } = useAuth();
 
   const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -172,7 +180,7 @@ export default function PacePage() {
   );
 
   /**
-   * How many booklets a student should have finished by today, assuming an
+   * How many units a student should have finished by today, assuming an
    * even spread across the 36 teaching weeks of the school year.
    */
   const defaultExpected = useMemo(() => {
@@ -261,7 +269,7 @@ export default function PacePage() {
       });
 
     if (!entries.length) {
-      toast.info('Nothing to save yet — type a PACE number first.');
+      toast.info(`Nothing to save yet — type a ${unitLabel} number first.`);
       return;
     }
 
@@ -279,13 +287,14 @@ export default function PacePage() {
       const ai = result.ai;
       if (ai?.source === 'fallback') {
         toast.warning(
-          `The AI service did not answer, so these records were scored by the PACE rules and ` +
-            `marked rule-based. ${ai.detail || ''} Use “Re-score records” on the AI Risk Model ` +
+          `The AI service did not answer, so these records were scored by the ${unitLabel} rules ` +
+            `and marked rule-based. ${ai.detail || ''} Use “Re-score records” on the AI Risk Model ` +
             `page once it is awake.`,
         );
       } else if (ai?.source === 'mixed') {
         toast.warning(
-          `${ai.scored - ai.fallback} record(s) scored by the model, ${ai.fallback} by the PACE rules.`,
+          `${ai.scored - ai.fallback} record(s) scored by the model, ${ai.fallback} by the ` +
+            `${unitLabel} rules.`,
         );
       } else if (ai?.source === 'model') {
         toast.info(`Scored by the risk model (${ai.model_version}).`);
@@ -293,7 +302,7 @@ export default function PacePage() {
 
       missingPace.forEach((row) =>
         toast.warning(
-          `${row.enrollment.student_name}: nothing saved — a record needs a current PACE number.`,
+          `${row.enrollment.student_name}: nothing saved — a record needs a current ${unitLabel} number.`,
         ),
       );
 
@@ -318,8 +327,8 @@ export default function PacePage() {
   return (
     <div className="page">
       <PageHead
-        title="PACE progress"
-        subtitle="Record how far each student has reached in their PACE booklets."
+        title={`${unitLabel} progress`}
+        subtitle={`Record how far each student has reached in their ${unitLabelPlural}.`}
         actions={
           dirtyCount > 0 && (
             <button type="button" className="btn btn-secondary" onClick={() => setDrafts({})}>
@@ -355,7 +364,7 @@ export default function PacePage() {
           {subjectOptions.length === 0 && <option>No subjects for this grade level</option>}
           {subjectOptions.map((item) => (
             <option key={item.subject_id} value={item.subject_id}>
-              {item.subject_name} ({item.total_paces} PACEs)
+              {item.subject_name} ({item.total_paces} {unitLabelPlural})
             </option>
           ))}
         </select>
@@ -377,7 +386,7 @@ export default function PacePage() {
             className={`chip ${view === 'pace' ? 'is-on' : ''}`}
             onClick={() => setView('pace')}
           >
-            PACE progress
+            {unitLabel} progress
           </button>
           <button
             type="button"
@@ -402,7 +411,7 @@ export default function PacePage() {
             <h2>{section?.name || 'Section'}</h2>
             <div className="card-subtitle">
               {subject
-                ? `${subject.subject_name} — ${subject.total_paces} PACEs for the year, about ${defaultExpected} expected by today`
+                ? `${subject.subject_name} — ${subject.total_paces} ${unitLabelPlural} for the year, about ${defaultExpected} expected by today`
                 : 'Choose a subject to begin'}
             </div>
             {view === 'assessment' && (
@@ -433,7 +442,7 @@ export default function PacePage() {
                     <th>Student</th>
                     {view === 'pace' ? (
                       <>
-                        <th style={{ width: 110 }}>Current PACE</th>
+                        <th style={{ width: 110 }}>Current {unitLabel}</th>
                         <th style={{ width: 110 }}>Expected</th>
                         <th style={{ width: 110 }}>Attendance</th>
                         <th>Completion</th>

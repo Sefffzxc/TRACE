@@ -10,7 +10,8 @@ lbca/
 ├── frontend/     React 18 + Vite single-page app
 ├── ai-service/   the trained risk model, as its own inference service
 ├── render.yaml   one-click deployment of all four pieces
-└── DEPLOYMENT.md how to put it online, and the free-tier traps
+├── DEPLOYMENT.md how to put it online, and the free-tier traps
+└── MULTI_SCHOOL.md  many schools in one deployment, and the operator boundary
 ```
 
 Three tiers, and the model is its own tier on purpose: it can be retrained and
@@ -138,9 +139,21 @@ the model itself at `GET /model-card` and printed on the AI Risk Model page
 beside the metrics — including that it has **not** been validated mid-quarter,
 so the system must not be described as warning weeks ahead of a failing grade.
 
+**Many schools, one system.** Any number of schools share one deployment and
+each sees only its own data. A school head registers their school; the system
+operator approves it; teachers then pick that school when they sign up and wait
+for their own principal. Whether a school tracks lesson units — and what it
+calls them — is a setting answered at registration, not something written into
+the code, so a DepEd school never sees a PACE screen and a School of Tomorrow
+school sees its own vocabulary throughout.
+
+The system operator manages schools and accounts and **cannot open a student's
+record in any school**. That is enforced in one dependency rather than left to
+each endpoint to remember, and `backend/verify_boundaries.py` proves it against
+the source. See **MULTI_SCHOOL.md**.
+
 **Accounts.** Staff register themselves, then wait for an administrator to
-approve them. The very first account to register becomes an approved
-administrator, so a fresh deployment can be opened without a seeded database. Five wrong passwords locks the account for 5, then 15, then 60
+approve them. Five wrong passwords locks the account for 5, then 15, then 60
 minutes; a third lockout is permanent until an administrator lifts it. Every
 privileged action is written to an audit trail.
 

@@ -33,6 +33,15 @@ class Action:
     STUDENT_UPDATED = "student_updated"
     STUDENT_DELETED = "student_deleted"
     PACE_RECORDED = "pace_recorded"
+    # Multi-tenancy: a school joining, being decided on, or changing how it
+    # describes itself. Kept distinct from the user actions above so an
+    # operator's decisions are legible separately from a principal's.
+    SCHOOL_REGISTERED = "school_registered"
+    SCHOOL_APPROVED = "school_approved"
+    SCHOOL_REJECTED = "school_rejected"
+    SCHOOL_DEACTIVATED = "school_deactivated"
+    SCHOOL_REACTIVATED = "school_reactivated"
+    SCHOOL_SETTINGS_UPDATED = "school_settings_updated"
 
 
 def client_ip(request: Optional[Request]) -> Optional[str]:

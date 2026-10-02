@@ -21,7 +21,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, school_scope
+from app.api.scoping import get_scoped, scoped
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.staff import ROLE_ADMIN, Staff
@@ -53,6 +54,11 @@ async def ai_status(
         description="Wait long enough for an idle service to start (free hosting "
                     "tiers sleep after 15 minutes).",
     ),
+    # Deliberately NOT scoped to a school, and the only kind of endpoint on
+    # this router that is not: it reports whether a shared service is running.
+    # There is no student, no school and no record in the answer, so there is
+    # nothing here to keep inside a tenant — and knowing whether the deployment
+    # is healthy is precisely the system operator's job.
     _: Staff = Depends(get_current_user),
 ):
     """Is the classifier up? The UI calls this on load, which doubles as the
@@ -68,6 +74,10 @@ async def ai_model_card(_: Staff = Depends(get_current_user)):
 
     The UI shows these beside the predictions. A number without its limits is
     the thing this project is trying not to produce.
+
+    Unscoped for the same reason as `/status`: this describes the model, not
+    anybody's students. The metrics in it come from the published evaluation,
+    not from any school's records.
     """
     card = await ml_client.model_card()
     if card is None:
@@ -96,9 +106,14 @@ async def list_predictions(
     limit: int = Query(default=500, ge=1, le=2000),
     mine: bool = Query(default=False),
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(AIRiskPrediction).order_by(AIRiskPrediction.prediction_id.desc())
+    stmt = scoped(
+        select(AIRiskPrediction).order_by(AIRiskPrediction.prediction_id.desc()),
+        AIRiskPrediction,
+        scope,
+    )
     if student_id:
         stmt = stmt.where(AIRiskPrediction.student_id == student_id)
     if subject:
@@ -109,16 +124,25 @@ async def list_predictions(
         stmt = stmt.where(AIRiskPrediction.source == source.lower())
     rows = (await db.execute(stmt)).scalars().all()
 
-    lookups = await Lookups.load(db)
-    students = {s.student_id: s for s in (await db.execute(select(Student))).scalars()}
+    lookups = await Lookups.load(db, school_id=scope)
+    students = {
+        s.student_id: s
+        for s in (
+            await db.execute(scoped(select(Student), Student, scope))
+        ).scalars()
+    }
     enrollments = {
         e.enrollment_id: e
-        for e in (await db.execute(select(StudentEnrollment))).scalars()
+        for e in (
+            await db.execute(
+                scoped(select(StudentEnrollment), StudentEnrollment, scope)
+            )
+        ).scalars()
     }
 
     allowed: Optional[set[int]] = None
     if mine and current.role != ROLE_ADMIN:
-        allowed = set(await sections_for_teacher(db, current.id))
+        allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
 
     seen: set = set()
     out: List[AIPredictionResponse] = []
@@ -153,19 +177,20 @@ async def list_predictions(
 async def get_prediction(
     prediction_id: int,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     """One prediction with the exact input that produced it — the "show me why"
     view, and what makes any number on screen checkable by hand."""
-    row = await db.get(AIRiskPrediction, prediction_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Prediction not found.")
+    row = await get_scoped(db, AIRiskPrediction, prediction_id, scope, "Prediction")
     return AIPredictionResponse.model_validate(row)
 
 
 @router.get("/summary")
 async def prediction_summary(
-    _: Staff = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
 ):
     """Counts for the dashboard, over the newest prediction per PACE record.
 
@@ -176,7 +201,11 @@ async def prediction_summary(
     """
     rows = (
         await db.execute(
-            select(AIRiskPrediction).order_by(AIRiskPrediction.prediction_id)
+            scoped(
+                select(AIRiskPrediction).order_by(AIRiskPrediction.prediction_id),
+                AIRiskPrediction,
+                scope,
+            )
         )
     ).scalars().all()
 
@@ -219,6 +248,7 @@ def _count_factors(rows: list) -> list:
 async def rescore(
     payload: RescoreRequest,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     """Run the classifier over stored PACE records again.
@@ -228,7 +258,9 @@ async def rescore(
     stay, so "what did the model say before we filled in the Performance Tasks"
     is always answerable.
     """
-    stmt = select(StudentPace).order_by(StudentPace.pace_id)
+    stmt = scoped(
+        select(StudentPace).order_by(StudentPace.pace_id), StudentPace, scope
+    )
     if payload.student_id:
         stmt = stmt.where(StudentPace.student_id == payload.student_id)
     if payload.subject:
@@ -237,13 +269,17 @@ async def rescore(
 
     enrollments = {
         e.enrollment_id: e
-        for e in (await db.execute(select(StudentEnrollment))).scalars()
+        for e in (
+            await db.execute(
+                scoped(select(StudentEnrollment), StudentEnrollment, scope)
+            )
+        ).scalars()
     }
-    lookups = await Lookups.load(db)
+    lookups = await Lookups.load(db, school_id=scope)
 
     allowed: Optional[set[int]] = None
     if current.role != ROLE_ADMIN:
-        allowed = set(await sections_for_teacher(db, current.id))
+        allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
 
     selected = []
     for row in rows:
@@ -284,6 +320,7 @@ async def rescore(
                 versions.add(result.model_version)
             db.add(
                 AIRiskPrediction(
+                    school_id=scope,
                     student_id=row.student_id,
                     enrollment_id=row.enrollment_id,
                     pace_id=row.pace_id,

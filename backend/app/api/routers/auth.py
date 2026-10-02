@@ -33,8 +33,10 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
+from app.models.schools import SCHOOL_APPROVED, SCHOOL_PENDING, School
 from app.models.staff import (
     ROLE_ADMIN,
+    ROLE_TEACHER,
     STATUS_APPROVED,
     STATUS_PENDING,
     OTPCode,
@@ -117,7 +119,19 @@ async def register(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a staff account. It stays *pending* until an admin approves it."""
+    """Create a teacher account inside an existing school.
+
+    It stays *pending* until that school's own administrator approves it.
+
+    There is no bootstrap here any more. This used to make the very first
+    person to register an approved administrator, which was reasonable when the
+    system served one school: somebody had to be able to approve everyone else.
+    With many schools sharing one deployment it would have handed control of
+    the whole system to whoever signed up first. The system operator is now
+    created from the command line (`python seed.py --create-superadmin`), and a
+    school's first administrator is created with the school itself at
+    `POST /api/schools/register`.
+    """
     existing = await db.execute(select(Staff).where(Staff.email == payload.email))
     if existing.scalar_one_or_none():
         raise HTTPException(
@@ -125,24 +139,29 @@ async def register(
             detail="An account with that email address already exists.",
         )
 
-    # The very first account to register bootstraps the system as an approved
-    # administrator, otherwise nobody could ever approve anyone.
-    count = (await db.execute(select(Staff.id))).scalars().all()
-    is_first = len(count) == 0
+    # The school must exist and be approved. A pending or suspended school
+    # cannot take on staff, and an unapproved one is not visible in the
+    # directory the sign-up form reads from in the first place.
+    school = await db.get(School, payload.school_id)
+    if school is None or school.status != SCHOOL_APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please choose a school from the list.",
+        )
 
     staff = Staff(
+        school_id=school.school_id,
         email=str(payload.email).lower(),
         password_hash=get_password_hash(payload.password),
         first_name=payload.first_name.strip(),
         middle_name=(payload.middle_name or "").strip() or None,
         last_name=payload.last_name.strip(),
         contact_number=payload.contact_number.strip(),
-        role=ROLE_ADMIN if is_first else payload.role,
+        role=ROLE_TEACHER,
         employee_no=payload.employee_no,
         department=payload.department,
-        account_status=STATUS_APPROVED if is_first else STATUS_PENDING,
-        is_approved=is_first,
-        approved_at=_now() if is_first else None,
+        account_status=STATUS_PENDING,
+        is_approved=False,
     )
     db.add(staff)
     await db.flush()
@@ -150,18 +169,19 @@ async def register(
         db,
         Action.REGISTER,
         target_user_id=staff.id,
-        detail=f"role={staff.role} bootstrap={is_first}",
+        detail=f"teacher at {school.name} (#{school.school_id})",
         request=request,
     )
     await db.commit()
 
     return {
         "message": (
-            "Account created and activated as the first administrator."
-            if is_first
-            else "Registration received. An administrator will review your account shortly."
+            f"Registration received. An administrator at {school.name} will "
+            "review your account shortly."
         ),
         "user_id": str(staff.id),
+        "school_id": school.school_id,
+        "school_name": school.name,
         "account_status": staff.account_status,
         "is_approved": staff.is_approved,
     }
@@ -214,6 +234,31 @@ async def login(
             status_code=403,
             detail="Your account is still awaiting administrator approval.",
         )
+
+    # The school gates every account inside it. A principal whose school is
+    # still pending is told so plainly — their account is fine, their school
+    # has simply not been approved yet, and saying "awaiting approval" without
+    # saying whose would send them to chase the wrong person.
+    if staff.school_id is not None:
+        school = await db.get(School, staff.school_id)
+        if school is None:
+            raise HTTPException(status_code=403, detail="This school no longer exists.")
+        if school.status == SCHOOL_PENDING:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"{school.name} is still awaiting approval by the system "
+                    "operator. You will be able to sign in once it is approved."
+                ),
+            )
+        if school.status != SCHOOL_APPROVED:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Access to {school.name} has been suspended."
+                    + (f" Reason: {school.rejection_reason}" if school.rejection_reason else "")
+                ),
+            )
 
     # ── wrong password ────────────────────────────────────────────────────────
     if not verify_password(payload.password, staff.password_hash):

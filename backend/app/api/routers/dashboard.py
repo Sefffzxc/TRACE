@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, school_scope
 from app.db.session import get_db
 from app.models.academic import GradeLevel, SchoolYear, Section, Subject
 from app.models.staff import (
@@ -60,19 +60,26 @@ def _relative(when: Optional[datetime]) -> str:
 
 @router.get("/api/dashboard", response_model=DashboardStats)
 async def dashboard(
-    current: Staff = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
 ):
-    lookups = await Lookups.load(db)
+    lookups = await Lookups.load(db, school_id=scope)
     is_admin = current.role == ROLE_ADMIN
 
     # A teacher only sees the sections they handle.
     allowed_sections: Optional[set[int]] = None
     if not is_admin:
-        allowed_sections = set(await sections_for_teacher(db, current.id))
+        allowed_sections = set(
+            await sections_for_teacher(db, current.id, school_id=scope)
+        )
 
     enrollments = (
         await db.execute(
-            select(StudentEnrollment).where(StudentEnrollment.is_active.is_(True))
+            select(StudentEnrollment).where(
+                StudentEnrollment.school_id == scope,
+                StudentEnrollment.is_active.is_(True),
+            )
         )
     ).scalars().all()
     if allowed_sections is not None:
@@ -82,12 +89,17 @@ async def dashboard(
     student_ids = {e.student_id for e in enrollments}
     section_of = {e.enrollment_id: e.section_id for e in enrollments}
 
-    paces = (await db.execute(select(StudentPace))).scalars().all()
+    paces = (
+        await db.execute(select(StudentPace).where(StudentPace.school_id == scope))
+    ).scalars().all()
     paces = [p for p in paces if p.enrollment_id in enrollment_ids]
 
     warnings = (
         await db.execute(
-            select(EarlyWarning).where(EarlyWarning.is_resolved.is_(False))
+            select(EarlyWarning).where(
+                EarlyWarning.school_id == scope,
+                EarlyWarning.is_resolved.is_(False),
+            )
         )
     ).scalars().all()
     if allowed_sections is not None:
@@ -99,11 +111,19 @@ async def dashboard(
     stats.total_sections = (
         len(allowed_sections)
         if allowed_sections is not None
-        else (await db.execute(select(func.count()).select_from(Section))).scalar_one()
+        else (
+            await db.execute(
+                select(func.count())
+                .select_from(Section)
+                .where(Section.school_id == scope)
+            )
+        ).scalar_one()
     )
     stats.total_subjects = (
         await db.execute(
-            select(func.count()).select_from(Subject).where(Subject.is_active.is_(True))
+            select(func.count())
+            .select_from(Subject)
+            .where(Subject.school_id == scope, Subject.is_active.is_(True))
         )
     ).scalar_one()
 
@@ -112,14 +132,21 @@ async def dashboard(
             await db.execute(
                 select(func.count())
                 .select_from(Staff)
-                .where(Staff.role == ROLE_TEACHER, Staff.is_approved.is_(True))
+                .where(
+                    Staff.school_id == scope,
+                    Staff.role == ROLE_TEACHER,
+                    Staff.is_approved.is_(True),
+                )
             )
         ).scalar_one()
         stats.pending_approvals = (
             await db.execute(
                 select(func.count())
                 .select_from(Staff)
-                .where(Staff.account_status == STATUS_PENDING)
+                .where(
+                    Staff.school_id == scope,
+                    Staff.account_status == STATUS_PENDING,
+                )
             )
         ).scalar_one()
 
@@ -204,7 +231,12 @@ async def dashboard(
     students = {
         s.student_id: s
         for s in (
-            await db.execute(select(Student).where(Student.student_id.in_(student_ids or [0])))
+            await db.execute(
+                select(Student).where(
+                    Student.school_id == scope,
+                    Student.student_id.in_(student_ids or [0]),
+                )
+            )
         ).scalars()
     }
     ranked = sorted(warnings, key=lambda w: w.risk_score, reverse=True)[:8]
@@ -227,8 +259,17 @@ async def dashboard(
     ]
 
     # ── Recent activity feed ──────────────────────────────────────────────────
+    # audit_logs carries no school_id of its own, so the feed is scoped through
+    # the actor: only actions taken by this school's own staff are shown. The
+    # super admin's school_id is NULL, so their actions never appear here.
+    school_actors = select(Staff.id).where(Staff.school_id == scope)
     logs = (
-        await db.execute(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(10))
+        await db.execute(
+            select(AuditLog)
+            .where(AuditLog.admin_id.in_(school_actors))
+            .order_by(AuditLog.created_at.desc())
+            .limit(10)
+        )
     ).scalars().all()
     stats.recent_activity = [
         {
@@ -242,7 +283,12 @@ async def dashboard(
     ]
 
     year = (
-        await db.execute(select(SchoolYear).where(SchoolYear.is_current.is_(True)))
+        await db.execute(
+            select(SchoolYear).where(
+                SchoolYear.school_id == scope,
+                SchoolYear.is_current.is_(True),
+            )
+        )
     ).scalar_one_or_none()
     stats.school_year = year.year if year else None
     return stats

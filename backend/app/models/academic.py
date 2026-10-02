@@ -29,7 +29,14 @@ class SchoolYear(Base):
     __tablename__ = "school_years"
 
     school_year_id = Column(Integer, primary_key=True, index=True)
-    year = Column(String(20), unique=True, nullable=False, index=True)  # "2025-2026"
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # Unique per school, not globally: every school has a "2025-2026".
+    year = Column(String(20), nullable=False, index=True)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     is_current = Column(Boolean, nullable=False, default=False)
@@ -37,12 +44,22 @@ class SchoolYear(Base):
 
     enrollments = relationship("StudentEnrollment", back_populates="school_year")
 
+    __table_args__ = (
+        UniqueConstraint("school_id", "year", name="uq_year_per_school"),
+    )
+
 
 class GradeLevel(Base):
     __tablename__ = "grade_levels"
 
     grade_level_id = Column(Integer, primary_key=True, index=True)
-    level = Column(String(10), unique=True, nullable=False, index=True)  # "7"
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    level = Column(String(10), nullable=False, index=True)  # "7"
     name = Column(String(30), nullable=False)  # "Grade 7"
     sort_order = Column(Integer, nullable=False, default=0)
 
@@ -53,18 +70,28 @@ class GradeLevel(Base):
         "Subject", back_populates="grade_level", cascade="all, delete-orphan"
     )
 
+    __table_args__ = (
+        UniqueConstraint("school_id", "level", name="uq_level_per_school"),
+    )
+
 
 class Section(Base):
     __tablename__ = "sections"
 
     section_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     grade_level_id = Column(
         Integer,
         ForeignKey("grade_levels.grade_level_id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    section_code = Column(String(20), unique=True, nullable=False, index=True)
+    section_code = Column(String(20), nullable=False, index=True)
     name = Column(String(40), nullable=False)
     room = Column(String(40), nullable=True)
     capacity = Column(Integer, nullable=False, default=40)
@@ -75,11 +102,21 @@ class Section(Base):
     )
     enrollments = relationship("StudentEnrollment", back_populates="section")
 
+    __table_args__ = (
+        UniqueConstraint("school_id", "section_code", name="uq_section_code_per_school"),
+    )
+
 
 class Subject(Base):
     __tablename__ = "subjects"
 
     subject_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     grade_level_id = Column(
         Integer,
         ForeignKey("grade_levels.grade_level_id", ondelete="CASCADE"),
@@ -87,12 +124,18 @@ class Subject(Base):
         index=True,
     )
     subject_name = Column(String(255), nullable=False, index=True)
-    subject_code = Column(String(50), unique=True, nullable=False, index=True)
-    # A PACE-based curriculum: each subject is split into numbered PACE booklets.
+    subject_code = Column(String(50), nullable=False, index=True)
+    # Only meaningful where the school tracks lesson units (School of Tomorrow
+    # calls them PACEs; another school may call them modules, or not track them
+    # at all). See School.tracks_units.
     total_paces = Column(Integer, nullable=False, default=12)
     is_active = Column(Boolean, nullable=False, default=True)
 
     grade_level = relationship("GradeLevel", back_populates="subjects")
+
+    __table_args__ = (
+        UniqueConstraint("school_id", "subject_code", name="uq_subject_code_per_school"),
+    )
 
 
 class TeacherAssignment(Base):
@@ -101,6 +144,12 @@ class TeacherAssignment(Base):
     __tablename__ = "teacher_assignments"
 
     assignment_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     teacher_id = Column(
         GUID(), ForeignKey("staff.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -137,6 +186,12 @@ class ClassSchedule(Base):
     __tablename__ = "class_schedules"
 
     schedule_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     school_year_id = Column(
         Integer,
         ForeignKey("school_years.school_year_id", ondelete="CASCADE"),
@@ -182,6 +237,12 @@ class TeacherAvailability(Base):
     __tablename__ = "teacher_availabilities"
 
     availability_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     teacher_id = Column(
         GUID(), ForeignKey("staff.id", ondelete="CASCADE"), nullable=False, index=True
     )

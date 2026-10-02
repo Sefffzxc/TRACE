@@ -21,7 +21,7 @@ from fastapi import (
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user
+from app.api.deps import get_current_admin, get_current_user, school_scope
 from app.core.config import settings
 from app.core.security import (
     generate_temp_password,
@@ -31,6 +31,7 @@ from app.core.security import (
 from app.db.session import get_db
 from app.models.academic import Section, TeacherAssignment
 from app.models.staff import (
+    ROLE_SUPER_ADMIN,
     ROLE_TEACHER,
     STATUS_APPROVED,
     STATUS_DEACTIVATED,
@@ -176,10 +177,15 @@ async def list_staff(
     account_status: Optional[str] = Query(default=None),
     search: Optional[str] = Query(default=None),
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    """Everyone can read the teacher directory; only admins see admins."""
-    stmt = select(Staff)
+    """Everyone can read the teacher directory; only admins see admins.
+
+    Scoped to the caller's own school. The super admin's ``school_id`` is NULL,
+    so this filter can never return the operator account either.
+    """
+    stmt = select(Staff).where(Staff.school_id == scope)
     if role:
         stmt = stmt.where(Staff.role == role)
     elif current.role != "admin":
@@ -200,21 +206,30 @@ async def list_staff(
 
 @router.get("/api/staff/teachers")
 async def list_teachers(
-    current: Staff = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
 ):
     """Teacher directory enriched with the sections each one handles."""
     teachers = (
         await db.execute(
             select(Staff)
-            .where(Staff.role == ROLE_TEACHER, Staff.is_approved.is_(True))
+            .where(
+                Staff.school_id == scope,
+                Staff.role == ROLE_TEACHER,
+                Staff.is_approved.is_(True),
+            )
             .order_by(Staff.last_name, Staff.first_name)
         )
     ).scalars().all()
 
     assignments = (
         await db.execute(
-            select(TeacherAssignment, Section).join(
-                Section, Section.section_id == TeacherAssignment.section_id
+            select(TeacherAssignment, Section)
+            .join(Section, Section.section_id == TeacherAssignment.section_id)
+            .where(
+                TeacherAssignment.school_id == scope,
+                Section.school_id == scope,
             )
         )
     ).all()
@@ -238,12 +253,17 @@ async def list_teachers(
 
 @router.get("/api/staff/pending", response_model=List[StaffResponse])
 async def list_pending(
-    _: Staff = Depends(get_current_admin), db: AsyncSession = Depends(get_db)
+    _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
 ):
     rows = (
         await db.execute(
             select(Staff)
-            .where(Staff.account_status == STATUS_PENDING)
+            .where(
+                Staff.school_id == scope,
+                Staff.account_status == STATUS_PENDING,
+            )
             .order_by(Staff.created_at.desc())
         )
     ).scalars().all()
@@ -255,9 +275,19 @@ async def list_audit_logs(
     limit: int = Query(default=100, le=500),
     action: Optional[str] = None,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit)
+    # audit_logs has no school_id column, so the trail is scoped through the
+    # actor: an administrator sees only what their own school's staff did. The
+    # super admin's school_id is NULL, so their actions are excluded too.
+    school_actors = select(Staff.id).where(Staff.school_id == scope)
+    stmt = (
+        select(AuditLog)
+        .where(AuditLog.admin_id.in_(school_actors))
+        .order_by(AuditLog.created_at.desc())
+        .limit(limit)
+    )
     if action:
         stmt = stmt.where(AuditLog.action == action)
     logs = (await db.execute(stmt)).scalars().all()
@@ -267,7 +297,9 @@ async def list_audit_logs(
     names: dict[uuid.UUID, str] = {}
     if ids:
         people = (
-            await db.execute(select(Staff).where(Staff.id.in_(ids)))
+            await db.execute(
+                select(Staff).where(Staff.school_id == scope, Staff.id.in_(ids))
+            )
         ).scalars().all()
         names = {p.id: p.full_name for p in people}
 
@@ -283,13 +315,23 @@ async def list_audit_logs(
 @router.get("/api/staff/{staff_id}", response_model=StaffResponse)
 async def read_staff(
     staff_id: uuid.UUID,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    """One colleague's profile — from the caller's own school only.
+
+    Reading an arbitrary staff id used to be allowed to any signed-in user,
+    which was harmless with one school and a cross-tenant leak with many. A
+    record outside the caller's school answers 404, the same as one that does
+    not exist, so ids cannot be probed.
+    """
     staff = (
-        await db.execute(select(Staff).where(Staff.id == staff_id))
+        await db.execute(
+            select(Staff).where(Staff.id == staff_id, Staff.school_id == scope)
+        )
     ).scalar_one_or_none()
-    if staff is None:
+    if staff is None or staff.role == ROLE_SUPER_ADMIN:
         raise HTTPException(status_code=404, detail="Staff member not found.")
     return StaffResponse.model_validate(staff)
 
@@ -303,12 +345,17 @@ async def admin_update_staff(
     payload: StaffAdminUpdate,
     request: Request,
     admin: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    # Scoped lookup: a staff member in another school is reported as simply not
+    # existing, so a principal cannot discover other schools' accounts by id.
     staff = (
-        await db.execute(select(Staff).where(Staff.id == staff_id))
+        await db.execute(
+            select(Staff).where(Staff.id == staff_id, Staff.school_id == scope)
+        )
     ).scalar_one_or_none()
-    if staff is None:
+    if staff is None or staff.role == ROLE_SUPER_ADMIN:
         raise HTTPException(status_code=404, detail="Staff member not found.")
     if staff.id == admin.id and payload.action in {"deactivate", "reject"}:
         raise HTTPException(
@@ -401,12 +448,15 @@ async def delete_staff(
     staff_id: uuid.UUID,
     request: Request,
     admin: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     staff = (
-        await db.execute(select(Staff).where(Staff.id == staff_id))
+        await db.execute(
+            select(Staff).where(Staff.id == staff_id, Staff.school_id == scope)
+        )
     ).scalar_one_or_none()
-    if staff is None:
+    if staff is None or staff.role == ROLE_SUPER_ADMIN:
         raise HTTPException(status_code=404, detail="Staff member not found.")
     if staff.id == admin.id:
         raise HTTPException(status_code=400, detail="You cannot delete your own account.")

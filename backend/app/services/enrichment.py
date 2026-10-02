@@ -30,18 +30,31 @@ class Lookups:
         self.staff: Dict[str, str] = {}
 
     @classmethod
-    async def load(cls, db: AsyncSession) -> "Lookups":
+    async def load(cls, db: AsyncSession, *, school_id: int) -> "Lookups":
         self = cls()
-        for level in (await db.execute(select(GradeLevel))).scalars():
+        for level in (
+            await db.execute(
+                select(GradeLevel).where(GradeLevel.school_id == school_id)
+            )
+        ).scalars():
             self.grade_levels[level.grade_level_id] = level.name
-        for section in (await db.execute(select(Section))).scalars():
+        for section in (
+            await db.execute(select(Section).where(Section.school_id == school_id))
+        ).scalars():
             self.sections[section.section_id] = section.name
             self.section_grade[section.section_id] = section.grade_level_id
-        for person in (await db.execute(select(Staff))).scalars():
+        # Staff.school_id is NULL for the super admin, so this filter also keeps
+        # the operator account out of every school's name lookup.
+        for person in (
+            await db.execute(select(Staff).where(Staff.school_id == school_id))
+        ).scalars():
             self.staff[str(person.id)] = person.full_name
         rows = (
             await db.execute(
-                select(TeacherAssignment).where(TeacherAssignment.is_adviser.is_(True))
+                select(TeacherAssignment).where(
+                    TeacherAssignment.school_id == school_id,
+                    TeacherAssignment.is_adviser.is_(True),
+                )
             )
         ).scalars().all()
         for assignment in rows:
@@ -52,10 +65,16 @@ class Lookups:
 
 
 async def current_enrollments(
-    db: AsyncSession, student_ids: Optional[Iterable[int]] = None
+    db: AsyncSession,
+    student_ids: Optional[Iterable[int]] = None,
+    *,
+    school_id: int,
 ) -> Dict[int, StudentEnrollment]:
     """The active enrolment per student, keyed by student id."""
-    stmt = select(StudentEnrollment).where(StudentEnrollment.is_active.is_(True))
+    stmt = select(StudentEnrollment).where(
+        StudentEnrollment.school_id == school_id,
+        StudentEnrollment.is_active.is_(True),
+    )
     if student_ids is not None:
         ids = list(student_ids)
         if not ids:
@@ -72,9 +91,12 @@ async def current_enrollments(
 
 
 async def paces_by_student(
-    db: AsyncSession, student_ids: Optional[Iterable[int]] = None
+    db: AsyncSession,
+    student_ids: Optional[Iterable[int]] = None,
+    *,
+    school_id: int,
 ) -> Dict[int, List[dict]]:
-    stmt = select(StudentPace)
+    stmt = select(StudentPace).where(StudentPace.school_id == school_id)
     if student_ids is not None:
         ids = list(student_ids)
         if not ids:
@@ -127,11 +149,13 @@ def build_student_response(
     return item
 
 
-async def build_student_list(db: AsyncSession, students: List[Student]) -> List[StudentResponse]:
+async def build_student_list(
+    db: AsyncSession, students: List[Student], *, school_id: int
+) -> List[StudentResponse]:
     ids = [s.student_id for s in students]
-    lookups = await Lookups.load(db)
-    enrollments = await current_enrollments(db, ids)
-    paces = await paces_by_student(db, ids)
+    lookups = await Lookups.load(db, school_id=school_id)
+    enrollments = await current_enrollments(db, ids, school_id=school_id)
+    paces = await paces_by_student(db, ids, school_id=school_id)
     return [
         build_student_response(
             student, enrollments.get(student.student_id), paces.get(student.student_id, []), lookups
@@ -141,7 +165,10 @@ async def build_student_list(db: AsyncSession, students: List[Student]) -> List[
 
 
 async def latest_predictions(
-    db: AsyncSession, pace_ids: Optional[Iterable[int]] = None
+    db: AsyncSession,
+    pace_ids: Optional[Iterable[int]] = None,
+    *,
+    school_id: int,
 ) -> Dict[int, "AIRiskPrediction"]:
     """The newest AI prediction per PACE record, keyed by ``pace_id``.
 
@@ -149,7 +176,11 @@ async def latest_predictions(
     recently created row for this PACE record". Done in Python rather than with
     a window function so the same query works on SQLite and PostgreSQL.
     """
-    stmt = select(AIRiskPrediction).order_by(AIRiskPrediction.prediction_id)
+    stmt = (
+        select(AIRiskPrediction)
+        .where(AIRiskPrediction.school_id == school_id)
+        .order_by(AIRiskPrediction.prediction_id)
+    )
     if pace_ids is not None:
         ids = [int(i) for i in pace_ids if i is not None]
         if not ids:
@@ -165,7 +196,10 @@ async def latest_predictions(
 
 
 async def latest_prediction_per_student(
-    db: AsyncSession, student_ids: Optional[Iterable[int]] = None
+    db: AsyncSession,
+    student_ids: Optional[Iterable[int]] = None,
+    *,
+    school_id: int,
 ) -> Dict[int, "AIRiskPrediction"]:
     """The student's worst current prediction across their subjects.
 
@@ -174,7 +208,11 @@ async def latest_prediction_per_student(
     among that student's newest per-subject predictions — the same "worst
     subject wins" rule the rule-based summary uses.
     """
-    stmt = select(AIRiskPrediction).order_by(AIRiskPrediction.prediction_id)
+    stmt = (
+        select(AIRiskPrediction)
+        .where(AIRiskPrediction.school_id == school_id)
+        .order_by(AIRiskPrediction.prediction_id)
+    )
     if student_ids is not None:
         ids = [int(i) for i in student_ids]
         if not ids:
@@ -194,11 +232,12 @@ async def latest_prediction_per_student(
     return worst
 
 
-async def sections_for_teacher(db: AsyncSession, teacher_id) -> List[int]:
+async def sections_for_teacher(db: AsyncSession, teacher_id, *, school_id: int) -> List[int]:
     rows = (
         await db.execute(
             select(TeacherAssignment.section_id).where(
-                TeacherAssignment.teacher_id == teacher_id
+                TeacherAssignment.school_id == school_id,
+                TeacherAssignment.teacher_id == teacher_id,
             )
         )
     ).scalars().all()

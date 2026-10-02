@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user
+from app.api.deps import get_current_admin, get_current_user, school_scope
+from app.api.scoping import get_scoped, get_scoped_optional, scoped
 from app.db.session import get_db
 from app.models.academic import GradeLevel, SchoolYear, Section
 from app.models.staff import ROLE_ADMIN, Staff
@@ -37,21 +38,42 @@ from app.services.enrichment import (
 router = APIRouter(tags=["Students"])
 
 
-async def _next_login_id(db: AsyncSession) -> str:
-    highest = (await db.execute(select(func.max(Student.student_id)))).scalar_one()
+async def _next_login_id(db: AsyncSession, school_id: int) -> str:
+    highest = (
+        await db.execute(
+            scoped(select(func.max(Student.student_id)), Student, school_id)
+        )
+    ).scalar_one()
     return f"S{(highest or 0) + 1:04d}"
 
 
-async def _resolve_school_year(db: AsyncSession, given: Optional[int]) -> int:
+async def _resolve_school_year(
+    db: AsyncSession, given: Optional[int], school_id: int
+) -> int:
     if given:
+        # A school year supplied by the caller must be one of this school's own.
+        if await get_scoped_optional(db, SchoolYear, given, school_id) is None:
+            raise HTTPException(
+                status_code=400, detail="That school year does not exist."
+            )
         return given
     row = (
-        await db.execute(select(SchoolYear).where(SchoolYear.is_current.is_(True)))
+        await db.execute(
+            scoped(
+                select(SchoolYear).where(SchoolYear.is_current.is_(True)),
+                SchoolYear,
+                school_id,
+            )
+        )
     ).scalar_one_or_none()
     if row is None:
         row = (
             await db.execute(
-                select(SchoolYear).order_by(SchoolYear.start_date.desc()).limit(1)
+                scoped(
+                    select(SchoolYear).order_by(SchoolYear.start_date.desc()).limit(1),
+                    SchoolYear,
+                    school_id,
+                )
             )
         ).scalar_one_or_none()
     if row is None:
@@ -74,9 +96,12 @@ async def list_students(
     is_active: Optional[bool] = None,
     mine: bool = Query(default=False, description="Only students in my sections"),
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Student).order_by(Student.last_name, Student.first_name)
+    stmt = scoped(
+        select(Student).order_by(Student.last_name, Student.first_name), Student, scope
+    )
     if is_active is not None:
         stmt = stmt.where(Student.is_active.is_(is_active))
     if search:
@@ -90,11 +115,11 @@ async def list_students(
         )
 
     students = (await db.execute(stmt)).scalars().all()
-    rows = await build_student_list(db, list(students))
+    rows = await build_student_list(db, list(students), school_id=scope)
 
     # Teachers may narrow the list to the sections they actually handle.
     if mine and current.role != ROLE_ADMIN:
-        allowed = set(await sections_for_teacher(db, current.id))
+        allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
         rows = [r for r in rows if r.section_id in allowed]
 
     if grade_level_id:
@@ -111,14 +136,13 @@ async def list_students(
 async def read_student(
     student_id: int,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    student = await db.get(Student, student_id)
-    if student is None:
-        raise HTTPException(status_code=404, detail="Student not found.")
-    lookups = await Lookups.load(db)
-    enrollments = await current_enrollments(db, [student_id])
-    paces = await paces_by_student(db, [student_id])
+    student = await get_scoped(db, Student, student_id, scope, "Student")
+    lookups = await Lookups.load(db, school_id=scope)
+    enrollments = await current_enrollments(db, [student_id], school_id=scope)
+    paces = await paces_by_student(db, [student_id], school_id=scope)
     return build_student_response(
         student, enrollments.get(student_id), paces.get(student_id, []), lookups
     )
@@ -128,16 +152,15 @@ async def read_student(
 async def student_profile(
     student_id: int,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     """Everything the profile screen shows, in one request."""
-    student = await db.get(Student, student_id)
-    if student is None:
-        raise HTTPException(status_code=404, detail="Student not found.")
+    student = await get_scoped(db, Student, student_id, scope, "Student")
 
-    lookups = await Lookups.load(db)
-    enrollments_map = await current_enrollments(db, [student_id])
-    paces_map = await paces_by_student(db, [student_id])
+    lookups = await Lookups.load(db, school_id=scope)
+    enrollments_map = await current_enrollments(db, [student_id], school_id=scope)
+    paces_map = await paces_by_student(db, [student_id], school_id=scope)
     overview = build_student_response(
         student, enrollments_map.get(student_id), paces_map.get(student_id, []), lookups
     )
@@ -145,14 +168,19 @@ async def student_profile(
     pace_rows = (
         await db.execute(
             select(StudentPace)
-            .where(StudentPace.student_id == student_id)
+            .where(
+                StudentPace.student_id == student_id,
+                StudentPace.school_id == scope,
+            )
             .order_by(StudentPace.subject)
         )
     ).scalars().all()
 
     # Newest AI prediction per PACE record, shown alongside — never instead of —
     # the school's own rule-based standing.
-    predictions = await latest_predictions(db, [r.pace_id for r in pace_rows])
+    predictions = await latest_predictions(
+        db, [r.pace_id for r in pace_rows], school_id=scope
+    )
 
     subjects = []
     for row in pace_rows:
@@ -196,12 +224,18 @@ async def student_profile(
     history_rows = (
         await db.execute(
             select(StudentEnrollment)
-            .where(StudentEnrollment.student_id == student_id)
+            .where(
+                StudentEnrollment.student_id == student_id,
+                StudentEnrollment.school_id == scope,
+            )
             .order_by(StudentEnrollment.school_year_id.desc())
         )
     ).scalars().all()
     years = {
-        y.school_year_id: y.year for y in (await db.execute(select(SchoolYear))).scalars()
+        y.school_year_id: y.year
+        for y in (
+            await db.execute(scoped(select(SchoolYear), SchoolYear, scope))
+        ).scalars()
     }
     history = [
         {
@@ -227,6 +261,7 @@ async def create_student(
     payload: StudentCreate,
     request: Request,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     data = payload.model_dump()
@@ -234,22 +269,23 @@ async def create_student(
     section_id = data.pop("section_id", None)
     school_year_id = data.pop("school_year_id", None)
 
-    student = Student(**data, created_by=current.id)
+    student = Student(**data, school_id=scope, created_by=current.id)
     db.add(student)
     await db.flush()
     student.login_id = f"S{student.student_id:04d}"
 
     if grade_level_id and section_id:
-        if await db.get(GradeLevel, grade_level_id) is None:
+        if await get_scoped_optional(db, GradeLevel, grade_level_id, scope) is None:
             raise HTTPException(status_code=400, detail="That grade level does not exist.")
-        if await db.get(Section, section_id) is None:
+        if await get_scoped_optional(db, Section, section_id, scope) is None:
             raise HTTPException(status_code=400, detail="That section does not exist.")
         db.add(
             StudentEnrollment(
+                school_id=scope,
                 student_id=student.student_id,
                 grade_level_id=grade_level_id,
                 section_id=section_id,
-                school_year_id=await _resolve_school_year(db, school_year_id),
+                school_year_id=await _resolve_school_year(db, school_year_id, scope),
                 enrolled_by=current.id,
                 enrollment_date=date.today(),
                 is_active=True,
@@ -266,8 +302,8 @@ async def create_student(
     await db.commit()
     await db.refresh(student)
 
-    lookups = await Lookups.load(db)
-    enrollments = await current_enrollments(db, [student.student_id])
+    lookups = await Lookups.load(db, school_id=scope)
+    enrollments = await current_enrollments(db, [student.student_id], school_id=scope)
     return build_student_response(
         student, enrollments.get(student.student_id), [], lookups
     )
@@ -279,11 +315,10 @@ async def update_student(
     payload: StudentUpdate,
     request: Request,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    student = await db.get(Student, student_id)
-    if student is None:
-        raise HTTPException(status_code=404, detail="Student not found.")
+    student = await get_scoped(db, Student, student_id, scope, "Student")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(student, field, value)
     await log_event(
@@ -293,9 +328,9 @@ async def update_student(
     await db.commit()
     await db.refresh(student)
 
-    lookups = await Lookups.load(db)
-    enrollments = await current_enrollments(db, [student_id])
-    paces = await paces_by_student(db, [student_id])
+    lookups = await Lookups.load(db, school_id=scope)
+    enrollments = await current_enrollments(db, [student_id], school_id=scope)
+    paces = await paces_by_student(db, [student_id], school_id=scope)
     return build_student_response(
         student, enrollments.get(student_id), paces.get(student_id, []), lookups
     )
@@ -306,11 +341,10 @@ async def delete_student(
     student_id: int,
     request: Request,
     admin: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    student = await db.get(Student, student_id)
-    if student is None:
-        raise HTTPException(status_code=404, detail="Student not found.")
+    student = await get_scoped(db, Student, student_id, scope, "Student")
     await log_event(
         db, Action.STUDENT_DELETED, actor_id=admin.id, detail=student.full_name,
         request=request,
@@ -329,9 +363,10 @@ async def list_enrollments(
     student_id: Optional[int] = None,
     is_active: Optional[bool] = None,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(StudentEnrollment)
+    stmt = scoped(select(StudentEnrollment), StudentEnrollment, scope)
     if school_year_id:
         stmt = stmt.where(StudentEnrollment.school_year_id == school_year_id)
     if section_id:
@@ -342,12 +377,16 @@ async def list_enrollments(
         stmt = stmt.where(StudentEnrollment.is_active.is_(is_active))
     rows = (await db.execute(stmt)).scalars().all()
 
-    lookups = await Lookups.load(db)
+    lookups = await Lookups.load(db, school_id=scope)
     students = {
-        s.student_id: s.full_name for s in (await db.execute(select(Student))).scalars()
+        s.student_id: s.full_name
+        for s in (await db.execute(scoped(select(Student), Student, scope))).scalars()
     }
     years = {
-        y.school_year_id: y.year for y in (await db.execute(select(SchoolYear))).scalars()
+        y.school_year_id: y.year
+        for y in (
+            await db.execute(scoped(select(SchoolYear), SchoolYear, scope))
+        ).scalars()
     }
 
     out = []
@@ -365,14 +404,20 @@ async def list_enrollments(
 async def create_enrollment(
     payload: EnrollmentCreate,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    if await db.get(Student, payload.student_id) is None:
-        raise HTTPException(status_code=404, detail="Student not found.")
+    await get_scoped(db, Student, payload.student_id, scope, "Student")
+
+    if await get_scoped_optional(db, GradeLevel, payload.grade_level_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That grade level does not exist.")
+    if await get_scoped_optional(db, SchoolYear, payload.school_year_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That school year does not exist.")
 
     duplicate = (
         await db.execute(
             select(StudentEnrollment).where(
+                StudentEnrollment.school_id == scope,
                 StudentEnrollment.student_id == payload.student_id,
                 StudentEnrollment.school_year_id == payload.school_year_id,
             )
@@ -384,7 +429,7 @@ async def create_enrollment(
             detail="That student is already enrolled for this school year.",
         )
 
-    section = await db.get(Section, payload.section_id)
+    section = await get_scoped_optional(db, Section, payload.section_id, scope)
     if section is None:
         raise HTTPException(status_code=400, detail="That section does not exist.")
 
@@ -393,6 +438,7 @@ async def create_enrollment(
             select(func.count())
             .select_from(StudentEnrollment)
             .where(
+                StudentEnrollment.school_id == scope,
                 StudentEnrollment.section_id == payload.section_id,
                 StudentEnrollment.school_year_id == payload.school_year_id,
                 StudentEnrollment.is_active.is_(True),
@@ -407,6 +453,7 @@ async def create_enrollment(
 
     row = StudentEnrollment(
         **payload.model_dump(),
+        school_id=scope,
         enrolled_by=current.id,
     )
     if row.enrollment_date is None:
@@ -422,12 +469,31 @@ async def update_enrollment(
     enrollment_id: int,
     payload: EnrollmentUpdate,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(StudentEnrollment, enrollment_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Enrolment not found.")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    row = await get_scoped(db, StudentEnrollment, enrollment_id, scope, "Enrolment")
+    data = payload.model_dump(exclude_unset=True)
+
+    # Anything the payload may point at has to belong to this school, or the
+    # loop below would quietly move the enrolment onto another school's rows.
+    for field in ("grade_level_id", "next_grade_level_id"):
+        if data.get(field) is not None and (
+            await get_scoped_optional(db, GradeLevel, data[field], scope) is None
+        ):
+            raise HTTPException(
+                status_code=400, detail="That grade level does not exist."
+            )
+    if data.get("section_id") is not None and (
+        await get_scoped_optional(db, Section, data["section_id"], scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That section does not exist.")
+    if data.get("school_year_id") is not None and (
+        await get_scoped_optional(db, SchoolYear, data["school_year_id"], scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That school year does not exist.")
+
+    for field, value in data.items():
         setattr(row, field, value)
     await db.commit()
     await db.refresh(row)
@@ -438,10 +504,9 @@ async def update_enrollment(
 async def delete_enrollment(
     enrollment_id: int,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(StudentEnrollment, enrollment_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Enrolment not found.")
+    row = await get_scoped(db, StudentEnrollment, enrollment_id, scope, "Enrolment")
     await db.delete(row)
     await db.commit()

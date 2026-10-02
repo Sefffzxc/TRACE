@@ -10,10 +10,13 @@
 /**
  * Where the API lives, read at build time from VITE_API_URL.
  *
- * A Render blueprint can inject another service's hostname but cannot build a
- * URL from it, so this may arrive as a bare `lbca-api.onrender.com`. A bare
- * host is treated as https (and localhost as http) rather than producing a
- * relative path and a stream of confusing 404s.
+ * It is set by hand at deployment time, so it may arrive as a bare
+ * `lbca-api.onrender.com`. A bare host is treated as https (and localhost as
+ * http) rather than producing a relative path and a stream of confusing 404s.
+ *
+ * It must be the API's PUBLIC hostname. An internal Render hostname — the bare
+ * service name with no domain — fails here with ERR_NAME_NOT_RESOLVED, because
+ * this code runs in the visitor's browser, not inside Render's network.
  */
 function resolveApiBase(raw) {
   const value = (raw || 'http://localhost:8000').trim().replace(/\/$/, '');
@@ -206,7 +209,10 @@ async function request(path, { method = 'GET', body, params, auth = true, raw = 
 }
 
 export const api = {
-  get: (path, params) => request(path, { params }),
+  // `options` carries { auth: false } for the two public calls — the school
+  // directory and school registration, both of which happen before anyone has
+  // an account to authenticate with.
+  get: (path, params, options) => request(path, { params, ...options }),
   post: (path, body, options) => request(path, { method: 'POST', body, ...options }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   put: (path, body) => request(path, { method: 'PUT', body }),

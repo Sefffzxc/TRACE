@@ -4,6 +4,27 @@
  */
 import { api, deviceId } from './client';
 
+/* ── Schools ─────────────────────────────────────────────────────────────────
+ * One deployment, many schools. `directory` and `register` are the only two
+ * calls here that work without signing in — a teacher has to be able to find
+ * their school before they have an account, and a school head has to be able
+ * to register one before anyone does.
+ */
+export const schoolApi = {
+  // Public: approved schools only, name and city only.
+  directory: (search) => api.get('/api/schools/directory', { search }, { auth: false }),
+  register: (payload) => api.post('/api/schools/register', payload, { auth: false }),
+
+  // The signed-in user's own school, and its settings.
+  mine: () => api.get('/api/schools/me'),
+  updateMine: (payload) => api.patch('/api/schools/me', payload),
+
+  // System operator only.
+  list: (params) => api.get('/api/schools', params),
+  decide: (schoolId, action, reason) =>
+    api.patch(`/api/schools/${schoolId}`, { action, reason }),
+};
+
 /* ── Authentication ──────────────────────────────────────────────────────── */
 export const authApi = {
   register: (payload) => api.post('/api/auth/register', payload, { auth: false }),

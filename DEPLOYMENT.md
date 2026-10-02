@@ -66,16 +66,33 @@ Sources: [Render free tier](https://render.com/docs/free) ·
 
 1. Render dashboard → **New** → **Blueprint** → pick the repository.
 2. Render reads `render.yaml` and lists the four resources.
-3. It will prompt for **one** value: `ALLOWED_ORIGINS` on `lbca-api`.
+3. It prompts for **three** values. All three are public `.onrender.com`
+   addresses:
 
-   Enter the static site's address. If you left the names as they are it will be
-   `lbca-web.onrender.com` (the `https://` is optional — the backend adds it).
-   If Render had to rename the site because the name was taken, use the name it
-   actually gave you.
+   | Service | Key | What to paste |
+   |---|---|---|
+   | `lbca-api` | `ALLOWED_ORIGINS` | the static site's address, e.g. `lbca-web.onrender.com` |
+   | `lbca-api` | `AI_SERVICE_URL` | the AI service's address, e.g. `lbca-ai.onrender.com` |
+   | `lbca-web` | `VITE_API_URL` | the API's address, e.g. `lbca-api.onrender.com` |
 
-   This is the only manual value, and it is manual for a reason: the static site
-   already points at the API automatically, and having the API point back the
-   same way would make the two services wait on each other.
+   The `https://` is optional — both the backend and the frontend add it to a
+   bare hostname. If Render renamed a service because the name was taken, use
+   the name it actually gave you; each service's real URL is shown at the top of
+   its own page.
+
+   **Why these are typed in rather than wired automatically.** A blueprint can
+   reference another service with `fromService: property: host`, and it is
+   tempting. But that injects Render's **internal** hostname — the bare service
+   name, no domain — which resolves only inside Render's private network. As
+   `VITE_API_URL` that gives every browser request `ERR_NAME_NOT_RESOLVED`,
+   because the value is read by the visitor's browser, not by Render. As
+   `AI_SERVICE_URL` it points at a host that speaks http on the service's own
+   port rather than https on 443. `ALLOWED_ORIGINS` has a further problem: the
+   static site already needs the API's address, so pointing the API back at the
+   site the same way would make the two depend on each other in a loop.
+
+   None of those failures stop the deploy. They break quietly at runtime, which
+   is why they are worth the thirty seconds of typing.
 
 4. **Apply**. The first build takes 5–10 minutes. `lbca-ai` installs
    scikit-learn, which is the slow part.
@@ -223,6 +240,7 @@ described as giving early warning weeks ahead of a failing grade.
 | Symptom | Cause |
 |---|---|
 | Browser console shows a CORS error, but `curl` on the API works | `ALLOWED_ORIGINS` does not match the static site's address |
+| `ERR_NAME_NOT_RESOLVED` on a URL with no domain, like `https://lbca-api/api/...` | `VITE_API_URL` holds an internal hostname. Set it to the public `.onrender.com` address, then **redeploy** the static site — it is baked in at build time, so a restart is not enough |
 | Every prediction says **rule-based** | the AI service is asleep, or `AI_SERVICE_TOKEN` differs between the two services. `GET /api/ai/status` says which |
 | `/health` on the AI service says `model_loaded: false` | the `.joblib` is not in the repository, or scikit-learn failed to build. The `error` field says which |
 | API returns 500 on every request | `DATABASE_URL` is wrong, or the database expired. Render's logs show the connection error |

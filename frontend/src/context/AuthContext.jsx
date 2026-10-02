@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { authApi, staffApi } from '../api/endpoints';
+import { authApi, schoolApi, staffApi } from '../api/endpoints';
 import { storedUser, tokens } from '../api/client';
 
 const AuthContext = createContext(null);
@@ -72,17 +72,68 @@ export function AuthProvider({ children }) {
     return fresh;
   }, []);
 
+  /* ── The signed-in user's school ───────────────────────────────────────────
+     Loaded once after sign-in and kept here, because almost every screen needs
+     it: whether the lesson-progress pages exist at all, and what this school
+     calls its units. The system operator has no school, which is the whole
+     point — they manage schools and accounts and never see a student record,
+     so there is nothing here for them to load. */
+  const [school, setSchool] = useState(null);
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  const loadSchool = useCallback(async () => {
+    const fresh = await schoolApi.mine();
+    setSchool(fresh);
+    return fresh;
+  }, []);
+
+  useEffect(() => {
+    if (!user || isSuperAdmin) {
+      setSchool(null);
+      return;
+    }
+    let cancelled = false;
+    schoolApi
+      .mine()
+      .then((result) => {
+        if (!cancelled) setSchool(result);
+      })
+      .catch(() => {
+        /* The shell still works without it; screens fall back to neutral
+           wording rather than blocking on a settings lookup. */
+        if (!cancelled) setSchool(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isSuperAdmin]);
+
   const value = useMemo(
     () => ({
       user,
       booting,
+      isSuperAdmin,
       isAdmin: user?.role === 'admin',
       isTeacher: user?.role === 'teacher',
+
+      school,
+      loadSchool,
+      /* Does this school track lesson units at all? Drives whether the PACE
+         screens appear. Defaults to false, so a school whose settings have not
+         loaded sees the smaller, always-valid version of the app rather than a
+         screen it may have no use for. */
+      tracksUnits: Boolean(school?.tracks_units),
+      /* What this school calls them. "PACE" at a School of Tomorrow school,
+         "Module" elsewhere — never hard-coded in a screen. */
+      unitLabel: school?.unit_label_singular || 'Module',
+      unitLabelPlural: school?.unit_label_plural || 'Modules',
+      passingMark: school?.passing_mark ?? 75,
+
       signIn,
       signOut,
       refreshProfile,
     }),
-    [user, booting, signIn, signOut, refreshProfile],
+    [user, booting, isSuperAdmin, school, loadSchool, signIn, signOut, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

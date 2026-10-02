@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -20,8 +21,16 @@ from sqlalchemy.sql import func
 from app.db.session import Base
 from app.db.types import GUID, IPAddress
 
-# Account roles
-ROLE_ADMIN = "admin"
+# Account roles.
+#
+# ROLE_SUPER_ADMIN is the operator of the deployment, not a member of any
+# school: their `school_id` is NULL, which is what makes the boundary
+# structural rather than a rule someone has to remember. A query scoped to the
+# caller's school returns nothing for them, and the student-data routes refuse
+# them outright (see `school_scope` in app/api/deps.py). They manage schools
+# and accounts; they do not read student records.
+ROLE_SUPER_ADMIN = "super_admin"
+ROLE_ADMIN = "admin"          # a school's principal / head
 ROLE_TEACHER = "teacher"
 
 # Account statuses
@@ -41,6 +50,17 @@ class Staff(Base):
     __tablename__ = "staff"
 
     id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    # NULL only for the super admin, who belongs to no school. Every other
+    # account is bound to exactly one, and that binding is what every
+    # student-data query is filtered by.
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    # Email stays globally unique: one person, one account, one school. It also
+    # means sign-in never has to ask which school you meant.
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
 
@@ -50,7 +70,9 @@ class Staff(Base):
     contact_number = Column(String(20), nullable=False)
 
     role = Column(String(20), nullable=False, default=ROLE_TEACHER)
-    employee_no = Column(String(30), nullable=True, unique=True)
+    # Unique within a school, not globally — two schools may each number their
+    # staff from EMP-001 and neither is wrong.
+    employee_no = Column(String(30), nullable=True)
     department = Column(String(100), nullable=True)
     profile_pic = Column(Text, nullable=True)
 
@@ -86,10 +108,18 @@ class Staff(Base):
         "PasswordReset", back_populates="staff", cascade="all, delete-orphan"
     )
 
+    __table_args__ = (
+        UniqueConstraint("school_id", "employee_no", name="uq_employee_no_per_school"),
+    )
+
     @property
     def full_name(self) -> str:
         middle = f" {self.middle_name}" if self.middle_name else ""
         return f"{self.first_name}{middle} {self.last_name}"
+
+    @property
+    def is_super_admin(self) -> bool:
+        return self.role == ROLE_SUPER_ADMIN
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<Staff {self.email} ({self.role})>"

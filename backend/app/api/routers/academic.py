@@ -9,7 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user
+from app.api.deps import get_current_admin, get_current_user, school_scope
+from app.api.scoping import get_scoped, get_scoped_optional, scoped
 from app.db.session import get_db
 from app.models.academic import (
     ClassSchedule,
@@ -61,25 +62,45 @@ def _overlaps(a_start: str, a_end: str, b_start: str, b_end: str) -> bool:
 # ══════════════════════════════════════════════════════════════════════════════
 @router.get("/api/school-years", response_model=List[SchoolYearResponse])
 async def list_school_years(
-    _: Staff = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
 ):
     rows = (
-        await db.execute(select(SchoolYear).order_by(SchoolYear.start_date.desc()))
+        await db.execute(
+            scoped(
+                select(SchoolYear).order_by(SchoolYear.start_date.desc()),
+                SchoolYear,
+                scope,
+            )
+        )
     ).scalars().all()
     return [SchoolYearResponse.model_validate(r) for r in rows]
 
 
 @router.get("/api/school-years/current", response_model=Optional[SchoolYearResponse])
 async def current_school_year(
-    _: Staff = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
 ):
     row = (
-        await db.execute(select(SchoolYear).where(SchoolYear.is_current.is_(True)))
+        await db.execute(
+            scoped(
+                select(SchoolYear).where(SchoolYear.is_current.is_(True)),
+                SchoolYear,
+                scope,
+            )
+        )
     ).scalar_one_or_none()
     if row is None:
         row = (
             await db.execute(
-                select(SchoolYear).order_by(SchoolYear.start_date.desc()).limit(1)
+                scoped(
+                    select(SchoolYear).order_by(SchoolYear.start_date.desc()).limit(1),
+                    SchoolYear,
+                    scope,
+                )
             )
         ).scalar_one_or_none()
     return SchoolYearResponse.model_validate(row) if row else None
@@ -93,6 +114,7 @@ async def current_school_year(
 async def create_school_year(
     payload: SchoolYearCreate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     if payload.end_date <= payload.start_date:
@@ -100,14 +122,22 @@ async def create_school_year(
             status_code=400, detail="The end date must come after the start date."
         )
     exists = (
-        await db.execute(select(SchoolYear).where(SchoolYear.year == payload.year))
+        await db.execute(
+            scoped(
+                select(SchoolYear).where(SchoolYear.year == payload.year),
+                SchoolYear,
+                scope,
+            )
+        )
     ).scalar_one_or_none()
     if exists:
         raise HTTPException(status_code=409, detail="That school year already exists.")
 
-    row = SchoolYear(**payload.model_dump())
+    row = SchoolYear(**payload.model_dump(), school_id=scope)
     if row.is_current:
-        for other in (await db.execute(select(SchoolYear))).scalars().all():
+        for other in (
+            await db.execute(scoped(select(SchoolYear), SchoolYear, scope))
+        ).scalars().all():
             other.is_current = False
     db.add(row)
     await db.commit()
@@ -120,14 +150,15 @@ async def update_school_year(
     school_year_id: int,
     payload: SchoolYearUpdate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(SchoolYear, school_year_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="School year not found.")
+    row = await get_scoped(db, SchoolYear, school_year_id, scope, "School year")
     data = payload.model_dump(exclude_unset=True)
     if data.get("is_current"):
-        for other in (await db.execute(select(SchoolYear))).scalars().all():
+        for other in (
+            await db.execute(scoped(select(SchoolYear), SchoolYear, scope))
+        ).scalars().all():
             other.is_current = False
     for field, value in data.items():
         setattr(row, field, value)
@@ -140,16 +171,19 @@ async def update_school_year(
 async def delete_school_year(
     school_year_id: int,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(SchoolYear, school_year_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="School year not found.")
+    row = await get_scoped(db, SchoolYear, school_year_id, scope, "School year")
     in_use = (
         await db.execute(
-            select(func.count())
-            .select_from(StudentEnrollment)
-            .where(StudentEnrollment.school_year_id == school_year_id)
+            scoped(
+                select(func.count())
+                .select_from(StudentEnrollment)
+                .where(StudentEnrollment.school_year_id == school_year_id),
+                StudentEnrollment,
+                scope,
+            )
         )
     ).scalar_one()
     if in_use:
@@ -166,19 +200,31 @@ async def delete_school_year(
 # ══════════════════════════════════════════════════════════════════════════════
 @router.get("/api/grade-levels", response_model=List[GradeLevelResponse])
 async def list_grade_levels(
-    _: Staff = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
 ):
     rows = (
         await db.execute(
-            select(GradeLevel).order_by(GradeLevel.sort_order, GradeLevel.grade_level_id)
+            scoped(
+                select(GradeLevel).order_by(
+                    GradeLevel.sort_order, GradeLevel.grade_level_id
+                ),
+                GradeLevel,
+                scope,
+            )
         )
     ).scalars().all()
 
     section_counts = dict(
         (
             await db.execute(
-                select(Section.grade_level_id, func.count()).group_by(
-                    Section.grade_level_id
+                scoped(
+                    select(Section.grade_level_id, func.count()).group_by(
+                        Section.grade_level_id
+                    ),
+                    Section,
+                    scope,
                 )
             )
         ).all()
@@ -186,9 +232,13 @@ async def list_grade_levels(
     student_counts = dict(
         (
             await db.execute(
-                select(StudentEnrollment.grade_level_id, func.count())
-                .where(StudentEnrollment.is_active.is_(True))
-                .group_by(StudentEnrollment.grade_level_id)
+                scoped(
+                    select(StudentEnrollment.grade_level_id, func.count())
+                    .where(StudentEnrollment.is_active.is_(True))
+                    .group_by(StudentEnrollment.grade_level_id),
+                    StudentEnrollment,
+                    scope,
+                )
             )
         ).all()
     )
@@ -208,14 +258,21 @@ async def list_grade_levels(
 async def create_grade_level(
     payload: GradeLevelCreate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     exists = (
-        await db.execute(select(GradeLevel).where(GradeLevel.level == payload.level))
+        await db.execute(
+            scoped(
+                select(GradeLevel).where(GradeLevel.level == payload.level),
+                GradeLevel,
+                scope,
+            )
+        )
     ).scalar_one_or_none()
     if exists:
         raise HTTPException(status_code=409, detail="That grade level already exists.")
-    row = GradeLevel(**payload.model_dump())
+    row = GradeLevel(**payload.model_dump(), school_id=scope)
     db.add(row)
     await db.commit()
     await db.refresh(row)
@@ -227,11 +284,10 @@ async def update_grade_level(
     grade_level_id: int,
     payload: GradeLevelUpdate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(GradeLevel, grade_level_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Grade level not found.")
+    row = await get_scoped(db, GradeLevel, grade_level_id, scope, "Grade level")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(row, field, value)
     await db.commit()
@@ -243,16 +299,19 @@ async def update_grade_level(
 async def delete_grade_level(
     grade_level_id: int,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(GradeLevel, grade_level_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Grade level not found.")
+    row = await get_scoped(db, GradeLevel, grade_level_id, scope, "Grade level")
     enrolled = (
         await db.execute(
-            select(func.count())
-            .select_from(StudentEnrollment)
-            .where(StudentEnrollment.grade_level_id == grade_level_id)
+            scoped(
+                select(func.count())
+                .select_from(StudentEnrollment)
+                .where(StudentEnrollment.grade_level_id == grade_level_id),
+                StudentEnrollment,
+                scope,
+            )
         )
     ).scalar_one()
     if enrolled:
@@ -267,26 +326,41 @@ async def delete_grade_level(
 # ══════════════════════════════════════════════════════════════════════════════
 # Sections
 # ══════════════════════════════════════════════════════════════════════════════
-async def _decorate_sections(db: AsyncSession, rows) -> List[SectionResponse]:
+async def _decorate_sections(
+    db: AsyncSession, rows, scope: int
+) -> List[SectionResponse]:
     levels = {
         lvl.grade_level_id: lvl.name
-        for lvl in (await db.execute(select(GradeLevel))).scalars().all()
+        for lvl in (
+            await db.execute(scoped(select(GradeLevel), GradeLevel, scope))
+        ).scalars().all()
     }
     counts = dict(
         (
             await db.execute(
-                select(StudentEnrollment.section_id, func.count())
-                .where(StudentEnrollment.is_active.is_(True))
-                .group_by(StudentEnrollment.section_id)
+                scoped(
+                    select(StudentEnrollment.section_id, func.count())
+                    .where(StudentEnrollment.is_active.is_(True))
+                    .group_by(StudentEnrollment.section_id),
+                    StudentEnrollment,
+                    scope,
+                )
             )
         ).all()
     )
     advisers = {}
     for assignment, staff in (
         await db.execute(
-            select(TeacherAssignment, Staff)
-            .join(Staff, Staff.id == TeacherAssignment.teacher_id)
-            .where(TeacherAssignment.is_adviser.is_(True))
+            scoped(
+                select(TeacherAssignment, Staff)
+                .join(Staff, Staff.id == TeacherAssignment.teacher_id)
+                .where(
+                    TeacherAssignment.is_adviser.is_(True),
+                    Staff.school_id == scope,
+                ),
+                TeacherAssignment,
+                scope,
+            )
         )
     ).all():
         advisers[assignment.section_id] = staff.full_name
@@ -305,35 +379,43 @@ async def _decorate_sections(db: AsyncSession, rows) -> List[SectionResponse]:
 async def list_sections(
     grade_level_id: Optional[int] = None,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Section).order_by(Section.grade_level_id, Section.name)
+    stmt = scoped(
+        select(Section).order_by(Section.grade_level_id, Section.name), Section, scope
+    )
     if grade_level_id:
         stmt = stmt.where(Section.grade_level_id == grade_level_id)
     rows = (await db.execute(stmt)).scalars().all()
-    return await _decorate_sections(db, rows)
+    return await _decorate_sections(db, rows, scope)
 
 
 @router.post("/api/sections", response_model=SectionResponse, status_code=201)
 async def create_section(
     payload: SectionCreate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    if await db.get(GradeLevel, payload.grade_level_id) is None:
+    if await get_scoped_optional(db, GradeLevel, payload.grade_level_id, scope) is None:
         raise HTTPException(status_code=400, detail="That grade level does not exist.")
     exists = (
         await db.execute(
-            select(Section).where(Section.section_code == payload.section_code)
+            scoped(
+                select(Section).where(Section.section_code == payload.section_code),
+                Section,
+                scope,
+            )
         )
     ).scalar_one_or_none()
     if exists:
         raise HTTPException(status_code=409, detail="That section code is already taken.")
-    row = Section(**payload.model_dump())
+    row = Section(**payload.model_dump(), school_id=scope)
     db.add(row)
     await db.commit()
     await db.refresh(row)
-    return (await _decorate_sections(db, [row]))[0]
+    return (await _decorate_sections(db, [row], scope))[0]
 
 
 @router.patch("/api/sections/{section_id}", response_model=SectionResponse)
@@ -341,32 +423,39 @@ async def update_section(
     section_id: int,
     payload: SectionUpdate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(Section, section_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Section not found.")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    row = await get_scoped(db, Section, section_id, scope, "Section")
+    data = payload.model_dump(exclude_unset=True)
+    if data.get("grade_level_id") is not None and (
+        await get_scoped_optional(db, GradeLevel, data["grade_level_id"], scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That grade level does not exist.")
+    for field, value in data.items():
         setattr(row, field, value)
     await db.commit()
     await db.refresh(row)
-    return (await _decorate_sections(db, [row]))[0]
+    return (await _decorate_sections(db, [row], scope))[0]
 
 
 @router.delete("/api/sections/{section_id}", status_code=204)
 async def delete_section(
     section_id: int,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(Section, section_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Section not found.")
+    row = await get_scoped(db, Section, section_id, scope, "Section")
     enrolled = (
         await db.execute(
-            select(func.count())
-            .select_from(StudentEnrollment)
-            .where(StudentEnrollment.section_id == section_id)
+            scoped(
+                select(func.count())
+                .select_from(StudentEnrollment)
+                .where(StudentEnrollment.section_id == section_id),
+                StudentEnrollment,
+                scope,
+            )
         )
     ).scalar_one()
     if enrolled:
@@ -385,9 +474,14 @@ async def list_subjects(
     grade_level_id: Optional[int] = None,
     is_active: Optional[bool] = None,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Subject).order_by(Subject.grade_level_id, Subject.subject_name)
+    stmt = scoped(
+        select(Subject).order_by(Subject.grade_level_id, Subject.subject_name),
+        Subject,
+        scope,
+    )
     if grade_level_id:
         stmt = stmt.where(Subject.grade_level_id == grade_level_id)
     if is_active is not None:
@@ -396,7 +490,9 @@ async def list_subjects(
 
     levels = {
         lvl.grade_level_id: lvl.name
-        for lvl in (await db.execute(select(GradeLevel))).scalars().all()
+        for lvl in (
+            await db.execute(scoped(select(GradeLevel), GradeLevel, scope))
+        ).scalars().all()
     }
     out = []
     for row in rows:
@@ -410,16 +506,23 @@ async def list_subjects(
 async def create_subject(
     payload: SubjectCreate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    if await get_scoped_optional(db, GradeLevel, payload.grade_level_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That grade level does not exist.")
     exists = (
         await db.execute(
-            select(Subject).where(Subject.subject_code == payload.subject_code)
+            scoped(
+                select(Subject).where(Subject.subject_code == payload.subject_code),
+                Subject,
+                scope,
+            )
         )
     ).scalar_one_or_none()
     if exists:
         raise HTTPException(status_code=409, detail="That subject code is already taken.")
-    row = Subject(**payload.model_dump())
+    row = Subject(**payload.model_dump(), school_id=scope)
     db.add(row)
     await db.commit()
     await db.refresh(row)
@@ -431,12 +534,16 @@ async def update_subject(
     subject_id: int,
     payload: SubjectUpdate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(Subject, subject_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Subject not found.")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    row = await get_scoped(db, Subject, subject_id, scope, "Subject")
+    data = payload.model_dump(exclude_unset=True)
+    if data.get("grade_level_id") is not None and (
+        await get_scoped_optional(db, GradeLevel, data["grade_level_id"], scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That grade level does not exist.")
+    for field, value in data.items():
         setattr(row, field, value)
     await db.commit()
     await db.refresh(row)
@@ -447,11 +554,10 @@ async def update_subject(
 async def delete_subject(
     subject_id: int,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(Subject, subject_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Subject not found.")
+    row = await get_scoped(db, Subject, subject_id, scope, "Subject")
     await db.delete(row)
     await db.commit()
 
@@ -464,19 +570,27 @@ async def list_assignments(
     teacher_id: Optional[uuid.UUID] = None,
     section_id: Optional[int] = None,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(TeacherAssignment)
+    stmt = scoped(select(TeacherAssignment), TeacherAssignment, scope)
     if teacher_id:
         stmt = stmt.where(TeacherAssignment.teacher_id == teacher_id)
     if section_id:
         stmt = stmt.where(TeacherAssignment.section_id == section_id)
     rows = (await db.execute(stmt)).scalars().all()
 
-    teachers = {s.id: s.full_name for s in (await db.execute(select(Staff))).scalars()}
-    sections = {s.section_id: s.name for s in (await db.execute(select(Section))).scalars()}
+    teachers = {
+        s.id: s.full_name
+        for s in (await db.execute(scoped(select(Staff), Staff, scope))).scalars()
+    }
+    sections = {
+        s.section_id: s.name
+        for s in (await db.execute(scoped(select(Section), Section, scope))).scalars()
+    }
     subjects = {
-        s.subject_id: s.subject_name for s in (await db.execute(select(Subject))).scalars()
+        s.subject_id: s.subject_name
+        for s in (await db.execute(scoped(select(Subject), Subject, scope))).scalars()
     }
 
     out = []
@@ -495,14 +609,30 @@ async def list_assignments(
 async def create_assignment(
     payload: TeacherAssignmentCreate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    # The teacher, section and subject all have to be this school's own. A
+    # Staff row with a NULL school_id — the super admin — never matches.
+    if await get_scoped_optional(db, Staff, payload.teacher_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That teacher does not exist.")
+    if await get_scoped_optional(db, Section, payload.section_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That section does not exist.")
+    if payload.subject_id is not None and (
+        await get_scoped_optional(db, Subject, payload.subject_id, scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That subject does not exist.")
+
     duplicate = (
         await db.execute(
-            select(TeacherAssignment).where(
-                TeacherAssignment.teacher_id == payload.teacher_id,
-                TeacherAssignment.section_id == payload.section_id,
-                TeacherAssignment.subject_id == payload.subject_id,
+            scoped(
+                select(TeacherAssignment).where(
+                    TeacherAssignment.teacher_id == payload.teacher_id,
+                    TeacherAssignment.section_id == payload.section_id,
+                    TeacherAssignment.subject_id == payload.subject_id,
+                ),
+                TeacherAssignment,
+                scope,
             )
         )
     ).scalar_one_or_none()
@@ -512,16 +642,20 @@ async def create_assignment(
     if payload.is_adviser:
         current = (
             await db.execute(
-                select(TeacherAssignment).where(
-                    TeacherAssignment.section_id == payload.section_id,
-                    TeacherAssignment.is_adviser.is_(True),
+                scoped(
+                    select(TeacherAssignment).where(
+                        TeacherAssignment.section_id == payload.section_id,
+                        TeacherAssignment.is_adviser.is_(True),
+                    ),
+                    TeacherAssignment,
+                    scope,
                 )
             )
         ).scalars().all()
         for other in current:
             other.is_adviser = False
 
-    row = TeacherAssignment(**payload.model_dump())
+    row = TeacherAssignment(**payload.model_dump(), school_id=scope)
     db.add(row)
     await db.commit()
     await db.refresh(row)
@@ -532,11 +666,10 @@ async def create_assignment(
 async def delete_assignment(
     assignment_id: int,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(TeacherAssignment, assignment_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Assignment not found.")
+    row = await get_scoped(db, TeacherAssignment, assignment_id, scope, "Assignment")
     await db.delete(row)
     await db.commit()
 
@@ -544,11 +677,20 @@ async def delete_assignment(
 # ══════════════════════════════════════════════════════════════════════════════
 # Class schedules
 # ══════════════════════════════════════════════════════════════════════════════
-async def _decorate_schedules(db: AsyncSession, rows) -> List[ClassScheduleResponse]:
-    teachers = {s.id: s.full_name for s in (await db.execute(select(Staff))).scalars()}
-    sections = {s.section_id: s.name for s in (await db.execute(select(Section))).scalars()}
+async def _decorate_schedules(
+    db: AsyncSession, rows, scope: int
+) -> List[ClassScheduleResponse]:
+    teachers = {
+        s.id: s.full_name
+        for s in (await db.execute(scoped(select(Staff), Staff, scope))).scalars()
+    }
+    sections = {
+        s.section_id: s.name
+        for s in (await db.execute(scoped(select(Section), Section, scope))).scalars()
+    }
     subjects = {
-        s.subject_id: s.subject_name for s in (await db.execute(select(Subject))).scalars()
+        s.subject_id: s.subject_name
+        for s in (await db.execute(scoped(select(Subject), Subject, scope))).scalars()
     }
     out = []
     for row in rows:
@@ -561,14 +703,18 @@ async def _decorate_schedules(db: AsyncSession, rows) -> List[ClassScheduleRespo
 
 
 async def _check_conflicts(
-    db: AsyncSession, payload, exclude_id: int | None = None
+    db: AsyncSession, payload, scope: int, exclude_id: int | None = None
 ) -> None:
     """A room, a teacher and a section can each only be in one place at a time."""
     same_day = (
         await db.execute(
-            select(ClassSchedule).where(
-                ClassSchedule.day_of_week == payload.day_of_week,
-                ClassSchedule.school_year_id == payload.school_year_id,
+            scoped(
+                select(ClassSchedule).where(
+                    ClassSchedule.day_of_week == payload.day_of_week,
+                    ClassSchedule.school_year_id == payload.school_year_id,
+                ),
+                ClassSchedule,
+                scope,
             )
         )
     ).scalars().all()
@@ -606,9 +752,16 @@ async def list_schedules(
     teacher_id: Optional[uuid.UUID] = None,
     school_year_id: Optional[int] = None,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(ClassSchedule).order_by(ClassSchedule.day_of_week, ClassSchedule.start_time)
+    stmt = scoped(
+        select(ClassSchedule).order_by(
+            ClassSchedule.day_of_week, ClassSchedule.start_time
+        ),
+        ClassSchedule,
+        scope,
+    )
     if section_id:
         stmt = stmt.where(ClassSchedule.section_id == section_id)
     if teacher_id:
@@ -616,23 +769,32 @@ async def list_schedules(
     if school_year_id:
         stmt = stmt.where(ClassSchedule.school_year_id == school_year_id)
     rows = (await db.execute(stmt)).scalars().all()
-    return await _decorate_schedules(db, rows)
+    return await _decorate_schedules(db, rows, scope)
 
 
 @router.post("/api/class-schedules", response_model=ClassScheduleResponse, status_code=201)
 async def create_schedule(
     payload: ClassScheduleCreate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     if _to_minutes(payload.end_time) <= _to_minutes(payload.start_time):
         raise HTTPException(status_code=400, detail="The end time must be after the start time.")
-    await _check_conflicts(db, payload)
-    row = ClassSchedule(**payload.model_dump())
+    if await get_scoped_optional(db, SchoolYear, payload.school_year_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That school year does not exist.")
+    if await get_scoped_optional(db, Section, payload.section_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That section does not exist.")
+    if await get_scoped_optional(db, Subject, payload.subject_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That subject does not exist.")
+    if await get_scoped_optional(db, Staff, payload.teacher_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That teacher does not exist.")
+    await _check_conflicts(db, payload, scope)
+    row = ClassSchedule(**payload.model_dump(), school_id=scope)
     db.add(row)
     await db.commit()
     await db.refresh(row)
-    return (await _decorate_schedules(db, [row]))[0]
+    return (await _decorate_schedules(db, [row], scope))[0]
 
 
 @router.patch("/api/class-schedules/{schedule_id}", response_model=ClassScheduleResponse)
@@ -640,30 +802,42 @@ async def update_schedule(
     schedule_id: int,
     payload: ClassScheduleUpdate,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(ClassSchedule, schedule_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Schedule not found.")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    row = await get_scoped(db, ClassSchedule, schedule_id, scope, "Schedule")
+    data = payload.model_dump(exclude_unset=True)
+    if data.get("section_id") is not None and (
+        await get_scoped_optional(db, Section, data["section_id"], scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That section does not exist.")
+    if data.get("subject_id") is not None and (
+        await get_scoped_optional(db, Subject, data["subject_id"], scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That subject does not exist.")
+    if data.get("teacher_id") is not None and (
+        await get_scoped_optional(db, Staff, data["teacher_id"], scope) is None
+    ):
+        raise HTTPException(status_code=400, detail="That teacher does not exist.")
+
+    for field, value in data.items():
         setattr(row, field, value)
     if _to_minutes(row.end_time) <= _to_minutes(row.start_time):
         raise HTTPException(status_code=400, detail="The end time must be after the start time.")
-    await _check_conflicts(db, row, exclude_id=schedule_id)
+    await _check_conflicts(db, row, scope, exclude_id=schedule_id)
     await db.commit()
     await db.refresh(row)
-    return (await _decorate_schedules(db, [row]))[0]
+    return (await _decorate_schedules(db, [row], scope))[0]
 
 
 @router.delete("/api/class-schedules/{schedule_id}", status_code=204)
 async def delete_schedule(
     schedule_id: int,
     _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(ClassSchedule, schedule_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Schedule not found.")
+    row = await get_scoped(db, ClassSchedule, schedule_id, scope, "Schedule")
     await db.delete(row)
     await db.commit()
 
@@ -675,13 +849,21 @@ async def delete_schedule(
 async def list_availabilities(
     teacher_id: Optional[uuid.UUID] = None,
     _: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(TeacherAvailability).where(TeacherAvailability.is_active.is_(True))
+    stmt = scoped(
+        select(TeacherAvailability).where(TeacherAvailability.is_active.is_(True)),
+        TeacherAvailability,
+        scope,
+    )
     if teacher_id:
         stmt = stmt.where(TeacherAvailability.teacher_id == teacher_id)
     rows = (await db.execute(stmt)).scalars().all()
-    teachers = {s.id: s.full_name for s in (await db.execute(select(Staff))).scalars()}
+    teachers = {
+        s.id: s.full_name
+        for s in (await db.execute(scoped(select(Staff), Staff, scope))).scalars()
+    }
     out = []
     for row in rows:
         item = AvailabilityResponse.model_validate(row)
@@ -696,13 +878,16 @@ async def list_availabilities(
 async def create_availability(
     payload: AvailabilityCreate,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     if current.role != "admin" and payload.teacher_id != current.id:
         raise HTTPException(
             status_code=403, detail="You can only publish your own availability."
         )
-    row = TeacherAvailability(**payload.model_dump())
+    if await get_scoped_optional(db, Staff, payload.teacher_id, scope) is None:
+        raise HTTPException(status_code=400, detail="That teacher does not exist.")
+    row = TeacherAvailability(**payload.model_dump(), school_id=scope)
     db.add(row)
     await db.commit()
     await db.refresh(row)
@@ -713,11 +898,12 @@ async def create_availability(
 async def delete_availability(
     availability_id: int,
     current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = await db.get(TeacherAvailability, availability_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="Availability not found.")
+    row = await get_scoped(
+        db, TeacherAvailability, availability_id, scope, "Availability"
+    )
     if current.role != "admin" and row.teacher_id != current.id:
         raise HTTPException(status_code=403, detail="That entry is not yours.")
     await db.delete(row)

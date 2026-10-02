@@ -1,4 +1,13 @@
 """Importing this package registers every model on ``Base.metadata``."""
+from app.models.schools import (  # noqa: F401
+    SCHOOL_APPROVED,
+    SCHOOL_DEACTIVATED,
+    SCHOOL_PENDING,
+    SCHOOL_REJECTED,
+    TYPE_PRIVATE,
+    TYPE_PUBLIC,
+    School,
+)
 from app.models.academic import (  # noqa: F401
     ClassSchedule,
     GradeLevel,
@@ -10,6 +19,7 @@ from app.models.academic import (  # noqa: F401
 )
 from app.models.staff import (  # noqa: F401
     ROLE_ADMIN,
+    ROLE_SUPER_ADMIN,
     ROLE_TEACHER,
     STATUS_APPROVED,
     STATUS_DEACTIVATED,
@@ -32,6 +42,13 @@ from app.models.students import (  # noqa: F401
 )
 
 __all__ = [
+    "School",
+    "TYPE_PUBLIC",
+    "TYPE_PRIVATE",
+    "SCHOOL_PENDING",
+    "SCHOOL_APPROVED",
+    "SCHOOL_REJECTED",
+    "SCHOOL_DEACTIVATED",
     "Staff",
     "StaffDevice",
     "StaffSession",
@@ -51,6 +68,7 @@ __all__ = [
     "EarlyWarning",
     "AIRiskPrediction",
     "DataQualityLog",
+    "ROLE_SUPER_ADMIN",
     "ROLE_ADMIN",
     "ROLE_TEACHER",
     "STATUS_PENDING",
