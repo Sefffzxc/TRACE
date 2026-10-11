@@ -196,11 +196,34 @@
   width: 100%;
   max-width: 27rem;
   margin-block: auto;
-  animation: auth-rise var(--slow) both;
 }
+
+/* ── Moving between signed-out screens ─────────────────────────────────────
+   The photograph, the brand mark and the headline belong to the frame and
+   must not move when the form changes, so nothing here touches them. Only
+   the contents of the card are rebuilt, and they come in as a short stagger:
+   the heading first, then the lede, then the form, each a beat behind the
+   last. Four steps is the whole effect — far enough apart to read as one
+   deliberate movement, close enough that it is over before anyone waits.
+   ────────────────────────────────────────────────────────────────────────── */
+.auth-swap > * {
+  animation: auth-rise 400ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.auth-swap > *:nth-child(1) { animation-delay: 0ms; }
+.auth-swap > *:nth-child(2) { animation-delay: 55ms; }
+.auth-swap > *:nth-child(3) { animation-delay: 110ms; }
+.auth-swap > *:nth-child(n + 4) { animation-delay: 150ms; }
+
 @keyframes auth-rise {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
+}
+
+/* The global reduced-motion rule collapses the duration but leaves the delay,
+   which would hold each line invisible for its own stagger step. Clear it, so
+   the form is simply there. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-swap > * { animation-delay: 0ms !important; }
 }
 
 .auth-card .auth-mobile-brand {

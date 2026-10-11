@@ -1,7 +1,27 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { GraduationCap, Moon, ShieldCheck, Sun, TrendingUp, Users } from 'lucide-react';
 import { IMAGES, SCHOOL } from '../../config/images';
 import { useTheme } from '../../context/ThemeContext';
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Module state, deliberately outside the component.
+
+   Every signed-out screen renders its own AuthLayout, so moving from sign in
+   to register unmounts this component and mounts a fresh one. Anything held
+   in component state restarts on that move, which is what made the panel
+   flicker: `photo` went back to null for a frame and the photograph dropped
+   out to bare navy before fading back in.
+
+   Remembering the resolved file here means the second and every later screen
+   starts with the photograph already in hand, and the drift clock keeps
+   running across the move, so the slow pan continues from where it was
+   instead of snapping back to its starting scale.
+   ────────────────────────────────────────────────────────────────────────── */
+let resolvedPhoto = null;
+const driftEpoch = Date.now();
+/* 26s, alternating — one full there-and-back pass is twice that. */
+const DRIFT_CYCLE_SECONDS = 52;
 
 /**
  * The shared frame for every signed-out screen.
@@ -12,9 +32,12 @@ import { useTheme } from '../../context/ThemeContext';
  */
 export default function AuthLayout({ children }) {
   const { isDark, toggle } = useTheme();
-  const [photo, setPhoto] = useState(null);
+  const { pathname } = useLocation();
+  const [photo, setPhoto] = useState(resolvedPhoto);
 
   useEffect(() => {
+    if (resolvedPhoto) return undefined;
+
     let cancelled = false;
     const candidates = [IMAGES.loginBackground, IMAGES.loginBackgroundAlt];
 
@@ -23,6 +46,7 @@ export default function AuthLayout({ children }) {
       const image = new Image();
       image.src = candidates[index];
       image.onload = () => {
+        resolvedPhoto = candidates[index];
         if (!cancelled) setPhoto(candidates[index]);
       };
       image.onerror = () => tryNext(index + 1);
@@ -33,6 +57,10 @@ export default function AuthLayout({ children }) {
       cancelled = true;
     };
   }, []);
+
+  /* A negative delay starts the pan part-way through, at exactly the point it
+     had reached on the previous screen. */
+  const driftOffset = ((Date.now() - driftEpoch) / 1000) % DRIFT_CYCLE_SECONDS;
 
   return (
     <div className="auth">
@@ -47,7 +75,11 @@ export default function AuthLayout({ children }) {
 
       <aside className="auth-visual">
         {photo && (
-          <div className="auth-photo" style={{ backgroundImage: `url(${photo})` }} aria-hidden="true" />
+          <div
+            className="auth-photo"
+            style={{ backgroundImage: `url(${photo})`, animationDelay: `-${driftOffset}s` }}
+            aria-hidden="true"
+          />
         )}
 
         <div className="auth-brand">
@@ -98,7 +130,14 @@ export default function AuthLayout({ children }) {
               <div className="brand-sub">Monitoring System</div>
             </span>
           </div>
-          {children}
+
+          {/* Keyed on the path so React tears this wrapper down and builds a
+              new one on every move between signed-out screens. That is what
+              replays the entrance: the form fades up a beat after the heading,
+              while the panel behind it never moves. */}
+          <div className="auth-swap" key={pathname}>
+            {children}
+          </div>
         </div>
       </main>
     </div>
