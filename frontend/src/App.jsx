@@ -16,7 +16,7 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import DashboardPage from './pages/app/DashboardPage';
 import StudentsPage from './pages/app/StudentsPage';
 import StudentProfilePage from './pages/app/StudentProfilePage';
-import PacePage from './pages/app/PacePage';
+import RosterPage from './pages/app/RosterPage';
 import EarlyWarningPage from './pages/app/EarlyWarningPage';
 import AiInsightsPage from './pages/app/AiInsightsPage';
 import TeachersPage from './pages/app/TeachersPage';
@@ -169,11 +169,16 @@ function Router() {
         />
         <Route path="/students" element={<StudentsPage />} />
         <Route path="/students/:studentId" element={<StudentProfilePage />} />
+        {/* The class record exists at EVERY school: attendance and assessment
+            marks are what the risk model reads, and a school that tracks no
+            lesson units still has both. It used to be a tab inside the screen
+            below, which meant a DepEd school could not reach it at all. */}
+        <Route path="/class-record" element={<RosterPage mode="record" />} />
         <Route
           path="/pace"
           element={
             <RequireUnitTracking>
-              <PacePage />
+              <RosterPage mode="units" />
             </RequireUnitTracking>
           }
         />

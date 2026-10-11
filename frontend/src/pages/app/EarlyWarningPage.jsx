@@ -183,7 +183,7 @@ export default function EarlyWarningPage() {
     <div className="page">
       <PageHead
         title="Early warning"
-        subtitle="Students falling behind the expected PACE, ranked by how urgent the gap is."
+        subtitle="Students who need attention, ranked by how urgent the gap is."
         actions={
           <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filtered.length}>
             <Download size={16} /> Export list
@@ -203,7 +203,7 @@ export default function EarlyWarningPage() {
             </span>
           </div>
           <div className="stat-value">{counts.critical}</div>
-          <div className="stat-foot">Four or more PACEs behind</div>
+          <div className="stat-foot">Furthest behind, needs escalating</div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -296,8 +296,8 @@ export default function EarlyWarningPage() {
           <div>
             <h2>Flagged students</h2>
             <div className="card-subtitle">
-              Two independent readings. <strong>PACE rules</strong> is the school&rsquo;s own
-              judgement from booklets behind, completion and attendance, and it is what the flags
+              Two independent readings. <strong>School rules</strong> is the school&rsquo;s own
+              judgement from progress, completion and attendance, and it is what the flags
               and interventions are based on. <strong>AI model</strong> is a separate estimate of
               the chance of ending the quarter below 75, from the assessment record. They will
               sometimes disagree — where they do, the disagreement is the useful part, and neither
@@ -314,7 +314,7 @@ export default function EarlyWarningPage() {
               title="No warnings to show"
               description={
                 warnings.length === 0
-                  ? 'Every monitored student is keeping pace. Flags appear automatically as PACE progress is encoded.'
+                  ? 'Every monitored student is on track. Flags appear automatically as records are encoded.'
                   : 'No flag matches these filters.'
               }
             />
@@ -329,7 +329,7 @@ export default function EarlyWarningPage() {
                     <th>Completion</th>
                     <th className="right">Attendance</th>
                     <th>Trend</th>
-                    <th>PACE rules</th>
+                    <th>School rules</th>
                     <th>AI model</th>
                     <th className="actions">Action</th>
                   </tr>

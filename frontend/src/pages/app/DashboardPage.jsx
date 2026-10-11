@@ -137,7 +137,7 @@ export default function DashboardPage() {
           </div>
           <div className="hero-figure">
             <span className="v">{stats.average_pace.toFixed(0)}%</span>
-            <span className="l">Average PACE completion</span>
+            <span className="l">Average completion</span>
           </div>
         </div>
       </section>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
           value={stats.at_risk}
           icon={AlertTriangle}
           tone="warn"
-          foot="Behind the expected PACE"
+          foot="Behind the expected pace"
         />
         <Stat
           label="Critical"
@@ -211,7 +211,7 @@ export default function DashboardPage() {
           <div className="card-header">
             <div>
               <h2>Completion by section</h2>
-              <div className="card-subtitle">Average share of the year&rsquo;s PACE booklets finished</div>
+              <div className="card-subtitle">Average share of the year&rsquo;s curriculum finished</div>
             </div>
           </div>
           <div className="card-body">
@@ -287,7 +287,7 @@ export default function DashboardPage() {
               <EmptyState
                 icon={CheckCircle2}
                 title="Everyone is keeping pace"
-                description="No student is currently flagged. New warnings appear here the moment PACE progress is encoded."
+                description="No student is currently flagged. New warnings appear here the moment records are encoded."
               />
             ) : (
               <div className="table-wrap">

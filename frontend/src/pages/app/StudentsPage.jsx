@@ -39,7 +39,10 @@ const RISK_FILTERS = [
 export default function StudentsPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { isAdmin } = useAuth();
+  // The school's own word for a lesson unit — "PACE" at a School of Tomorrow
+  // school, "Module" elsewhere. Never hard-coded, because this screen is shown
+  // to every school including those that track no units at all.
+  const { isAdmin, unitLabel, unitLabelPlural } = useAuth();
   const [params, setParams] = useSearchParams();
 
   const [students, setStudents] = useState([]);
@@ -166,8 +169,8 @@ export default function StudentsPage() {
       'First name',
       'Grade level',
       'Section',
-      'PACE completion %',
-      'PACEs behind',
+      `${unitLabel} completion %`,
+      `${unitLabelPlural} behind`,
       'Attendance %',
       'Risk',
     ];
@@ -216,7 +219,7 @@ export default function StudentsPage() {
     <div className="page">
       <PageHead
         title="Students"
-        subtitle="Every learner being monitored, with their current PACE standing."
+        subtitle="Every learner being monitored, with their current standing."
         actions={
           <>
             <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!sorted.length}>
@@ -333,7 +336,7 @@ export default function StudentsPage() {
                     <th>Section</th>
                     <th className="sortable" onClick={() => toggleSort('pace_percent')}>
                       <span className="th-inner">
-                        PACE completion <SortIcon column="pace_percent" />
+                        {unitLabel} completion <SortIcon column="pace_percent" />
                       </span>
                     </th>
                     <th className="right sortable" onClick={() => toggleSort('paces_behind')}>
@@ -447,7 +450,7 @@ export default function StudentsPage() {
       {deleting && (
         <ConfirmDialog
           title="Remove this student?"
-          message={`${deleting.full_name} and all of their PACE records will be permanently deleted. This cannot be undone.`}
+          message={`${deleting.full_name} and all of their records will be permanently deleted. This cannot be undone.`}
           confirmLabel="Remove student"
           busy={busy}
           onConfirm={removeStudent}

@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   BookOpen,
   Brain,
+  ClipboardList,
   Building2,
   CalendarDays,
   GraduationCap,
@@ -39,9 +40,14 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
     items = [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
       { to: '/students', label: 'Students', icon: Users, group: 'Monitoring' },
-      /* Lesson-unit progress only exists for schools that track units, and it
-         is named with their own word for them — "PACE Progress" at a School of
-         Tomorrow school, "Module Progress" elsewhere. */
+      /* Every school gets this one. Attendance and assessment marks are what
+         the risk model actually reads, and they exist whether or not a school
+         tracks lesson units — so this is never hidden. */
+      { to: '/class-record', label: 'Class Record', icon: ClipboardList, group: 'Monitoring' },
+      /* Lesson-unit progress is the part that varies, so it is the part that
+         appears conditionally, named with the school's own word for it —
+         "PACE Progress" at a School of Tomorrow school, "Module Progress"
+         elsewhere, nothing at all at a school that tracks no units. */
       ...(tracksUnits
         ? [
             {

@@ -11,7 +11,7 @@ import { AlertTriangle, Brain, CircleSlash, Info, ServerOff, Sparkles } from 'lu
 
 export const AI_HELP =
   'The classifier estimates the chance of finishing the quarter below the 75 passing mark. ' +
-  'It is a second opinion beside the school’s own PACE rules — not a replacement for them, ' +
+  'It is a second opinion beside the school’s own rules — not a replacement for them, ' +
   'and not a decision.';
 
 /* ── The score itself ────────────────────────────────────────────────────── */
@@ -90,7 +90,7 @@ export function AiReason({ prediction }) {
         {prediction.suggested_action && <div className="faint">{prediction.suggested_action}</div>}
         {prediction.source === 'fallback' && (
           <div className="faint">
-            Produced by the PACE rules, not the model — the AI service was unavailable.
+            Produced by the school rules, not the model — the AI service was unavailable.
           </div>
         )}
       </div>
@@ -107,7 +107,7 @@ export function AiServiceNote({ status, onRetry, busy }) {
       <div className="alert alert-info">
         <Info size={17} />
         <span>
-          The AI classifier is switched off for this deployment. Risk levels come from the PACE
+          The AI classifier is switched off for this deployment. Risk levels come from the school
           rules only.
         </span>
       </div>
@@ -119,7 +119,7 @@ export function AiServiceNote({ status, onRetry, busy }) {
       <div className="alert alert-warning">
         <ServerOff size={17} />
         <span>
-          The AI service is not answering, so new records are being scored by the PACE rules and
+          The AI service is not answering, so new records are being scored by the school rules and
           marked <em>rule-based</em>. On free hosting the service sleeps after 15 minutes of
           inactivity and takes about a minute to start.
           {status.detail ? ` (${status.detail})` : ''}

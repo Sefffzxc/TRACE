@@ -21,6 +21,7 @@ import { useTheme } from '../../context/ThemeContext';
 const TITLES = {
   '/dashboard': 'Dashboard',
   '/students': 'Students',
+  '/class-record': 'Class Record',
   '/early-warning': 'Early Warning',
   '/teachers': 'Teachers',
   '/approvals': 'Account Approvals',
