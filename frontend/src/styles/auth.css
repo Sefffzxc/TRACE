@@ -4,10 +4,20 @@
    A two-panel layout: the school photograph carries the left half on wide
    screens, the form sits on the right. Below 980px the photo becomes a short
    banner so the form is never pushed off the fold on a phone.
+
+   On wide screens the frame is exactly one viewport tall and the page itself
+   never scrolls. Only the form column scrolls, so the photograph, the brand
+   mark, the headline and the footer sit in the same place on every signed-out
+   screen no matter how long the form is — sign in, register, 2FA, reset.
    ========================================================================== */
 
 .auth {
-  min-height: 100vh;
+  position: relative;
+  /* dvh keeps the frame correct on mobile browsers whose toolbars come and go;
+     vh is the fallback for engines without dvh. */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 1.05fr 1fr;
   background: var(--surface-page);
@@ -20,6 +30,9 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 3rem;
+  /* A grid item will not shrink below its content by default; without this the
+     panel would stretch to the tallest form and push its own content around. */
+  min-height: 0;
   overflow: hidden;
   color: #fff;
   /* The navy fills the panel on its own, so it still looks designed if the
@@ -161,18 +174,28 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-/* ── Right: the form ───────────────────────────────────────────────────── */
+/* ── Right: the form, the only part of the screen that scrolls ─────────── */
 .auth-panel {
   display: flex;
-  align-items: center;
   justify-content: center;
+  /* Deliberately NOT `align-items: center`. Centring on the cross axis clips
+     the top of an overflowing child in every engine; an auto block margin on
+     the card centres a short form and still lets a long one scroll from its
+     first line. */
+  align-items: flex-start;
+  min-height: 0;
   padding: 2.5rem 2rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Reserve the scrollbar's width on every screen so the form does not shift
+     sideways between the short sign-in page and the long register page. */
+  scrollbar-gutter: stable;
 }
 
 .auth-card {
   width: 100%;
   max-width: 27rem;
+  margin-block: auto;
   animation: auth-rise var(--slow) both;
 }
 @keyframes auth-rise {
@@ -394,8 +417,20 @@
 .auth-theme-toggle:hover { color: var(--text-strong); background: var(--surface-hover); }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */
+/* Stacked layout: the photo is a banner above the form, so the page itself
+   scrolls again and the form column stops being its own scroller. */
 @media (max-width: 980px) {
-  .auth { grid-template-columns: 1fr; }
+  .auth {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .auth-panel {
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+  .auth-card { margin-block: 0; }
   .auth-visual {
     min-height: 260px;
     padding: 1.75rem;
@@ -411,7 +446,7 @@
 
 @media (max-width: 620px) {
   .auth-visual { display: none; }
-  .auth-panel { min-height: 100vh; align-items: flex-start; padding-top: 4.5rem; }
+  .auth-panel { min-height: 100dvh; align-items: flex-start; padding-top: 4.5rem; }
   .auth-card .auth-mobile-brand { display: flex; }
   .otp-inputs { gap: 0.4rem; }
 }
