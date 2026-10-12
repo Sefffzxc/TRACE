@@ -1,6 +1,7 @@
 """LBCA Monitoring System — FastAPI application entry point."""
 from __future__ import annotations
 
+import logging
 import pathlib
 from contextlib import asynccontextmanager
 
@@ -57,6 +58,37 @@ async def validation_handler(_: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": " · ".join(messages)},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_handler(request: Request, exc: Exception):
+    """Return a real response for a crash instead of letting it escape.
+
+    An exception that propagates past the application is turned into a plain
+    500 by Starlette's outermost error middleware, which sits ABOVE the CORS
+    middleware — so the browser never sees an Access-Control-Allow-Origin
+    header and reports a CORS failure. The developer then goes looking at
+    the CORS configuration, which was never the problem.
+
+    Handling it here keeps the response inside the CORS middleware, so the
+    browser can read it and show what actually went wrong. The message is
+    logged in full and only its type is sent to the client, because a
+    database error's text can carry table and column names.
+    """
+    logging.getLogger("lbca").exception(
+        "unhandled error on %s %s", request.method, request.url.path
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": (
+                "The server hit an unexpected error. The details are in the "
+                "service log."
+            ),
+            "error_type": type(exc).__name__,
+            "path": request.url.path,
+        },
     )
 
 

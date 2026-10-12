@@ -876,8 +876,10 @@ async def reset() -> None:
 
 
 # The two schools the demonstration seed creates. Nothing else is matched, so
-# a purge cannot touch a school a principal registered.
-DEMO_SCHOOL_NAMES = [plan["name"] for plan in SCHOOL_PLANS]
+# a purge cannot touch a school a principal registered. Read from the plans
+# themselves rather than written out again, so renaming a demonstration
+# school cannot leave a purge quietly unable to find it.
+DEMO_SCHOOL_NAMES = [plan["school"]["name"] for plan in SCHOOL_PLANS]
 
 
 async def fresh_start(email: str, password: str | None) -> None:
