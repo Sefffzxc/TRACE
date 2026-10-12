@@ -1,0 +1,165 @@
+{
+  "model": "RandomForestClassifier",
+  "version": "2.0.0-classrecord",
+  "task": "binary classification of end-of-term academic risk (term grade < 80) from class-record components recorded before the term examination",
+  "dataset": {
+    "source": "Merged E-Class Record export, Looc National High School, 15 class records, SY 2022-2023 / 2023-2024 / 2025-2026",
+    "rows_in_source": 1237,
+    "rows_used": 1094,
+    "excluded_term_not_graded": 78,
+    "excluded_blank_component": 65,
+    "learners": 447,
+    "at_risk": 156,
+    "at_risk_rate": 0.1426,
+    "below_passing_mark_75": 30,
+    "balancing_applied": "none"
+  },
+  "features_used": [
+    "ww_total",
+    "ww_pct",
+    "ww_weighted",
+    "pt_total",
+    "pt_pct",
+    "pt_weighted",
+    "pre_exam_weighted",
+    "component_gap",
+    "grade_level",
+    "quarter"
+  ],
+  "features_excluded": {
+    "Term Exam Score / Percentage / Weighted": "not known until the term examination is sat; it is part of the outcome the model is asked to anticipate",
+    "Initial Grade": "the weighted sum that the target is derived from",
+    "Term Grade": "the target itself",
+    "Name": "personal information; hashed to a learner key for grouping and never stored",
+    "Sex": "excluded as a fairness liability, not for want of signal",
+    "Section / Subject / School Year": "identifiers; the file is 95.6% Filipino and 86.8% Grade 8, so these would encode the cohort rather than the learner"
+  },
+  "protocol": {
+    "splits": "GroupShuffleSplit by learner, 10 splits, test fraction 0.3",
+    "threshold_selection": "inner StratifiedGroupKFold on training learners, macro F1 subject to recall \u2265 0.8",
+    "imputation": "median of training rows only",
+    "significance": "Nadeau-Bengio corrected resampled t-test with Holm-Bonferroni adjustment"
+  },
+  "threshold": 0.46499999999999997,
+  "results": [
+    {
+      "model": "Extra Trees",
+      "macro_f1": 0.8905,
+      "macro_f1_sd": 0.0183,
+      "recall": 0.862,
+      "recall_sd": 0.0402,
+      "precision": 0.7773,
+      "precision_sd": 0.0636,
+      "specificity": 0.9567,
+      "roc_auc": 0.9794,
+      "pr_auc": 0.9026,
+      "false_pos": 12.2,
+      "false_neg": 6.9
+    },
+    {
+      "model": "Gradient Boosting",
+      "macro_f1": 0.8748,
+      "macro_f1_sd": 0.0187,
+      "recall": 0.8457,
+      "recall_sd": 0.0891,
+      "precision": 0.7496,
+      "precision_sd": 0.0642,
+      "specificity": 0.9487,
+      "roc_auc": 0.9739,
+      "pr_auc": 0.8859,
+      "false_pos": 14.4,
+      "false_neg": 7.7
+    },
+    {
+      "model": "Random Forest",
+      "macro_f1": 0.8741,
+      "macro_f1_sd": 0.0162,
+      "recall": 0.8355,
+      "recall_sd": 0.0657,
+      "precision": 0.7513,
+      "precision_sd": 0.0629,
+      "specificity": 0.9518,
+      "roc_auc": 0.9769,
+      "pr_auc": 0.8926,
+      "false_pos": 13.6,
+      "false_neg": 8.3
+    },
+    {
+      "model": "Logistic Regression",
+      "macro_f1": 0.8682,
+      "macro_f1_sd": 0.0212,
+      "recall": 0.8154,
+      "recall_sd": 0.0686,
+      "precision": 0.7539,
+      "precision_sd": 0.0955,
+      "specificity": 0.9524,
+      "roc_auc": 0.9752,
+      "pr_auc": 0.8931,
+      "false_pos": 13.5,
+      "false_neg": 9.2
+    },
+    {
+      "model": "Arithmetic rule",
+      "macro_f1": 0.8428,
+      "macro_f1_sd": 0.0176,
+      "recall": 0.7286,
+      "recall_sd": 0.1157,
+      "precision": 0.7573,
+      "precision_sd": 0.0869,
+      "specificity": 0.9574,
+      "roc_auc": NaN,
+      "pr_auc": NaN,
+      "false_pos": 12.1,
+      "false_neg": 13.6
+    },
+    {
+      "model": "Decision Tree",
+      "macro_f1": 0.8415,
+      "macro_f1_sd": 0.0256,
+      "recall": 0.8512,
+      "recall_sd": 0.0486,
+      "precision": 0.6554,
+      "precision_sd": 0.068,
+      "specificity": 0.9206,
+      "roc_auc": 0.9215,
+      "pr_auc": 0.7777,
+      "false_pos": 22.3,
+      "false_neg": 7.4
+    }
+  ],
+  "temporal_validation": {
+    "train": "2022-2023 and 2023-2024",
+    "test": "2025-2026",
+    "threshold_carried_over": 0.54,
+    "with_carried_threshold": {
+      "macro_f1": 0.8294,
+      "recall": 0.6447,
+      "precision": 0.7778,
+      "specificity": 0.968,
+      "roc_auc": 0.9356,
+      "pr_auc": 0.7613,
+      "false_pos": 14.0,
+      "false_neg": 27.0,
+      "true_pos": 49.0,
+      "true_neg": 423.0
+    },
+    "with_refitted_threshold": {
+      "macro_f1": 0.8227,
+      "recall": 0.8026,
+      "precision": 0.6289,
+      "specificity": 0.9176,
+      "roc_auc": 0.9356,
+      "pr_auc": 0.7613,
+      "false_pos": 36.0,
+      "false_neg": 15.0,
+      "true_pos": 61.0,
+      "true_neg": 401.0
+    }
+  },
+  "limitations": [
+    "The term grade is a weighted sum of the components used as features, so the task is substantially arithmetic. The arithmetic baseline in the comparison table is the honest point of reference, not a naive control.",
+    "No attendance data exists in this export, so attendance plays no part in the model.",
+    "86.8% of rows are Grade 8 and 95.6% are Filipino. Conclusions do not extend to other grade levels or subjects.",
+    "Performance is established at the point where Written Works and Performance Tasks are complete and the term examination is not. No claim is made about earlier points in the term."
+  ]
+}

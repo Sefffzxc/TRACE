@@ -43,20 +43,35 @@ from app.services import risk
 # Request field -> the dataset column it stands for. This mirrors FIELD_MAP in
 # ai-service/main.py; the two must be changed together.
 MODEL_FIELDS = (
-    "absences",
-    "ww_total_raw",
-    "ww_percent",
-    "pt_total_raw",
-    "pt_percent",
-    "missed_ww_items",
-    "missed_pt_items",
-    "extracurricular_count",
+    "ww_total",
+    "ww_pct",
+    "ww_weighted",
+    "pt_total",
+    "pt_pct",
+    "pt_weighted",
+    "pre_exam_weighted",
+    "component_gap",
     "grade_level",
+    "quarter",
+)
+
+# The subset that comes from the learner's own row of the class record. The
+# grade level comes from the enrolment and the quarter from the record being
+# encoded, so neither belongs in a loop over a learner's cells.
+ENCODED_FIELDS = (
+    "ww_total",
+    "ww_pct",
+    "ww_weighted",
+    "pt_total",
+    "pt_pct",
+    "pt_weighted",
+    "pre_exam_weighted",
+    "component_gap",
 )
 
 # How the rule engine's four levels collapse onto the model's two. The model
-# answers one question — "is this student heading for a grade below 75" — so a
-# fallback has to answer the same question, not a different one.
+# answers one question — "is this learner heading for a term grade below 80" —
+# so a fallback has to answer the same question, not a different one.
 _FALLBACK_HIGH_LEVELS = {"critical", "high"}
 
 
@@ -113,26 +128,71 @@ def grade_level_number(label: Optional[str]) -> Optional[float]:
     return value if 1 <= value <= 12 else None
 
 
-def features_from_pace(pace, grade_level_label: Optional[str] = None) -> Dict[str, Any]:
-    """Read the model's nine inputs off a StudentPace row.
+def features_from_record(record, grade_level_label: Optional[str] = None,
+                         quarter: Optional[int] = None,
+                         weights: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Read the model's ten inputs off a class-record row.
 
-    Fields the teacher has not encoded stay ``None``. In particular
-    ``absences`` is NOT derived from the attendance percentage: the percentage
-    in this system is a teacher-entered summary with no recorded number of
-    school days behind it, so converting it into a day count would be an
-    invented figure in the model's most influential feature.
+    Every figure here is one app.services.grading already computed and stored
+    when the record was saved, so the model is shown exactly the numbers the
+    teacher is shown. Nothing is recomputed differently on the way out.
+
+    The term examination is excluded deliberately, and so are the summative
+    tests that sit with it in the third component. They are the event the
+    warning is meant to precede; a model given them would be restating a
+    result the teacher already has rather than anticipating one. The initial
+    and transmuted grades are excluded twice over — they are the outcome, and
+    they are arithmetic on the examination the model may not see.
+
+    Cells the teacher has not filled in stay ``None``. The service substitutes
+    the training median for those and reports which ones it substituted, so a
+    thin record never passes for a confident reading.
+
+    ``weights`` is accepted for callers that still pass it and is ignored: the
+    weighting is already baked into the weighted scores below, which is where
+    the model learned to read it.
     """
+    ww_pct = _num(getattr(record, "ww_percent", None))
+    pt_pct = _num(getattr(record, "pt_percent", None))
+    ww_weighted = _num(getattr(record, "ww_weighted", None))
+    pt_weighted = _num(getattr(record, "pt_weighted", None))
+
+    # Both derived figures need both components. Computing either from one
+    # half would quietly treat an un-entered component as a zero, which is
+    # the defect that made 65 rows of the training export look like failures.
+    pre_exam = (round(ww_weighted + pt_weighted, 2)
+                if ww_weighted is not None and pt_weighted is not None else None)
+    gap = (round(abs(ww_pct - pt_pct), 2)
+           if ww_pct is not None and pt_pct is not None else None)
+
     return {
-        "absences": _num(pace.absences),
-        "ww_total_raw": _num(pace.ww_total_raw),
-        "ww_percent": _num(pace.ww_percent),
-        "pt_total_raw": _num(pace.pt_total_raw),
-        "pt_percent": _num(pace.pt_percent),
-        "missed_ww_items": _num(pace.missed_ww_items),
-        "missed_pt_items": _num(pace.missed_pt_items),
-        "extracurricular_count": _num(pace.extracurricular_count),
+        "ww_total": _num(getattr(record, "ww_total_raw", None)),
+        "ww_pct": ww_pct,
+        "ww_weighted": ww_weighted,
+        "pt_total": _num(getattr(record, "pt_total_raw", None)),
+        "pt_pct": pt_pct,
+        "pt_weighted": pt_weighted,
+        "pre_exam_weighted": pre_exam,
+        "component_gap": gap,
         "grade_level": grade_level_number(grade_level_label),
+        "quarter": _num(quarter if quarter is not None
+                        else getattr(record, "grading_period", None)),
     }
+
+
+# The previous name, kept so existing callers keep working while the class
+# record screens are migrated.
+features_from_pace = features_from_record
+
+
+def _fraction(value) -> Optional[float]:
+    """Accept a weight as either 30 or 0.30 and return it as a fraction."""
+    number = _num(value)
+    if number is None:
+        return None
+    if number > 1.0:
+        number = number / 100.0
+    return round(number, 4) if 0.0 <= number <= 1.0 else None
 
 
 def _num(value) -> Optional[float]:
@@ -153,13 +213,51 @@ def coverage(features: Dict[str, Any]) -> float:
 # ══════════════════════════════════════════════════════════════════════════════
 # The rule-based fallback
 # ══════════════════════════════════════════════════════════════════════════════
+# Where the arithmetic rule puts the line, fitted on the 1,094 usable rows of
+# the merged class-record export: flag a learner whose weighted coursework
+# total before the term examination falls below this. On that data it reaches
+# macro F1 0.864 with recall 0.814 and precision 0.730 — close enough to the
+# model that it is the honest comparator, and good enough to stand in when the
+# model cannot be reached.
+ARITHMETIC_CUT = 56.6
+
+
 def fallback_prediction(pace, reason: str, features: Dict[str, Any]) -> PredictionResult:
     """What to store when the model could not be reached.
 
-    The score here is the existing rule engine's 0–100 score divided by 100. It
-    is *not* a probability and must not be read as one — which is exactly why
-    ``source`` says "fallback" and the UI shows a different badge.
+    Two different rules, because the system serves two kinds of school. A
+    school keeping a DepEd class record is judged on the coursework it has
+    actually banked; a school tracking PACE booklets has no such figure and
+    falls back to the booklet-and-attendance rule instead.
+
+    Neither score is a probability and neither must be read as one — which is
+    why ``source`` says "fallback" and the interface shows a different badge.
     """
+    pre_exam = features.get("pre_exam_weighted")
+    if pre_exam is not None:
+        at_risk = pre_exam < ARITHMETIC_CUT
+        # Distance from the line, squashed into 0–1 so the badge can sort by
+        # it. It is a rule's confidence, not the model's probability.
+        margin = min(1.0, abs(pre_exam - ARITHMETIC_CUT) / ARITHMETIC_CUT)
+        return PredictionResult(
+            risk_score=round(0.5 + (margin / 2 if at_risk else -margin / 2), 4),
+            risk_level="HIGH" if at_risk else "LOW",
+            used_threshold=ARITHMETIC_CUT,
+            primary_factor=("weighted coursework before the term exam "
+                            "(rule-based)" if at_risk else None),
+            suggested_action=(
+                "Coursework banked so far is below the level that usually ends "
+                "the term under 80. Review written works and performance tasks "
+                "with the learner before the term examination."
+                if at_risk else None),
+            source="fallback",
+            model_version="rule-based (arithmetic cut)",
+            used_baseline_defaults=False,
+            imputed_fields=[],
+            features=features,
+            error=reason,
+        )
+
     evaluation = risk.evaluate(
         pace.current_pace, pace.expected_pace, pace.total_paces, pace.attendance
     )

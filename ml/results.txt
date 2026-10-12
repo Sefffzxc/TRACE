@@ -1,0 +1,69 @@
+========================================================================
+SmartPACE academic-risk classifier — training record
+========================================================================
+Rows 1094 | learners 447 | at risk 156 (14.26%)
+Target: term grade < 80
+Features (10): ww_total, ww_pct, ww_weighted, pt_total, pt_pct, pt_weighted, pre_exam_weighted, component_gap, grade_level, quarter
+Protocol: GroupShuffleSplit by learner, 10 splits, test fraction 0.30; threshold chosen inside training folds at minimum recall 0.8
+
+Leakage check: no learner appears in both sides of any of the 10 splits.
+
+------------------------------------------------------------------------
+Algorithm comparison — mean ± sd over the 10 splits
+------------------------------------------------------------------------
+              model  macro_f1  macro_f1_sd  recall  recall_sd  precision  precision_sd  specificity  roc_auc  pr_auc  false_pos  false_neg
+        Extra Trees    0.8905       0.0183  0.8620     0.0402     0.7773        0.0636       0.9567   0.9794  0.9026       12.2        6.9
+  Gradient Boosting    0.8748       0.0187  0.8457     0.0891     0.7496        0.0642       0.9487   0.9739  0.8859       14.4        7.7
+      Random Forest    0.8741       0.0162  0.8355     0.0657     0.7513        0.0629       0.9518   0.9769  0.8926       13.6        8.3
+Logistic Regression    0.8682       0.0212  0.8154     0.0686     0.7539        0.0955       0.9524   0.9752  0.8931       13.5        9.2
+    Arithmetic rule    0.8428       0.0176  0.7286     0.1157     0.7573        0.0869       0.9574      NaN     NaN       12.1       13.6
+      Decision Tree    0.8415       0.0256  0.8512     0.0486     0.6554        0.0680       0.9206   0.9215  0.7777       22.3        7.4
+
+Highest mean macro F1: Extra Trees
+
+------------------------------------------------------------------------
+Paired comparison against the leader (Nadeau-Bengio, Holm-adjusted)
+------------------------------------------------------------------------
+comparison              Δ macro F1   p (corrected)  Holm threshold   reject H0   Shapiro p
+Extra Trees vs Arithmetic rule      0.0477          0.0152          0.0100          no       0.419
+Extra Trees vs Decision Tree      0.0490          0.0407          0.0125          no       0.027
+Extra Trees vs Logistic Regression      0.0222          0.1581          0.0167          no       0.828
+Extra Trees vs Random Forest      0.0164          0.1786          0.0250          no       0.569
+Extra Trees vs Gradient Boosting      0.0157          0.2167          0.0500          no       0.653
+
+No difference reaches significance.
+Failing to reject is not evidence of equivalence; ten splits were never enough to demonstrate that.
+
+------------------------------------------------------------------------
+Temporal validation — train on 2022-2024, test on 2025-2026
+------------------------------------------------------------------------
+Training rows 581 (risk rate 0.138); test rows 513 (risk rate 0.148)
+Threshold carried over from the earlier cohort: 0.54
+  macro F1 0.829 | recall 0.645 | precision 0.778 | ROC AUC 0.936
+Threshold refitted on the new cohort: 0.31 (an upper bound, not an achievable result)
+  macro F1 0.823 | recall 0.803 | precision 0.629
+The gap between those two lines is what annual recalibration buys.
+
+------------------------------------------------------------------------
+Deployed model
+------------------------------------------------------------------------
+Random Forest retained. Across the 10 splits the thresholds chosen inside training folds were [0.36, 0.37, 0.43, 0.44, 0.46, 0.47, 0.48, 0.48, 0.52, 0.53]; the median, 0.46, is deployed.
+
+Impurity importance (ranking only — it is biased toward high-cardinality numeric features):
+pre_exam_weighted    0.3565
+ww_pct               0.1746
+ww_weighted          0.1361
+pt_pct               0.0944
+pt_weighted          0.0638
+ww_total             0.0608
+pt_total             0.0484
+component_gap        0.0361
+quarter              0.0231
+grade_level          0.0063
+
+Against the arithmetic baseline, per split on average:
+  macro F1   model 0.874  rule 0.843
+  recall     model 0.835  rule 0.729
+  precision  model 0.751  rule 0.757
+  false alarms per split: model 13.6  rule 12.1
+  missed learners per split: model 8.3  rule 13.6

@@ -1,0 +1,25 @@
+Source rows: 1237
+Dropped, term not yet graded (no Term Grade): 78
+Dropped, graded with a blank component: 65
+  of those, Term Grade < 80: 65
+  affected class records: Adelfa 2025-2026 Q3 (14); Cattleya 2025-2026 Q2 (3); Cattleya 2025-2026 Q3 (38); Cattleya 2025-2026 Q4 (2); Pichon 2022-2023 Q3 (1); Pichon 2023-2024 Q1 (2); SPS Pichon 2025-2026 Q2 (1); Sampaguita 2025-2026 Q3 (3); Tolibas 2022-2023 Q3 (1)
+
+Rows kept: 1094
+Distinct learners: 447
+Learners appearing more than once: 429
+At risk (term grade < 80): 156 (14.26%)
+Of those, below the passing mark of 75: 30
+
+Nothing was oversampled, synthesised or rebalanced. Class imbalance is handled at training time by class weighting.
+
+Rows by school year:
+school_year
+2022-2023    263
+2023-2024    318
+2025-2026    513
+
+Risk rate by school year:
+school_year
+2022-2023    0.0951
+2023-2024    0.1730
+2025-2026    0.1481

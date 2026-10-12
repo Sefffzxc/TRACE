@@ -7,6 +7,7 @@ progress data it is based on.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import List, Optional
 
@@ -21,6 +22,7 @@ from app.models.academic import GradeLevel, Subject, TeacherAssignment
 from app.models.staff import ROLE_ADMIN, Staff
 from app.models.students import (
     AIRiskPrediction,
+    ClassRecordSetup,
     DataQualityLog,
     EarlyWarning,
     Student,
@@ -29,6 +31,8 @@ from app.models.students import (
 )
 from app.schemas.students import (
     BulkPaceRequest,
+    ClassRecordSetupResponse,
+    ClassRecordSetupUpdate,
     DataQualityCreate,
     DataQualityResponse,
     PaceCreate,
@@ -37,7 +41,7 @@ from app.schemas.students import (
     WarningResponse,
     WarningUpdate,
 )
-from app.services import ml_client, risk
+from app.services import grading, ml_client, risk
 from app.services.audit import Action, log_event
 from app.services.enrichment import Lookups, latest_predictions, sections_for_teacher
 
@@ -46,6 +50,107 @@ router = APIRouter(tags=["PACE & Early warning"])
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+# ── Class-record arithmetic ───────────────────────────────────────────────────
+DEFAULT_SETUP = {
+    "ww_highest": [], "pt_highest": [], "sa_highest": [], "te_highest": None,
+    "ww_weight": 30.0, "pt_weight": 50.0, "te_weight": 20.0,
+}
+
+
+def _loads(raw, fallback=None):
+    """Tolerant JSON read. A row written before this column existed, or one a
+    migration left as an empty string, must not take a save down with it."""
+    if not raw:
+        return [] if fallback is None else fallback
+    try:
+        value = json.loads(raw)
+    except (TypeError, ValueError):
+        return [] if fallback is None else fallback
+    return value if isinstance(value, list) else ([] if fallback is None else fallback)
+
+
+async def _load_setup(
+    db: AsyncSession,
+    school_id: int,
+    section_id: Optional[int],
+    subject_id: Optional[int],
+    grading_period: Optional[int],
+) -> dict:
+    """The highest possible scores and weights for one class record.
+
+    Falls back to the DepEd default split when a teacher has not filled the
+    header in yet, so encoding can begin before the sheet is fully set up.
+    Without a highest possible score there is no denominator, so percentages
+    stay blank until one is entered — blank, not zero, and not guessed.
+    """
+    if not (section_id and subject_id and grading_period):
+        return dict(DEFAULT_SETUP)
+    row = (
+        await db.execute(
+            scoped(
+                select(ClassRecordSetup).where(
+                    ClassRecordSetup.section_id == section_id,
+                    ClassRecordSetup.subject_id == subject_id,
+                    ClassRecordSetup.grading_period == grading_period,
+                ),
+                ClassRecordSetup,
+                school_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return dict(DEFAULT_SETUP)
+    return {
+        "ww_highest": _loads(row.ww_highest),
+        "pt_highest": _loads(row.pt_highest),
+        "sa_highest": _loads(row.sa_highest),
+        "te_highest": row.te_highest,
+        "ww_weight": row.ww_weight,
+        "pt_weight": row.pt_weight,
+        "te_weight": row.te_weight,
+    }
+
+
+SCORE_ARRAYS = ("ww_scores", "pt_scores", "sa_scores")
+
+
+def _assessment_columns(payload) -> dict:
+    """Turn the score arrays a client sent into the text the columns hold."""
+    out = {}
+    for name in SCORE_ARRAYS:
+        value = getattr(payload, name, None)
+        if value is not None:
+            out[name] = json.dumps(value)
+    return out
+
+
+def _recompute_grades(row: StudentPace, setup: dict) -> None:
+    """Rewrite every derived column on a record from its stored scores.
+
+    Called on every write. Nothing derived is ever accepted from a client, so
+    the totals, the initial grade and the transmuted grade on screen are
+    always the ones the stored scores produce.
+    """
+    result = grading.compute(
+        ww_scores=_loads(row.ww_scores),
+        pt_scores=_loads(row.pt_scores),
+        sa_scores=_loads(row.sa_scores),
+        te_score=row.te_score,
+        ww_highest=setup["ww_highest"],
+        pt_highest=setup["pt_highest"],
+        sa_highest=setup["sa_highest"],
+        te_highest=setup["te_highest"],
+        ww_weight=setup["ww_weight"],
+        pt_weight=setup["pt_weight"],
+        te_weight=setup["te_weight"],
+    )
+    for column in ("ww_total_raw", "ww_percent", "ww_weighted",
+                   "pt_total_raw", "pt_percent", "pt_weighted",
+                   "te_total_raw", "te_percent", "te_weighted",
+                   "initial_grade", "transmuted_grade", "letter_grade"):
+        setattr(row, column, result[column])
 
 
 def _apply_evaluation(row: StudentPace) -> dict:
@@ -301,7 +406,13 @@ async def create_pace(
             detail=f"A PACE record for {payload.subject} already exists — edit it instead.",
         )
 
-    row = StudentPace(**payload.model_dump(), recorded_by=current.id, school_id=scope)
+    fields = payload.model_dump(exclude=set(SCORE_ARRAYS))
+    row = StudentPace(**fields, **_assessment_columns(payload),
+                      recorded_by=current.id, school_id=scope)
+    # No section or period is supplied on this path, so the record is graded
+    # against the DepEd default split until the class record's own header is
+    # saved, at which point every row in it is recomputed.
+    _recompute_grades(row, dict(DEFAULT_SETUP))
     evaluation = _apply_evaluation(row)
     db.add(row)
     await db.flush()  # assigns pace_id, which the prediction row references
@@ -331,8 +442,14 @@ async def update_pace(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, StudentPace, pace_id, scope, "PACE record")
-    for field, value in payload.model_dump(exclude_unset=True).items():
-        setattr(row, field, value)
+    sent = payload.model_dump(exclude_unset=True)
+    for field, value in sent.items():
+        if field in SCORE_ARRAYS:
+            setattr(row, field, json.dumps(value) if value is not None else None)
+        else:
+            setattr(row, field, value)
+    if any(field in sent for field in SCORE_ARRAYS) or "te_score" in sent:
+        _recompute_grades(row, dict(DEFAULT_SETUP))
     if row.current_pace > row.total_paces:
         raise HTTPException(
             status_code=400,
@@ -365,6 +482,14 @@ async def bulk_upsert_paces(
     """Encode a whole section in one submit — the teacher's main workflow."""
     saved, skipped = 0, []
     touched: list[StudentPace] = []
+
+    # The sheet's header: highest possible score per item and the three
+    # weights. Loaded once for the whole save, and loaded here rather than
+    # taken from the request, so a client cannot choose the numbers a grade
+    # is computed from.
+    setup = await _load_setup(
+        db, scope, payload.section_id, payload.subject_id, payload.grading_period
+    )
 
     for entry in payload.entries:
         if entry.current_pace > entry.total_paces:
@@ -420,15 +545,20 @@ async def bulk_upsert_paces(
         row.recorded_by = current.id
         row.updated_at = _now()
 
-        # Assessment values are only written when the teacher supplied them —
-        # a blank cell in the bulk form must not wipe a figure already encoded.
-        for field_name in ml_client.MODEL_FIELDS:
-            if field_name == "grade_level":
-                continue  # read from the enrolment, not the form
+        # Score arrays are only written when the teacher sent them, so a save
+        # that touches only unit progress cannot wipe a class record already
+        # encoded. Within an array, however, a null IS meaningful: it is a
+        # cell the teacher cleared, and clearing a cell has to stick.
+        for field_name in ("ww_scores", "pt_scores", "sa_scores"):
+            value = getattr(entry, field_name, None)
+            if value is not None:
+                setattr(row, field_name, json.dumps(value))
+        for field_name in ("te_score", "absences", "extracurricular_count"):
             value = getattr(entry, field_name, None)
             if value is not None:
                 setattr(row, field_name, value)
 
+        _recompute_grades(row, setup)
         evaluation = _apply_evaluation(row)
         await db.flush()
         await _sync_warning(db, row, evaluation, current.full_name, scope)
@@ -498,6 +628,110 @@ async def _score_batch(
         "model_version": next(iter(versions), None),
         "detail": results[0].error if fallbacks else None,
     }
+
+
+@router.get("/api/class-record/setup", response_model=ClassRecordSetupResponse)
+async def get_class_record_setup(
+    section_id: int = Query(...),
+    subject_id: int = Query(...),
+    grading_period: int = Query(1, ge=1, le=4),
+    current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    """The HIGHEST POSSIBLE SCORE row and the weights for one class record.
+
+    Returns the DepEd default split when the header has not been filled in,
+    so a teacher opening a fresh record sees a usable sheet rather than an
+    error.
+    """
+    setup = await _load_setup(db, scope, section_id, subject_id, grading_period)
+    return ClassRecordSetupResponse(
+        section_id=section_id, subject_id=subject_id,
+        grading_period=grading_period, **setup,
+    )
+
+
+@router.put("/api/class-record/setup", response_model=ClassRecordSetupResponse)
+async def put_class_record_setup(
+    payload: ClassRecordSetupUpdate,
+    request: Request,
+    section_id: int = Query(...),
+    subject_id: int = Query(...),
+    grading_period: int = Query(1, ge=1, le=4),
+    current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    """Save the header, then rebuild every grade in the record.
+
+    Changing a highest possible score or a weight changes every learner's
+    percentage and grade. Recomputing them here is what stops the sheet from
+    showing grades derived from a denominator that no longer exists.
+    """
+    await get_scoped(db, Subject, subject_id, scope)
+
+    row = (
+        await db.execute(
+            scoped(
+                select(ClassRecordSetup).where(
+                    ClassRecordSetup.section_id == section_id,
+                    ClassRecordSetup.subject_id == subject_id,
+                    ClassRecordSetup.grading_period == grading_period,
+                ),
+                ClassRecordSetup,
+                scope,
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        row = ClassRecordSetup(
+            school_id=scope, section_id=section_id, subject_id=subject_id,
+            grading_period=grading_period,
+        )
+        db.add(row)
+
+    row.ww_highest = json.dumps(payload.ww_highest)
+    row.pt_highest = json.dumps(payload.pt_highest)
+    row.sa_highest = json.dumps(payload.sa_highest)
+    row.te_highest = payload.te_highest
+    row.ww_weight = payload.ww_weight
+    row.pt_weight = payload.pt_weight
+    row.te_weight = payload.te_weight
+    row.updated_by = current.id
+    row.updated_at = _now()
+    await db.flush()
+
+    setup = await _load_setup(db, scope, section_id, subject_id, grading_period)
+    subject = await get_scoped(db, Subject, subject_id, scope)
+    affected = (
+        await db.execute(
+            scoped(
+                select(StudentPace)
+                .join(StudentEnrollment,
+                      StudentEnrollment.enrollment_id == StudentPace.enrollment_id)
+                .where(StudentEnrollment.section_id == section_id,
+                       StudentPace.subject == subject.subject_name),
+                StudentPace,
+                scope,
+            )
+        )
+    ).scalars().all()
+    for pace in affected:
+        _recompute_grades(pace, setup)
+
+    await log_event(
+        db, Action.PACE_RECORDED, actor_id=current.id,
+        detail=(f"class record header saved for section {section_id} "
+                f"subject {subject_id} period {grading_period}; "
+                f"{len(affected)} records regraded"),
+        request=request,
+    )
+    await db.commit()
+    return ClassRecordSetupResponse(
+        section_id=section_id, subject_id=subject_id,
+        grading_period=grading_period, **setup,
+    )
 
 
 @router.delete("/api/paces/{pace_id}", status_code=204)

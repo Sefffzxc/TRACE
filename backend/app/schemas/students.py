@@ -6,7 +6,8 @@ import uuid
 from datetime import date, datetime
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (BaseModel, ConfigDict, EmailStr, Field, field_validator,
+                      model_validator)
 
 
 class ORMModel(BaseModel):
@@ -135,29 +136,120 @@ class PaceBase(BaseModel):
     remarks: Optional[str] = None
 
 
-class AssessmentFields(BaseModel):
-    """The DepEd class-record values the risk model reads.
+ItemScores = Optional[List[Optional[float]]]
 
-    All optional. Left blank they are not guessed at by this API — the AI
-    service substitutes its training median and flags the prediction as having
-    used baseline defaults.
+
+class AssessmentInput(BaseModel):
+    """What a teacher types into one row of the class record.
+
+    One score per assessment, in column order. A null inside an array is a
+    cell left blank; it is stored as blank, never as zero, and the derived
+    figures below are computed from the recorded cells only.
     """
 
+    ww_scores: ItemScores = None
+    pt_scores: ItemScores = None
+    sa_scores: ItemScores = None
+    te_score: Optional[float] = Field(default=None, ge=0)
+
+    # Operational, not model inputs: the class-record export the model was
+    # trained on contains no attendance column.
     absences: Optional[int] = Field(default=None, ge=0, le=200)
-    ww_total_raw: Optional[float] = Field(default=None, ge=0)
-    ww_percent: Optional[float] = Field(default=None, ge=0, le=100)
-    pt_total_raw: Optional[float] = Field(default=None, ge=0)
-    pt_percent: Optional[float] = Field(default=None, ge=0, le=100)
-    missed_ww_items: Optional[int] = Field(default=None, ge=0, le=100)
-    missed_pt_items: Optional[int] = Field(default=None, ge=0, le=100)
     extracurricular_count: Optional[int] = Field(default=None, ge=0, le=50)
 
+    @field_validator("ww_scores", "pt_scores", "sa_scores", mode="before")
+    @classmethod
+    def _parse_stored(cls, v):
+        """Accept the JSON text the database holds as well as a real list.
 
-class PaceCreate(PaceBase, AssessmentFields):
+        The arrays are stored as text so the same schema works on SQLite and
+        PostgreSQL, which means a response built straight from an ORM row
+        arrives here as a string.
+        """
+        if isinstance(v, str):
+            if not v.strip():
+                return None
+            try:
+                parsed = json.loads(v)
+            except ValueError:
+                return None
+            return parsed if isinstance(parsed, list) else None
+        return v
+
+    @field_validator("ww_scores", "pt_scores", "sa_scores")
+    @classmethod
+    def _sane_scores(cls, v: ItemScores) -> ItemScores:
+        if v is None:
+            return v
+        if len(v) > 40:
+            raise ValueError("a component may hold at most 40 assessments")
+        for s in v:
+            if s is not None and (s < 0 or s > 1000):
+                raise ValueError("each score must be between 0 and 1000")
+        return v
+
+
+class AssessmentDerived(BaseModel):
+    """Everything computed from the scores above by app.services.grading.
+
+    Read-only. These are recalculated on every save, so a value sent by a
+    client is ignored rather than trusted — the grade on screen is always the
+    grade the stored scores produce.
+    """
+
+    ww_total_raw: Optional[float] = None
+    ww_percent: Optional[float] = None
+    ww_weighted: Optional[float] = None
+    pt_total_raw: Optional[float] = None
+    pt_percent: Optional[float] = None
+    pt_weighted: Optional[float] = None
+    te_total_raw: Optional[float] = None
+    te_percent: Optional[float] = None
+    te_weighted: Optional[float] = None
+    initial_grade: Optional[float] = None
+    transmuted_grade: Optional[int] = None
+    letter_grade: Optional[str] = None
+
+
+class AssessmentFields(AssessmentInput, AssessmentDerived):
+    """Input plus derived, for the endpoints that return a whole record."""
+
+
+# ── The class-record header: highest possible scores and weights ─────────────
+class ClassRecordSetupBase(BaseModel):
+    ww_highest: List[Optional[float]] = Field(default_factory=list)
+    pt_highest: List[Optional[float]] = Field(default_factory=list)
+    sa_highest: List[Optional[float]] = Field(default_factory=list)
+    te_highest: Optional[float] = Field(default=None, ge=0)
+    ww_weight: float = Field(default=30.0, ge=0, le=100)
+    pt_weight: float = Field(default=50.0, ge=0, le=100)
+    te_weight: float = Field(default=20.0, ge=0, le=100)
+
+    @model_validator(mode="after")
+    def _weights_total_100(self):
+        total = self.ww_weight + self.pt_weight + self.te_weight
+        if abs(total - 100.0) > 0.01:
+            raise ValueError(
+                f"the three component weights must total 100 percent, not {total:g}"
+            )
+        return self
+
+
+class ClassRecordSetupUpdate(ClassRecordSetupBase):
     pass
 
 
-class PaceUpdate(AssessmentFields):
+class ClassRecordSetupResponse(ClassRecordSetupBase):
+    section_id: int
+    subject_id: int
+    grading_period: int
+
+
+class PaceCreate(PaceBase, AssessmentInput):
+    pass
+
+
+class PaceUpdate(AssessmentInput):
     subject: Optional[str] = None
     current_pace: Optional[int] = None
     expected_pace: Optional[int] = None
@@ -190,7 +282,7 @@ class PaceResponse(ORMModel, PaceBase, AssessmentFields):
     ai_primary_factor: Optional[str] = None
 
 
-class BulkPaceEntry(AssessmentFields):
+class BulkPaceEntry(AssessmentInput):
     student_id: int
     enrollment_id: int
     subject: str
@@ -203,6 +295,13 @@ class BulkPaceEntry(AssessmentFields):
 
 class BulkPaceRequest(BaseModel):
     entries: List[BulkPaceEntry]
+    # One save is one class record, so the sheet's header travels with it.
+    # Given these three, the server loads the highest possible scores and the
+    # weights itself rather than letting a client send the numbers a grade is
+    # computed from.
+    section_id: Optional[int] = None
+    subject_id: Optional[int] = None
+    grading_period: Optional[int] = None
 
 
 # ── Early warning ─────────────────────────────────────────────────────────────

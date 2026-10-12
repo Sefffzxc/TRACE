@@ -34,6 +34,7 @@ from app.models.staff import (  # noqa: F401
 )
 from app.models.students import (  # noqa: F401
     AIRiskPrediction,
+    ClassRecordSetup,
     DataQualityLog,
     EarlyWarning,
     Student,
@@ -67,6 +68,7 @@ __all__ = [
     "StudentPace",
     "EarlyWarning",
     "AIRiskPrediction",
+    "ClassRecordSetup",
     "DataQualityLog",
     "ROLE_SUPER_ADMIN",
     "ROLE_ADMIN",

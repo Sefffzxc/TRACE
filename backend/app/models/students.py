@@ -199,13 +199,35 @@ class StudentPace(Base):
     # prediction carries `used_baseline_defaults = True` — so an incomplete
     # class record produces a visibly weaker prediction rather than a
     # confident one built on invented numbers.
-    absences = Column(Integer, nullable=True)           # No of Absences
-    ww_total_raw = Column(Float, nullable=True)         # Written Work, raw total
-    ww_percent = Column(Float, nullable=True)           # Written Work, % score
-    pt_total_raw = Column(Float, nullable=True)         # Performance Tasks, raw total
-    pt_percent = Column(Float, nullable=True)           # Performance Tasks, % score
-    missed_ww_items = Column(Integer, nullable=True)
-    missed_pt_items = Column(Integer, nullable=True)
+    # What the teacher types: one score per assessment, as JSON arrays, in the
+    # order the columns appear on the class record. A null inside an array is
+    # a cell left blank, which is not the same as a zero and is never treated
+    # as one. The arrays are the record of truth; everything below them is
+    # derived from these by app.services.grading and recomputed on every save,
+    # so a stored grade can never drift away from the scores behind it.
+    ww_scores = Column(Text, nullable=True)             # JSON array, Written Works
+    pt_scores = Column(Text, nullable=True)             # JSON array, Performance Tasks
+    sa_scores = Column(Text, nullable=True)             # JSON array, summative tests
+    te_score = Column(Float, nullable=True)             # term examination
+
+    # Derived, in the order the DepEd sheet presents them.
+    ww_total_raw = Column(Float, nullable=True)
+    ww_percent = Column(Float, nullable=True)
+    ww_weighted = Column(Float, nullable=True)
+    pt_total_raw = Column(Float, nullable=True)
+    pt_percent = Column(Float, nullable=True)
+    pt_weighted = Column(Float, nullable=True)
+    te_total_raw = Column(Float, nullable=True)
+    te_percent = Column(Float, nullable=True)
+    te_weighted = Column(Float, nullable=True)
+    initial_grade = Column(Float, nullable=True)
+    transmuted_grade = Column(Integer, nullable=True)
+    letter_grade = Column(String(8), nullable=True)
+
+    # Kept because schools use them operationally, though the model trained on
+    # the merged class-record export reads neither: that export carries no
+    # attendance column at all.
+    absences = Column(Integer, nullable=True)
     extracurricular_count = Column(Integer, nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=_utcnow)
@@ -216,6 +238,58 @@ class StudentPace(Base):
 
     __table_args__ = (
         UniqueConstraint("enrollment_id", "subject", name="uq_pace_per_subject"),
+    )
+
+
+class ClassRecordSetup(Base):
+    """The header of one class record: the HIGHEST POSSIBLE SCORE row and the
+    component weights.
+
+    These belong to the sheet, not to a learner — every learner in a section
+    is marked out of the same totals — so they are stored once per section,
+    subject and grading period rather than copied onto every row.
+
+    Weights are per record because the school's own files use both 30/50/20
+    and 40/40/20 depending on the quarter, so they cannot be a constant and
+    cannot even be a per-school setting.
+    """
+
+    __tablename__ = "class_record_setups"
+
+    setup_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(
+        Integer,
+        ForeignKey("schools.school_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    section_id = Column(
+        Integer, ForeignKey("sections.section_id", ondelete="CASCADE"), nullable=False
+    )
+    subject_id = Column(
+        Integer, ForeignKey("subjects.subject_id", ondelete="CASCADE"), nullable=False
+    )
+    grading_period = Column(Integer, nullable=False, default=1)
+
+    # JSON arrays of the highest possible score per item. Their lengths are
+    # what decides how many columns the class record draws.
+    ww_highest = Column(Text, nullable=False, default="[]")
+    pt_highest = Column(Text, nullable=False, default="[]")
+    sa_highest = Column(Text, nullable=False, default="[]")
+    te_highest = Column(Float, nullable=True)
+
+    ww_weight = Column(Float, nullable=False, default=30.0)
+    pt_weight = Column(Float, nullable=False, default=50.0)
+    te_weight = Column(Float, nullable=False, default=20.0)
+
+    updated_by = Column(GUID(), ForeignKey("staff.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_utcnow)
+    updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "section_id", "subject_id", "grading_period", name="uq_class_record_setup"
+        ),
     )
 
 

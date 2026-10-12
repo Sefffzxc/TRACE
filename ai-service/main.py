@@ -11,9 +11,12 @@ three-tier architecture.
 
 What it will and will not say
 -----------------------------
-The model estimates END-OF-QUARTER risk (a quarterly grade below 75, or no
-grade recorded) from attendance and assessment records. It was validated on
-quarter-end values only, so `/model-card` reports that limitation and every
+The model estimates whether a learner will finish the term below 80 — the
+mark at which DepEd records call for intervention — from the coursework
+components of the class record, before the term exam is sat. It does NOT
+predict the passing mark of 75: there were only 30 such cases in the
+training records, too few to support a claim. It was validated on complete
+coursework totals, so `/model-card` reports that limitation, and every
 response carries `model_version` so a stored prediction can always be traced
 back to the model that made it.
 
@@ -49,7 +52,7 @@ from pydantic import BaseModel, Field
 MODEL_DIR = pathlib.Path(os.getenv("MODEL_DIR", "model"))
 MODEL_PATH = MODEL_DIR / "risk_model_v2.joblib"
 CARD_PATH = MODEL_DIR / "model_card_v2.json"
-MODEL_VERSION = os.getenv("MODEL_VERSION", "v2-2026-09")
+MODEL_VERSION = os.getenv("MODEL_VERSION", "v2.0.0-classrecord")
 SERVICE_TOKEN = os.getenv("AI_SERVICE_TOKEN", "").strip()
 MAX_BATCH = 500
 
@@ -132,25 +135,48 @@ def bundle() -> dict:
 # Schemas — field names mirror the dataset columns exactly
 # ══════════════════════════════════════════════════════════════════════════════
 class StudentRecord(BaseModel):
-    """One student-subject-quarter. Any field may be omitted; the service
-    substitutes the training median and reports that it did so."""
+    """One learner, one subject, one term.
 
-    absences: Optional[float] = Field(default=None, ge=0, description="No of Absences")
-    ww_total_raw: Optional[float] = Field(default=None, ge=0, description="WW Total (Raw)")
-    ww_percent: Optional[float] = Field(default=None, ge=0, le=100, description="WW % Score")
-    pt_total_raw: Optional[float] = Field(default=None, ge=0, description="PT Total (Raw)")
-    pt_percent: Optional[float] = Field(default=None, ge=0, le=100, description="PT % Score")
-    missed_ww_items: Optional[float] = Field(default=None, ge=0)
-    missed_pt_items: Optional[float] = Field(default=None, ge=0)
-    extracurricular_count: Optional[float] = Field(default=None, ge=0)
+    These are the DepEd class-record figures a teacher has entered by the time
+    a warning is useful: the two coursework components, raw, as a percentage
+    and weighted. The summative tests and the term examination are
+    deliberately absent — they are sat at the end of the term, and a model
+    that needed them would be reporting a result rather than anticipating
+    one.
+
+    Any field may be omitted; the service substitutes the training median and
+    says so in the response.
+    """
+
+    ww_total: Optional[float] = Field(default=None, ge=0,
+        description="Written Works raw total for the term")
+    # Not capped at 100. Thirteen rows of the training data score above the
+    # highest possible score, because a teacher awarded a bonus; capping here
+    # would reject a figure the class record itself produced.
+    ww_pct: Optional[float] = Field(default=None, ge=0, le=200,
+        description="Written Works percentage score (total / highest possible x 100)")
+    ww_weighted: Optional[float] = Field(default=None, ge=0, le=100,
+        description="Written Works weighted score (percentage x component weight)")
+    pt_total: Optional[float] = Field(default=None, ge=0,
+        description="Performance Task raw total for the term")
+    pt_pct: Optional[float] = Field(default=None, ge=0, le=200,
+        description="Performance Task percentage score")
+    pt_weighted: Optional[float] = Field(default=None, ge=0, le=100,
+        description="Performance Task weighted score")
+    pre_exam_weighted: Optional[float] = Field(default=None, ge=0, le=100,
+        description="Written Works weighted + Performance Task weighted: what "
+                    "the learner has banked before the term examination")
+    component_gap: Optional[float] = Field(default=None, ge=0, le=200,
+        description="Absolute difference between the two percentage scores")
     grade_level: Optional[float] = Field(default=None, ge=1, le=12)
+    quarter: Optional[float] = Field(default=None, ge=1, le=4)
 
     # Echoed back untouched so the caller can match responses to its own rows.
     reference: Optional[str] = Field(default=None, max_length=120)
 
 
 class Prediction(BaseModel):
-    risk_score: float = Field(description="Probability of end-of-quarter failure, 0-1")
+    risk_score: float = Field(description="Probability of ending the term below 80, 0-1")
     risk_level: str = Field(description="HIGH or LOW, using the service threshold")
     primary_factor: Optional[str] = Field(
         default=None, description="Biggest contributing feature; null when LOW")
@@ -172,17 +198,18 @@ class BatchResponse(BaseModel):
     count: int
 
 
-# Request field -> dataset column, in the order the model expects.
+# Request field -> training column, in the order the model expects.
 FIELD_MAP = {
-    "absences": "No of Absences",
-    "ww_total_raw": "WW Total (Raw)",
-    "ww_percent": "WW % Score",
-    "pt_total_raw": "PT Total (Raw)",
-    "pt_percent": "PT % Score",
-    "missed_ww_items": "Missed WW Items",
-    "missed_pt_items": "Missed PT Items",
-    "extracurricular_count": "Extracurricular Activities",
-    "grade_level": "Grade Level",
+    "ww_total": "ww_total",
+    "ww_pct": "ww_pct",
+    "ww_weighted": "ww_weighted",
+    "pt_total": "pt_total",
+    "pt_pct": "pt_pct",
+    "pt_weighted": "pt_weighted",
+    "pre_exam_weighted": "pre_exam_weighted",
+    "component_gap": "component_gap",
+    "grade_level": "grade_level",
+    "quarter": "quarter",
 }
 
 
@@ -305,20 +332,33 @@ async def model_card():
         "algorithm": type(b["model"]).__name__,
         "features": b["features"],
         "threshold": b["threshold"],
-        "target": "HIGH if end-of-quarter grade < 75, or no grade recorded",
+        "target": "HIGH if the term grade will fall below 80",
         "limitations": [
-            "Validated on quarter-end feature values only; mid-quarter performance "
-            "has not been measured and must not be claimed.",
-            "Does not transfer across school years without threshold recalibration "
-            "(recall fell to 0.573 on an unseen cohort).",
-            "Validated on Grade 8 Filipino records only (88.3% and 95.5% of the "
-            "training data respectively).",
-            "Attendance dominates: attendance alone reaches 97% of the full model's "
-            "macro F1.",
+            "The term grade is a weighted sum of the components the model "
+            "reads, so the task is substantially arithmetic. A single cut on "
+            "the pre-examination weighted total reaches macro F1 0.864 on the "
+            "same data; the model's advantage over it was not statistically "
+            "significant.",
+            "Measured at the point where written works and performance tasks "
+            "are complete and the term examination is not. No claim is made "
+            "about earlier points in the term.",
+            "Does not transfer across cohorts without threshold "
+            "recalibration: carrying the earlier cohort's threshold to an "
+            "unseen one dropped recall from 0.835 to 0.645.",
+            "Trained on Grade 8 Filipino records (86.8% and 95.6% of the "
+            "training rows). Conclusions do not extend to other grade levels "
+            "or subjects.",
+            "The training export carries no attendance column, so attendance "
+            "plays no part in this model.",
         ],
-        "reported_metrics": card.get("test_results_10_splits_mean"),
-        "baseline_for_comparison": card.get("baseline"),
+        # Keyed to the card the current training script writes. These were
+        # reading key names from the previous model and silently returning
+        # null for all three.
+        "dataset": card.get("dataset"),
+        "reported_metrics": card.get("results"),
+        "temporal_validation": card.get("temporal_validation"),
         "protocol": card.get("protocol"),
+        "known_limits": card.get("limitations"),
     }
 
 

@@ -158,8 +158,23 @@ export const paceApi = {
   list: (params) => api.get('/api/paces', params),
   create: (payload) => api.post('/api/paces', payload),
   update: (id, payload) => api.patch(`/api/paces/${id}`, payload),
-  bulkSave: (entries) => api.post('/api/paces/bulk', { entries }),
+  // `context` carries the section, subject and grading period of the class
+  // record being saved. The server needs them to look up the highest possible
+  // scores and the weights, which it will not accept from the client.
+  bulkSave: (entries, context = {}) =>
+    api.post('/api/paces/bulk', { entries, ...context }),
   remove: (id) => api.delete(`/api/paces/${id}`),
+};
+
+/** The class record's header: the HIGHEST POSSIBLE SCORE row and the weights. */
+export const classRecordApi = {
+  getSetup: (params) => api.get('/api/class-record/setup', params),
+  saveSetup: (params, payload) =>
+    api.put(
+      `/api/class-record/setup?section_id=${params.section_id}` +
+        `&subject_id=${params.subject_id}&grading_period=${params.grading_period}`,
+      payload,
+    ),
 };
 
 export const warningApi = {

@@ -875,8 +875,94 @@ async def reset() -> None:
     print("All tables dropped.")
 
 
+# The two schools the demonstration seed creates. Nothing else is matched, so
+# a purge cannot touch a school a principal registered.
+DEMO_SCHOOL_NAMES = [plan["name"] for plan in SCHOOL_PLANS]
+
+
+async def fresh_start(email: str, password: str | None) -> None:
+    """Empty the database completely and leave one operator account behind.
+
+    Every table is dropped and rebuilt, so no demonstration learner, class
+    record, prediction or school survives. The operator account is recreated
+    immediately afterwards because without it nobody can sign in to approve
+    the first real school.
+    """
+    import app.models  # noqa: F401  (registers every table before the drop)
+
+    await reset()
+    await init_models()
+    await create_super_admin(email, password)
+    print()
+    print("The database is empty apart from that account.")
+    print("Sign in with it, then register your first real school from the")
+    print("sign-in page: 'Request a staff account' -> 'a school administrator'.")
+
+
+async def purge_demo() -> None:
+    """Delete only the demonstration schools, leaving real ones alone.
+
+    For a database that already holds a real school. Everything belonging to
+    a demonstration school goes with it — learners, enrolments, class
+    records, warnings, predictions — because every tenant table carries a
+    school_id and the foreign keys cascade from the school row.
+    """
+    from app.models.schools import School
+
+    async with AsyncSessionLocal() as db:
+        rows = (
+            await db.execute(
+                select(School).where(School.name.in_(DEMO_SCHOOL_NAMES))
+            )
+        ).scalars().all()
+
+        if not rows:
+            print("No demonstration schools found — nothing to remove.")
+        for school in rows:
+            print(f"Removing {school.name} (school_id={school.school_id}) "
+                  "and everything belonging to it…")
+            await db.delete(school)
+
+        # Staff attached to no school are operator accounts and are kept; the
+        # demonstration teachers and principals went with their schools.
+        await db.commit()
+
+        remaining = (
+            await db.execute(select(School.name).order_by(School.name))
+        ).scalars().all()
+        print()
+        print(f"Schools remaining: {len(remaining)}")
+        for name in remaining:
+            print(f"  - {name}")
+
+
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed the LBCA demo database.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Database setup for SmartPACE. Creating demonstration data is no "
+            "longer the default: it has to be asked for with --demo, so that "
+            "running this script against the live database cannot put "
+            "invented learners into it."
+        )
+    )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="create the two demonstration schools and their invented "
+             "learners (development and screenshots only)",
+    )
+    parser.add_argument(
+        "--fresh-start",
+        action="store_true",
+        help="empty the database completely and leave one operator account; "
+             "this is how to clear every trace of the demonstration data",
+    )
+    parser.add_argument(
+        "--purge-demo",
+        action="store_true",
+        help="delete only the two demonstration schools, leaving any real "
+             "school and its records untouched",
+    )
     parser.add_argument("--reset", action="store_true", help="drop all tables first")
     parser.add_argument(
         "--score",
@@ -901,9 +987,19 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
-    # Checked before everything else: this is the one command that is run
-    # against a real database holding real schools, so it must not be able to
-    # drag seeding or scoring along with it.
+    # Checked before everything else: these are the commands run against a
+    # real database holding real schools, so none of them may drag seeding or
+    # scoring along behind it.
+    #
+    # --fresh-start comes first because it accepts --create-superadmin as the
+    # address for the account it leaves behind; tested the other way round,
+    # that combination would quietly create an account and never empty
+    # anything.
+    if args.fresh_start:
+        await fresh_start(args.create_superadmin or SUPERADMIN_EMAIL, args.password)
+        await async_engine.dispose()
+        return
+
     if args.create_superadmin:
         # Tables may not exist yet on a fresh deployment, and this creates only
         # what is missing.
@@ -912,9 +1008,27 @@ async def main() -> None:
         await async_engine.dispose()
         return
 
+    if args.purge_demo:
+        await purge_demo()
+        await async_engine.dispose()
+        return
+
     if args.score_only:
         await score()
         await async_engine.dispose()
+        return
+
+    # Seeding is now opt-in. Running this script with no arguments used to
+    # fill the database with invented schools and learners, which is exactly
+    # how demonstration data ends up in a live deployment.
+    if not args.demo:
+        parser.print_help()
+        print()
+        print("Nothing was changed. Pick one:")
+        print("  --fresh-start   empty the database, keep one operator account")
+        print("  --purge-demo    remove only the demonstration schools")
+        print("  --demo          create the demonstration data (development only)")
+        print("  --score-only    re-score the records already stored")
         return
 
     if args.reset:

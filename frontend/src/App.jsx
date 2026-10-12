@@ -17,6 +17,7 @@ import DashboardPage from './pages/app/DashboardPage';
 import StudentsPage from './pages/app/StudentsPage';
 import StudentProfilePage from './pages/app/StudentProfilePage';
 import RosterPage from './pages/app/RosterPage';
+import ClassRecordPage from './pages/app/ClassRecordPage';
 import EarlyWarningPage from './pages/app/EarlyWarningPage';
 import AiInsightsPage from './pages/app/AiInsightsPage';
 import TeachersPage from './pages/app/TeachersPage';
@@ -173,7 +174,7 @@ function Router() {
             marks are what the risk model reads, and a school that tracks no
             lesson units still has both. It used to be a tab inside the screen
             below, which meant a DepEd school could not reach it at all. */}
-        <Route path="/class-record" element={<RosterPage mode="record" />} />
+        <Route path="/class-record" element={<ClassRecordPage />} />
         <Route
           path="/pace"
           element={
