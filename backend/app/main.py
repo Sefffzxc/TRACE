@@ -13,12 +13,36 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routers import ai, academic, auth, dashboard, pace, schools, staff, students
 from app.core.config import settings
+from app.db.schema_check import STATE as SCHEMA_STATE, verify as verify_schema
 from app.db.session import init_models
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await init_models()
+    # create_all adds missing tables but never adds a column to a table
+    # that already exists, so a deployed database can be one migration
+    # behind the models and every query mentioning a new column fails as a
+    # 500. This logs exactly which columns are missing, and the command
+    # that fixes it, instead of leaving it to be guessed from the browser.
+    await verify_schema()
+
+    # Say out loud which origins the browser will be allowed to call from.
+    # A CORS rejection looks identical to a dead API from the console, so
+    # the one list that decides it should not have to be inferred.
+    origins = settings.cors_origins
+    log = logging.getLogger("lbca.cors")
+    if not origins:
+        log.error("ALLOWED_ORIGINS is empty — every browser request will be "
+                  "refused. Set it to the front end's URL.")
+    elif "*" in origins:
+        # A wildcard cannot be combined with credentials; browsers reject
+        # the pair outright, which presents as a blanket CORS failure.
+        log.error("ALLOWED_ORIGINS contains '*', which browsers refuse to "
+                  "accept alongside credentials. Name the front end's URL "
+                  "instead.")
+    else:
+        log.info("CORS allows: %s", ", ".join(origins))
     yield
 
 
@@ -117,4 +141,29 @@ async def root():
 
 @app.get("/health", tags=["Meta"])
 async def health():
-    return {"status": "ok"}
+    """Liveness, plus whether the database matches the models.
+
+    The schema state is here so a mismatch can be read from a browser
+    without shell access to the service. It does not change the status:
+    the application is up, it is the data layer that is behind.
+    """
+    body = {
+        "status": "ok",
+        # The exact origins a browser may call from. Not a secret — any
+        # browser can discover it — and it is the fastest way to tell a
+        # CORS rejection apart from a dead API, which look the same from
+        # the console.
+        "allowed_origins": settings.cors_origins,
+    }
+    if SCHEMA_STATE.get("checked") and not SCHEMA_STATE.get("ok"):
+        body["schema"] = {
+            "up_to_date": False,
+            "missing_tables": SCHEMA_STATE.get("missing_tables", []),
+            "missing_columns": SCHEMA_STATE.get("missing_columns", {}),
+            "fix": "run: python seed.py --fresh-start",
+            "why": (
+                "create_all adds missing tables but never adds a column to a "
+                "table that already exists, so redeploying does not clear this."
+            ),
+        }
+    return body

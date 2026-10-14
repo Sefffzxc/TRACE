@@ -109,13 +109,30 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> List[str]:
-        """Allowed origins, with a scheme added where one is missing.
+        """Allowed origins, normalised to the form a browser actually sends.
 
-        This is typed in by hand at deployment time, and ``lbca-web.onrender.com``
-        is the obvious thing to paste. Treating a bare host as https avoids a
-        CORS failure that would otherwise look like a broken API.
+        This is typed in by hand at deployment time, so it is normalised
+        rather than trusted:
+
+        * a bare host gets https, because ``lbca-web.onrender.com`` is the
+          obvious thing to paste;
+        * a trailing slash is removed, because the browser's Origin header
+          never has one and ``https://example.com/`` therefore matches
+          nothing — the single most common way this setting is got wrong;
+        * the host is lower-cased, since origins compare case-sensitively
+          but hostnames are not case-sensitive.
+
+        Each of these turns a silent, total CORS failure into a match.
         """
-        return [_with_scheme(o.strip()) for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
+        out: List[str] = []
+        for raw in self.ALLOWED_ORIGINS.split(","):
+            value = raw.strip()
+            if not value:
+                continue
+            value = _with_scheme(value).rstrip("/")
+            scheme, _, rest = value.partition("://")
+            out.append(f"{scheme.lower()}://{rest.lower()}" if rest else value.lower())
+        return out
 
     @property
     def lockout_ladder(self) -> List[int]:
