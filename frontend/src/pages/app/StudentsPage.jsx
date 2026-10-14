@@ -39,10 +39,11 @@ const RISK_FILTERS = [
 export default function StudentsPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  // The school's own word for a lesson unit — "PACE" at a School of Tomorrow
-  // school, "Module" elsewhere. Never hard-coded, because this screen is shown
-  // to every school including those that track no units at all.
-  const { isAdmin, unitLabel, unitLabelPlural } = useAuth();
+  // Standing is a grade, or a grade-shaped figure: the term grade once a
+  // record is complete, and the coursework banked before that. One axis for
+  // both, so a part-finished term and a finished one can sit in the same
+  // column without the reader having to know which is which.
+  const { isAdmin } = useAuth();
   const [params, setParams] = useSearchParams();
 
   const [students, setStudents] = useState([]);
@@ -169,9 +170,11 @@ export default function StudentsPage() {
       'First name',
       'Grade level',
       'Section',
-      `${unitLabel} completion %`,
-      `${unitLabelPlural} behind`,
-      'Attendance %',
+      'Year average',
+      'Weakest subject',
+      'Needs from here',
+      'Subjects flagged',
+      'Subjects tracked',
       'Risk',
     ];
     const lines = sorted.map((student) =>
@@ -181,9 +184,11 @@ export default function StudentsPage() {
         student.first_name,
         student.grade_level_name || '',
         student.section_name || '',
-        student.pace_percent,
-        student.paces_behind,
-        student.attendance,
+        student.lowest_standing ?? '',
+        student.weakest_subject ?? '',
+        student.required_in_weakest ?? '',
+        student.subjects_flagged ?? 0,
+        student.subjects_tracked ?? 0,
         student.risk_level,
       ]
         .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
@@ -219,7 +224,7 @@ export default function StudentsPage() {
     <div className="page">
       <PageHead
         title="Students"
-        subtitle="Every learner being monitored, with their current standing."
+        subtitle="Every learner being monitored, and what each would need across the terms that remain."
         actions={
           <>
             <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!sorted.length}>
@@ -334,19 +339,25 @@ export default function StudentsPage() {
                       </span>
                     </th>
                     <th>Section</th>
-                    <th className="sortable" onClick={() => toggleSort('pace_percent')}>
+                    {/* The weakest subject, not an average. A learner doing
+                        well in three subjects and failing the fourth still
+                        needs the conversation, and a mean would hide them. */}
+                    <th className="right sortable" onClick={() => toggleSort('lowest_standing')}>
                       <span className="th-inner">
-                        {unitLabel} completion <SortIcon column="pace_percent" />
+                        Year average <SortIcon column="lowest_standing" />
                       </span>
                     </th>
-                    <th className="right sortable" onClick={() => toggleSort('paces_behind')}>
+                    <th>Weakest subject</th>
+                    {/* The number a teacher can say out loud. "At risk"
+                        is not advice; "needs 84 from here" is. */}
+                    <th className="right sortable" onClick={() => toggleSort('required_in_weakest')}>
                       <span className="th-inner">
-                        Behind <SortIcon column="paces_behind" />
+                        Needs from here <SortIcon column="required_in_weakest" />
                       </span>
                     </th>
-                    <th className="right sortable" onClick={() => toggleSort('attendance')}>
+                    <th className="right sortable" onClick={() => toggleSort('subjects_flagged')}>
                       <span className="th-inner">
-                        Attendance <SortIcon column="attendance" />
+                        Subjects flagged <SortIcon column="subjects_flagged" />
                       </span>
                     </th>
                     <th className="sortable" onClick={() => toggleSort('risk_score')}>
@@ -379,19 +390,72 @@ export default function StudentsPage() {
                           {student.grade_level_name || 'Not enrolled'}
                         </div>
                       </td>
-                      <td style={{ minWidth: 150 }}>
-                        <div className="progress-row">
-                          <div className="progress">
-                            <div
-                              className={`progress-fill is-${student.risk_level}`}
-                              style={{ width: `${student.pace_percent}%` }}
-                            />
-                          </div>
-                          <span className="progress-value">{student.pace_percent.toFixed(0)}%</span>
-                        </div>
+                      <td className="right">
+                        {student.lowest_standing === null ||
+                        student.lowest_standing === undefined ? (
+                          <span className="faint">—</span>
+                        ) : (
+                          <>
+                            <span className="cell-strong">
+                              {student.lowest_standing.toFixed(0)}
+                            </span>
+                            {/* A standing taken from coursework rather than
+                                from a finished record is provisional, and
+                                saying so is the difference between a grade
+                                and an estimate. */}
+                            {student.lowest_term_grade === null ||
+                            student.lowest_term_grade === undefined ? (
+                              <span className="faint" title="No term grade yet — this is the coursework banked so far">
+                                {' '}*
+                              </span>
+                            ) : null}
+                          </>
+                        )}
                       </td>
-                      <td className="right cell-strong">{student.paces_behind}</td>
-                      <td className="right">{student.attendance.toFixed(0)}%</td>
+                      <td>
+                        <span className="faint">{student.weakest_subject || '—'}</span>
+                      </td>
+                      <td className="right">
+                        {student.required_in_weakest === null ||
+                        student.required_in_weakest === undefined ? (
+                          <span
+                            className="faint"
+                            title={
+                              student.terms_done
+                                ? 'The year is complete — there are no terms left to average'
+                                : 'No term finished yet'
+                            }
+                          >
+                            —
+                          </span>
+                        ) : student.required_in_weakest > 100 ? (
+                          // Above 100 is not an achievable average, so the
+                          // line is already out of reach. Saying that is
+                          // more use than printing an impossible target.
+                          <span
+                            className="cell-strong"
+                            style={{ color: 'var(--crit-500)' }}
+                            title={`Would need ${student.required_in_weakest.toFixed(0)} — out of reach`}
+                          >
+                            out of reach
+                          </span>
+                        ) : (
+                          <span className="cell-strong">
+                            {student.required_in_weakest.toFixed(0)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="right">
+                        {student.subjects_flagged ? (
+                          <span className="cell-strong">
+                            {student.subjects_flagged} of {student.subjects_tracked}
+                          </span>
+                        ) : (
+                          <span className="faint">
+                            none of {student.subjects_tracked || 0}
+                          </span>
+                        )}
+                      </td>
                       <td>
                         <RiskBadge level={student.risk_level} />
                       </td>

@@ -43,7 +43,10 @@ from app.schemas.students import (
 )
 from app.services import grading, ml_client, risk
 from app.services.audit import Action, log_event
-from app.services.enrichment import Lookups, latest_predictions, sections_for_teacher
+from app.services.enrichment import (Lookups, latest_predictions,
+                                     term_grades_by_subject,
+                                     school_passing_mark as enrichment_passing_mark,
+                                     sections_for_teacher)
 
 router = APIRouter(tags=["PACE & Early warning"])
 
@@ -60,6 +63,7 @@ DERIVED_COLUMNS = (
     "pt_total_raw", "pt_percent", "pt_weighted",
     "exam_percent", "exam_weighted",
     "initial_grade", "transmuted_grade", "descriptor",
+    "pre_exam_weighted", "pre_exam_max",
 )
 
 
@@ -167,14 +171,44 @@ def _recompute_grades(row: StudentPace, setup: dict) -> None:
     row.record_complete = bool(result["complete"])
 
 
-def _apply_evaluation(row: StudentPace) -> dict:
-    """Recompute the derived columns on a PACE row."""
-    evaluation = risk.evaluate(
-        row.current_pace, row.expected_pace, row.total_paces, row.attendance
+# Below the line is what the system flags; the passing mark is what it warns
+# about losing. Both come from the school, and only the second is editable.
+RISK_LINE = 80.0
+
+
+def _apply_evaluation(
+    row: StudentPace,
+    passing_mark: float = 75.0,
+    term_grades: Optional[list] = None,
+) -> dict:
+    """Recompute the derived columns on a record and score it.
+
+    The scoring lives in app.services.risk, and every screen that shows a
+    risk calls the same function — which is what stops the Students page
+    and the early-warning list from disagreeing about the same learner.
+
+    ``term_grades`` is every term this learner has in this subject. The
+    final grade is their mean, so that is what the learner is judged on
+    once any term is finished. Before then there is no year yet and the
+    reading falls back to the term in progress.
+    """
+    evaluation = risk.evaluate_year(
+        row, term_grades or [], RISK_LINE, passing_mark
     )
-    row.pace_percent = evaluation["pace_percent"]
-    row.paces_behind = evaluation["paces_behind"]
+    if evaluation["basis"] == "units":
+        row.pace_percent = evaluation["pace_percent"]
+        row.paces_behind = evaluation["paces_behind"]
+    else:
+        # A class-record school counts no booklets; leaving stale values in
+        # these columns would show as phantom progress on the roster.
+        row.pace_percent = 0.0
+        row.paces_behind = 0
     return evaluation
+
+
+# One definition, in app.services.enrichment, so the save path and the list
+# cannot end up reading different marks.
+_passing_mark = enrichment_passing_mark
 
 
 async def _sync_warning(
@@ -207,7 +241,8 @@ async def _sync_warning(
             existing.status = "On Track"
             existing.pace_percent = row.pace_percent
             existing.paces_behind = row.paces_behind
-            existing.attendance = row.attendance
+            existing.standing = evaluation["standing"]
+            existing.basis = evaluation["basis"]
             existing.risk_score = evaluation["risk_score"]
         return
 
@@ -226,7 +261,8 @@ async def _sync_warning(
                 risk_score=evaluation["risk_score"],
                 paces_behind=row.paces_behind,
                 pace_percent=row.pace_percent,
-                attendance=row.attendance,
+                standing=evaluation["standing"],
+                basis=evaluation["basis"],
                 status=evaluation["status"],
                 trend=trend,
                 last_activity="Today",
@@ -240,7 +276,8 @@ async def _sync_warning(
         existing.risk_score = evaluation["risk_score"]
         existing.paces_behind = row.paces_behind
         existing.pace_percent = row.pace_percent
-        existing.attendance = row.attendance
+        existing.standing = evaluation["standing"]
+        existing.basis = evaluation["basis"]
         existing.status = evaluation["status"]
         existing.trend = trend
         existing.last_activity = "Today"
@@ -323,6 +360,7 @@ async def list_paces(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    passing_mark = await _passing_mark(db, scope)
     stmt = scoped(
         select(StudentPace).order_by(StudentPace.student_id, StudentPace.subject),
         StudentPace,
@@ -376,9 +414,9 @@ async def list_paces(
         if enrollment is not None:
             item.section_name = lookups.sections.get(enrollment.section_id)
             item.grade_level_name = lookups.grade_levels.get(enrollment.grade_level_id)
-        item.risk_level = risk.risk_level(
-            risk.risk_score(row.paces_behind, row.pace_percent, row.attendance, row.total_paces)
-        )
+        # The same scorer the save path and the Students page use, so the
+        # badge on the roster matches the one on the early-warning list.
+        item.risk_level = risk.evaluate_row(row, passing_mark)["risk_level"]
         prediction = predictions.get(row.pace_id)
         if prediction is not None:
             _attach_ai(item, prediction)
@@ -427,7 +465,7 @@ async def create_pace(
     # against the DepEd default split until the class record's own header is
     # saved, at which point every row in it is recomputed.
     _recompute_grades(row, _default_setup())
-    evaluation = _apply_evaluation(row)
+    evaluation = _apply_evaluation(row, await _passing_mark(db, scope))
     db.add(row)
     await db.flush()  # assigns pace_id, which the prediction row references
     await _sync_warning(db, row, evaluation, current.full_name, scope)
@@ -471,7 +509,7 @@ async def update_pace(
         )
     row.recorded_by = current.id
     row.updated_at = _now()
-    evaluation = _apply_evaluation(row)
+    evaluation = _apply_evaluation(row, await _passing_mark(db, scope))
     await _sync_warning(db, row, evaluation, current.full_name, scope)
     prediction = await _record_prediction(
         db, row, await _grade_label(db, row.enrollment_id, scope), scope
@@ -504,6 +542,16 @@ async def bulk_upsert_paces(
     setup = await _load_setup(
         db, scope, payload.section_id, payload.subject_id, payload.grading_period
     )
+    passing_mark = await _passing_mark(db, scope)
+    # Which term is being encoded. Everything written below belongs to it,
+    # and the same subject's records for other terms are left untouched.
+    term = payload.grading_period or 1
+    # Every term already recorded for these learners, so each row can be
+    # judged on its year. Loaded once rather than per learner.
+    year_terms = await term_grades_by_subject(
+        db, school_id=scope,
+        student_ids=[e.student_id for e in payload.entries],
+    )
 
     for entry in payload.entries:
         if entry.current_pace > entry.total_paces:
@@ -535,6 +583,7 @@ async def bulk_upsert_paces(
                     select(StudentPace).where(
                         StudentPace.enrollment_id == entry.enrollment_id,
                         StudentPace.subject == entry.subject,
+                        StudentPace.grading_period == term,
                     ),
                     StudentPace,
                     scope,
@@ -548,6 +597,7 @@ async def bulk_upsert_paces(
                 student_id=entry.student_id,
                 enrollment_id=entry.enrollment_id,
                 subject=entry.subject,
+                grading_period=term,
             )
             db.add(row)
 
@@ -573,7 +623,13 @@ async def bulk_upsert_paces(
                 setattr(row, field_name, value)
 
         _recompute_grades(row, setup)
-        evaluation = _apply_evaluation(row)
+        # The row being saved is the newest word on its own term, so it
+        # replaces whatever the preloaded view held for that term.
+        grades = list(year_terms.get((entry.enrollment_id, entry.subject), []))
+        while len(grades) < term:
+            grades.append(None)
+        grades[term - 1] = row.transmuted_grade
+        evaluation = _apply_evaluation(row, passing_mark, grades)
         await db.flush()
         await _sync_warning(db, row, evaluation, current.full_name, scope)
         touched.append(row)
@@ -595,9 +651,32 @@ async def bulk_upsert_paces(
 async def _score_batch(
     db: AsyncSession, rows: list[StudentPace], school_id: int
 ) -> dict:
-    """Score a list of saved PACE rows in one call and log every answer."""
+    """Score a list of saved records in one call and log every answer.
+
+    First-term records are deliberately left unscored. The model is asked
+    whether a learner will finish the SUBJECT below the line, and during
+    the first term there is no finished term to reason from — the only
+    evidence is the term in progress, which is what the rule reads. Asking
+    the model anyway would produce a number with a confidence it has not
+    earned, and a teacher would read it as a forecast.
+    """
     if not rows:
         return {"scored": 0, "fallback": 0, "source": "none"}
+
+    scorable = [r for r in rows if (r.grading_period or 1) > 1]
+    held_back = len(rows) - len(scorable)
+    if not scorable:
+        return {
+            "scored": 0,
+            "fallback": 0,
+            "source": "rule",
+            "held_back": held_back,
+            "note": (
+                "First term — the risk shown is the rule's. The model starts "
+                "once a term is finished and there is a year to reason about."
+            ),
+        }
+    rows = scorable
 
     labels: dict[int, Optional[str]] = {}
     for row in rows:
@@ -639,6 +718,8 @@ async def _score_batch(
         "scored": len(rows),
         "fallback": fallbacks,
         "source": source,
+        # First-term records that were deliberately not sent to the model.
+        "held_back": held_back,
         "model_version": next(iter(versions), None),
         "detail": results[0].error if fallbacks else None,
     }

@@ -17,6 +17,7 @@ from app.models.students import (
 )
 from app.schemas.students import StudentResponse
 from app.services import risk
+from app.services.risk import evaluate_row
 
 
 class Lookups:
@@ -95,6 +96,8 @@ async def paces_by_student(
     student_ids: Optional[Iterable[int]] = None,
     *,
     school_id: int,
+    passing_mark: float = 75.0,
+    risk_line: float = 80.0,
 ) -> Dict[int, List[dict]]:
     stmt = select(StudentPace).where(StudentPace.school_id == school_id)
     if student_ids is not None:
@@ -104,18 +107,44 @@ async def paces_by_student(
         stmt = stmt.where(StudentPace.student_id.in_(ids))
     rows = (await db.execute(stmt)).scalars().all()
 
+    # Every term of every subject, so each record can be judged on where its
+    # YEAR is heading rather than on the term it happens to sit in.
+    years = await term_grades_by_subject(
+        db, school_id=school_id, student_ids=student_ids
+    )
+
     out: Dict[int, List[dict]] = {}
+    seen: set[tuple] = set()
     for row in rows:
-        score = risk.risk_score(
-            row.paces_behind, row.pace_percent, row.attendance, row.total_paces
+        key = (row.enrollment_id, row.subject)
+        # One entry per subject, not per term: a learner has one standing in
+        # Filipino, not three.
+        if key in seen:
+            continue
+        seen.add(key)
+        # Scored the same way the save path scores it, so the figure on the
+        # Students page is the one behind the flag on the early-warning list
+        # rather than a second opinion computed from different inputs.
+        evaluation = risk.evaluate_year(
+            row, years.get(key, []), risk_line, passing_mark
         )
+        outlook = evaluation.get("outlook") or {}
         out.setdefault(row.student_id, []).append(
             {
                 "subject": row.subject,
                 "pace_percent": row.pace_percent,
                 "paces_behind": row.paces_behind,
-                "attendance": row.attendance,
-                "risk_score": score,
+                "risk_score": evaluation["risk_score"],
+                "risk_level": evaluation["risk_level"],
+                "standing": evaluation["standing"],
+                "basis": evaluation["basis"],
+                "term_grade": row.transmuted_grade,
+                "descriptor": row.descriptor,
+                "terms_done": outlook.get("terms_done", 0),
+                "year_average": outlook.get("year_average"),
+                "required": outlook.get("required"),
+                "reachable": outlook.get("reachable", True),
+                "intervention": evaluation.get("intervention"),
             }
         )
     return out
@@ -142,11 +171,58 @@ def build_student_response(
     summary = risk.summarise(pace_rows)
     item.pace_percent = summary["pace_percent"]
     item.paces_behind = summary["paces_behind"]
-    item.attendance = summary["attendance"]
     item.risk_level = summary["risk_level"]
     item.risk_score = summary["risk_score"]
     item.subjects_tracked = summary["subjects_tracked"]
+    item.lowest_standing = summary["lowest_standing"]
+    item.average_standing = summary["average_standing"]
+    item.subjects_flagged = summary["subjects_flagged"]
+    graded = [r["term_grade"] for r in pace_rows if r.get("term_grade") is not None]
+    item.lowest_term_grade = min(graded) if graded else None
+    item.weakest_subject = summary["weakest_subject"]
+    item.required_in_weakest = summary["required_in_weakest"]
+    item.terms_done = summary["terms_done"]
     return item
+
+
+async def term_grades_by_subject(
+    db: AsyncSession, *, school_id: int, student_ids=None
+) -> Dict[tuple, list]:
+    """Every term grade a learner has in each subject, keyed by enrolment.
+
+    The final grade is the mean of the terms, so judging a learner means
+    looking at all their terms at once rather than at the one being
+    encoded. Loaded in a single query for the whole page.
+    """
+    stmt = select(StudentPace).where(StudentPace.school_id == school_id)
+    if student_ids is not None:
+        ids = list(student_ids)
+        if not ids:
+            return {}
+        stmt = stmt.where(StudentPace.student_id.in_(ids))
+    out: Dict[tuple, list] = {}
+    for row in (await db.execute(stmt)).scalars():
+        out.setdefault((row.enrollment_id, row.subject), []).append(
+            (row.grading_period or 1, row.transmuted_grade)
+        )
+    # Ordered by term, so the mean and the "needs this much from here" both
+    # read the terms in the order they happened.
+    return {
+        key: [grade for _period, grade in sorted(periods)]
+        for key, periods in out.items()
+    }
+
+
+async def school_passing_mark(db: AsyncSession, school_id: int) -> float:
+    """The school's own passing mark, so the risk bands follow its policy."""
+    from app.models.schools import School
+
+    value = (
+        await db.execute(
+            select(School.passing_mark).where(School.school_id == school_id)
+        )
+    ).scalar_one_or_none()
+    return float(value) if value else 75.0
 
 
 async def build_student_list(
@@ -155,7 +231,8 @@ async def build_student_list(
     ids = [s.student_id for s in students]
     lookups = await Lookups.load(db, school_id=school_id)
     enrollments = await current_enrollments(db, ids, school_id=school_id)
-    paces = await paces_by_student(db, ids, school_id=school_id)
+    mark = await school_passing_mark(db, school_id)
+    paces = await paces_by_student(db, ids, school_id=school_id, passing_mark=mark)
     return [
         build_student_response(
             student, enrollments.get(student.student_id), paces.get(student.student_id, []), lookups

@@ -47,11 +47,12 @@ from app.models.staff import (
 )
 from app.models.students import (
     ClassRecordSetup,
+    EarlyWarning,
     Student,
     StudentEnrollment,
     StudentPace,
 )
-from app.services import grading
+from app.services import grading, risk
 
 PASSWORD = "Lbca@2026"
 
@@ -64,6 +65,16 @@ PASSWORD = "Lbca@2026"
 SUPERADMIN_EMAIL = "superadmin@example.com"
 
 DEMO_SCHOOL_NAME = "Looc National High School"
+# The mark the risk bands are set from; the school owns this.
+PASSING_MARK = 75.0
+# The line the system flags against: a learner heading for a final subject
+# grade below this is the one an early warning is for.
+RISK_LINE = 80.0
+LAST_TERM = max(grading.TERMS)
+# A point of drift per term, so the three terms are not carbon copies and a
+# year average is worth computing. Small on purpose: the school's own
+# records show learners move by a median of one point between terms.
+TERM_DRIFT = {1: 0, 2: -1, 3: 1}
 
 # Highest possible score per assessment. The same sheet shape as the
 # MATATAG workbook: five written works, three performance tasks, two
@@ -95,19 +106,26 @@ SUBJECTS = [
 #          [ST1, ST2, term examination].
 # A None is a blank cell: the assessment has not been taken or not yet marked.
 LEARNERS = [
+    # Tuned so the demonstration shows every band rather than a failing
+    # cohort: four comfortably on track, two to watch, two at risk and two
+    # below the passing mark. Those are the proportions a teacher would
+    # recognise, and they exercise every colour on every screen.
     ("Althea Mae",   "Bontigao", "Female", [18, 17, 14, 13, 14], [23, 22, 24], [22, 23, 44]),
     ("Jerome",       "Cabanlit", "Male",   [11,  9,  8,  7,  9], [14, 13, 12], [12, 11, 23]),
     ("Kyla Marie",   "Dagohoy",  "Female", [19, 18, 14, 14, 15], [24, 24, 23], [23, 24, 47]),
-    ("Mark Anthony", "Escobido", "Male",   [14, 13, 10, 11, 10], [18, 17, 19], [16, 17, 33]),
+    # Just under the passing mark: the case the whole system exists for.
+    ("Mark Anthony", "Escobido", "Male",   [15, 14, 11, 11, 11], [19, 18, 20], [17, 18, 35]),
+    # Passing, but inside the band the model targets.
     ("Shaira",       "Fuentes",  "Female", [16, 15, 12, 12, 13], [21, 20, 21], [19, 20, 39]),
     ("Paulo",        "Gumapac",  "Male",   [ 9,  8,  7,  6,  8], [13, 12, 11], [10, 12, 21]),
     ("Jenny Rose",   "Lumabao",  "Female", [17, 16, 13, 13, 12], [22, 21, 22], [20, 21, 41]),
-    ("Rhoda",        "Makinano", "Female", [13, 12, 10,  9, 11], [17, 16, 18], [15, 16, 31]),
+    # Comfortable in most subjects, slipping in the weaker one.
+    ("Rhoda",        "Makinano", "Female", [16, 15, 12, 11, 13], [20, 20, 21], [19, 19, 38]),
     ("Carl Jason",   "Nunez",    "Male",   [20, 19, 15, 14, 15], [25, 24, 25], [24, 25, 48]),
-    # No examinations sat yet, so the class record shows coursework complete
-    # and no term grade. That is the ordinary mid-term state and the only one
-    # in which an early warning has any point.
-    ("Trisha Mae",   "Olvido",   "Female", [12, 11,  9,  8, 10], [16, 15, 14], [None, None, None]),
+    # Coursework complete, no examinations sat yet, so there is no term
+    # grade. That is the ordinary mid-term state and the only one in which
+    # an early warning has any point at all.
+    ("Trisha Mae",   "Olvido",   "Female", [15, 14, 12, 11, 12], [20, 19, 20], [None, None, None]),
 ]
 
 
@@ -205,7 +223,7 @@ async def build_demo(db, operator_id) -> dict:
         # A DepEd school: no PACE booklets, so the unit screens stay hidden
         # and the class record is the only place marks are entered.
         tracks_units=False,
-        passing_mark=75.0,
+        passing_mark=PASSING_MARK,
         grading_periods=3,
         status=SCHOOL_APPROVED,
         approved_at=_now(),
@@ -294,6 +312,8 @@ async def build_demo(db, operator_id) -> dict:
             ))
 
     at_risk = 0
+    flagged = 0
+    records = 0
     for index, (first, last, sex, ww, pt, exam) in enumerate(LEARNERS, start=1):
         student = Student(
             school_id=sid,
@@ -328,63 +348,107 @@ async def build_demo(db, operator_id) -> dict:
         for subject in subjects:
             tpl = template_of[subject.subject_name]
             profile = grading.TEMPLATES[tpl]
-            shift = shift_of[subject.subject_name]
-            bump = lambda values: [None if v is None else max(0, v + shift)
-                                   for v in values]
-            scores = {
-                "ww_scores": bump(ww),
-                "pt_scores": bump(pt),
-                "exam_scores": bump(exam),
-            }
+            base_shift = shift_of[subject.subject_name]
+            teacher = teachers[0 if tpl == grading.CORE else 1]
+            term_grades: list = []
 
-            # Computed by the same module the API uses, so the seeded grades
-            # are identical to the ones a teacher would get by typing these
-            # marks in by hand.
-            derived = grading.compute(
-                **scores,
-                ww_highest=WW_HIGHEST,
-                pt_highest=PT_HIGHEST,
-                exam_highest=EXAM_HIGHEST,
-                template=tpl,
-                ww_weight=profile["ww_weight"],
-                pt_weight=profile["pt_weight"],
-                ex_weight=profile["ex_weight"],
+            # Terms 1 and 2 are finished; the third is still being taught,
+            # so it carries coursework and no examinations. That is the
+            # state a school is actually in when an early warning is worth
+            # anything, and it is the state the screens have to handle: a
+            # year average from two finished terms, plus one in progress.
+            for period in grading.TERMS:
+                shift = base_shift + TERM_DRIFT[period]
+                bump = [None if v is None else max(0, v + shift) for v in ww]
+                bump_pt = [None if v is None else max(0, v + shift) for v in pt]
+                in_progress = period == LAST_TERM
+                bump_ex = ([None, None, None] if in_progress
+                           else [None if v is None else max(0, v + shift) for v in exam])
+
+                # Computed by the same module the API uses, so a seeded
+                # grade is identical to one a teacher would get by typing
+                # these marks in by hand.
+                derived = grading.compute(
+                    ww_scores=bump, pt_scores=bump_pt, exam_scores=bump_ex,
+                    ww_highest=WW_HIGHEST, pt_highest=PT_HIGHEST,
+                    exam_highest=EXAM_HIGHEST, template=tpl,
+                    ww_weight=profile["ww_weight"],
+                    pt_weight=profile["pt_weight"],
+                    ex_weight=profile["ex_weight"],
+                )
+                term_grades.append(derived["transmuted_grade"])
+
+                pace = StudentPace(
+                    school_id=sid,
+                    student_id=student.student_id,
+                    enrollment_id=enrollment.enrollment_id,
+                    subject_id=subject.subject_id,
+                    subject=subject.subject_name,
+                    grading_period=period,
+                    # This school counts no booklets; the row exists
+                    # because it is also where the class record lives.
+                    current_pace=0, expected_pace=0, total_paces=0,
+                    pace_percent=0.0, paces_behind=0, attendance=100.0,
+                    average_score=derived["transmuted_grade"] or 0.0,
+                    recorded_by=teacher.id,
+                    ww_scores=json.dumps(bump),
+                    pt_scores=json.dumps(bump_pt),
+                    exam_scores=json.dumps(bump_ex),
+                    exam_parts=json.dumps(derived["exam_parts"]),
+                    record_complete=bool(derived["complete"]),
+                    **{k: derived[k] for k in (
+                        "ww_total_raw", "ww_percent", "ww_weighted",
+                        "pt_total_raw", "pt_percent", "pt_weighted",
+                        "exam_percent", "exam_weighted",
+                        "initial_grade", "transmuted_grade", "descriptor",
+                        "pre_exam_weighted", "pre_exam_max")},
+                )
+                db.add(pace)
+                await db.flush()
+                records += 1
+
+            # One flag per subject, judged on the YEAR rather than on any
+            # single term — the final grade is the mean of the terms, so
+            # that is what the system was asked about. Written here the way
+            # the save path writes it, through the same scoring function,
+            # so a freshly seeded demonstration opens with the list it
+            # would have had if a teacher had typed every mark in.
+            evaluation = risk.evaluate_year(
+                pace, term_grades, RISK_LINE, PASSING_MARK
             )
-            if derived["transmuted_grade"] is not None and derived["transmuted_grade"] < 80:
+            outlook = evaluation["outlook"]
+            if outlook["year_average"] is not None and outlook["year_average"] < RISK_LINE:
                 at_risk += 1
+            if evaluation["risk_level"] != "low":
+                flagged += 1
+                db.add(EarlyWarning(
+                    school_id=sid,
+                    student_id=student.student_id,
+                    enrollment_id=enrollment.enrollment_id,
+                    subject=subject.subject_name,
+                    teacher=teacher.full_name,
+                    risk_level=evaluation["risk_level"],
+                    risk_score=evaluation["risk_score"],
+                    paces_behind=0,
+                    pace_percent=0.0,
+                    standing=evaluation["standing"],
+                    basis=evaluation["basis"],
+                    status=evaluation["status"],
+                    trend="stable",
+                    last_activity="Today",
+                    intervention=evaluation["intervention"],
+                ))
 
-            db.add(StudentPace(
-                school_id=sid,
-                student_id=student.student_id,
-                enrollment_id=enrollment.enrollment_id,
-                subject_id=subject.subject_id,
-                subject=subject.subject_name,
-                # This school counts no booklets; the row exists because it
-                # is also where the class record lives.
-                current_pace=0, expected_pace=0, total_paces=0,
-                pace_percent=0.0, paces_behind=0, attendance=100.0,
-                average_score=derived["transmuted_grade"] or 0.0,
-                recorded_by=teachers[0 if tpl == grading.CORE else 1].id,
-                ww_scores=json.dumps(scores["ww_scores"]),
-                pt_scores=json.dumps(scores["pt_scores"]),
-                exam_scores=json.dumps(scores["exam_scores"]),
-                exam_parts=json.dumps(derived["exam_parts"]),
-                record_complete=bool(derived["complete"]),
-                **{k: derived[k] for k in (
-                    "ww_total_raw", "ww_percent", "ww_weighted",
-                    "pt_total_raw", "pt_percent", "pt_weighted",
-                    "exam_percent", "exam_weighted",
-                    "initial_grade", "transmuted_grade", "descriptor")},
-            ))
 
     return {
         "school": school.name,
         "learners": len(LEARNERS),
-        "records": len(LEARNERS) * len(subjects),
+        "records": records,
         "subjects": ", ".join(
             f"{name} ({grading.TEMPLATES[tpl]['short']})"
             for name, _code, tpl, _s in SUBJECTS),
         "at_risk": at_risk,
+        "flagged": flagged,
         "principal": principal.email,
         "teachers": [t.email for t in teachers],
     }
@@ -421,6 +485,8 @@ async def demo() -> None:
         print(f"  Subjects   {summary['subjects']}")
         print(f"  Records    {summary['records']} class records, first term "
               f"({summary['at_risk']} below a term grade of 80)")
+        print(f"  Warnings   {summary['flagged']} subject flags on the "
+              f"early-warning list")
         print()
         print(f"  Password for every account below: {PASSWORD}")
         if made_operator:

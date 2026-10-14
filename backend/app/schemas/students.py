@@ -72,13 +72,29 @@ class StudentResponse(ORMModel, StudentBase):
     school_year_id: Optional[int] = None
     adviser_name: Optional[str] = None
 
-    # Rolled-up PACE figures
-    pace_percent: float = 0.0
-    paces_behind: int = 0
-    attendance: float = 100.0
+    # Rolled up across the learner's subjects. The risk is the WORST
+    # subject's, not an average: a learner excellent in three subjects and
+    # failing the fourth still needs intervention, and averaging that away
+    # would hide them.
     risk_level: str = "low"
     risk_score: float = 0.0
     subjects_tracked: int = 0
+    subjects_flagged: int = 0
+    # Standing is on the same 0-100 axis as a grade: the term grade once a
+    # record is complete, the coursework banked before that.
+    lowest_standing: Optional[float] = None
+    average_standing: Optional[float] = None
+    lowest_term_grade: Optional[int] = None
+    weakest_subject: Optional[str] = None
+    # What the learner must average over the terms still to come, in the
+    # subject they are weakest in, to finish it at the line. None before
+    # any term is finished and once the year is over.
+    required_in_weakest: Optional[float] = None
+    terms_done: int = 0
+    # Only meaningful at a school that counts booklets; a DepEd school
+    # leaves them at zero and its screens do not show them.
+    pace_percent: float = 0.0
+    paces_behind: int = 0
 
 
 # ── Enrolment ─────────────────────────────────────────────────────────────────
@@ -343,7 +359,12 @@ class WarningBase(BaseModel):
     risk_score: float = 0.0
     paces_behind: int = 0
     pace_percent: float = 0.0
-    attendance: float = 100.0
+    # Where the learner stands, on the same 0-100 axis as a grade, and which
+    # reading produced it. Attendance used to sit here and no longer does:
+    # the class records the system reads carry no attendance column, so it
+    # was a constant 100 on every row at every school.
+    standing: Optional[float] = None
+    basis: Literal["grades", "coursework", "units"] = "grades"
     status: str = "On Track"
     trend: str = "stable"
     last_activity: str = "Today"
@@ -492,7 +513,11 @@ class DashboardStats(BaseModel):
     total_sections: int = 0
     total_subjects: int = 0
     average_pace: float = 0.0
-    average_attendance: float = 0.0
+    # Mean standing across every record: the term grade where one exists,
+    # the coursework banked where it does not. It replaces the attendance
+    # average, which was a constant 100 because the class records the
+    # system reads carry no attendance column.
+    average_standing: float = 0.0
     on_track: int = 0
     at_risk: int = 0
     critical: int = 0

@@ -181,6 +181,11 @@ class StudentPace(Base):
         Integer, ForeignKey("subjects.subject_id", ondelete="SET NULL"), nullable=True
     )
     subject = Column(String(100), nullable=False)  # denormalised display name
+    # Which term this record covers. A subject has one record PER TERM, not
+    # one record: the final grade is the mean of the terms, so a system that
+    # kept only the latest could never compute it — and, worse, encoding
+    # Term 2 would silently overwrite Term 1.
+    grading_period = Column(Integer, nullable=False, default=1, index=True)
     current_pace = Column(Integer, nullable=False, default=0)
     expected_pace = Column(Integer, nullable=False, default=0)
     total_paces = Column(Integer, nullable=False, default=12)
@@ -227,6 +232,11 @@ class StudentPace(Base):
     initial_grade = Column(Float, nullable=True)
     transmuted_grade = Column(Integer, nullable=True)
     descriptor = Column(String(20), nullable=True)
+    # Coursework banked before the examinations, and the most it could be
+    # worth. Stored together so a learner's standing can be put on the same
+    # 0-100 axis as a grade without re-deriving which weights applied.
+    pre_exam_weighted = Column(Float, nullable=True)
+    pre_exam_max = Column(Float, nullable=True)
     # False while any assessment is still unmarked. A grade computed from a
     # part-filled record is provisional, and the interface says so rather
     # than presenting it as settled.
@@ -245,7 +255,10 @@ class StudentPace(Base):
     enrollment = relationship("StudentEnrollment", back_populates="paces")
 
     __table_args__ = (
-        UniqueConstraint("enrollment_id", "subject", name="uq_pace_per_subject"),
+        UniqueConstraint(
+            "enrollment_id", "subject", "grading_period",
+            name="uq_pace_per_subject_term",
+        ),
     )
 
 
@@ -341,7 +354,14 @@ class EarlyWarning(Base):
     risk_score = Column(Float, nullable=False, default=0.0)  # 0–100
     paces_behind = Column(Integer, nullable=False, default=0)
     pace_percent = Column(Float, nullable=False, default=0.0)
-    attendance = Column(Float, nullable=False, default=100.0)
+    # Where the learner stands, on the same 0-100 axis as a grade: the term
+    # grade once the record is complete, the coursework banked before that.
+    # This is what the flag was raised on, so it is stored with the flag
+    # rather than looked up again later from a record that may have moved.
+    standing = Column(Float, nullable=True)
+    # "grades", "coursework" or "units" — which reading produced the flag,
+    # so the list can say whether a grade is settled or still provisional.
+    basis = Column(String(12), nullable=False, default="grades")
     status = Column(String(20), nullable=False)  # Critical|At Risk|Warning|On Track
     trend = Column(String(20), nullable=False, default="stable")
     last_activity = Column(String(100), nullable=False, default="Today")
