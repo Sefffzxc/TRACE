@@ -133,6 +133,37 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# Fields this script needs back from app.services.grading.compute. Checked
+# once, up front, because the alternative is a KeyError five hundred lines
+# into a run with half the demonstration already written — and because the
+# real cause is almost always a half-copied set of files, which the error
+# alone does not say.
+REQUIRED_FROM_GRADING = (
+    "ww_total_raw", "ww_percent", "ww_weighted",
+    "pt_total_raw", "pt_percent", "pt_weighted",
+    "exam_parts", "exam_percent", "exam_weighted",
+    "initial_grade", "transmuted_grade", "descriptor",
+    "pre_exam_weighted", "pre_exam_max", "complete",
+)
+
+
+def check_grading_module() -> None:
+    """Fail early and legibly if grading.py is older than this script."""
+    sample = grading.compute(
+        ww_scores=[1], pt_scores=[1], exam_scores=[1, 1, 1],
+        ww_highest=[1], pt_highest=[1], exam_highest=[1, 1, 1],
+        template=grading.CORE,
+    )
+    missing = [f for f in REQUIRED_FROM_GRADING if f not in sample]
+    if missing:
+        raise SystemExit(
+            "app/services/grading.py is out of date: compute() does not "
+            f"return {', '.join(missing)}.\n"
+            "Copy the current app/services/grading.py into place and run "
+            "this again. Nothing was written."
+        )
+
+
 # ── Guards ───────────────────────────────────────────────────────────────────
 RESERVED_TLDS = {"local", "localhost", "example", "invalid", "test"}
 
@@ -684,6 +715,7 @@ async def main() -> None:
     elif args.score_only:
         await score()
     elif args.demo:
+        check_grading_module()
         await init_models()
         await demo()
         if args.score:

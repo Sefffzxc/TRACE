@@ -256,6 +256,10 @@ def compute(
         # The examinations are the event the warning is meant to precede.
         "pre_exam_weighted": (round(ww_ws + pt_ws, 2)
                               if ww_ws is not None and pt_ws is not None else None),
+        # The most that coursework could be worth. Stored with the figure
+        # above so a learner's standing can be put on a 0-100 axis later
+        # without having to go back and ask which weights applied.
+        "pre_exam_max": round(w_ww + w_pt, 2),
     }
 
 
