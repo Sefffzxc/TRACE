@@ -128,34 +128,59 @@ def grade_level_number(label: Optional[str]) -> Optional[float]:
     return value if 1 <= value <= 12 else None
 
 
+# The component weights the model was TRAINED under. The records it learned
+# from came from class records weighted 30/50/20 and 40/40/20; the MATATAG
+# template this system now uses runs 20/50/30 for the core subjects and
+# 20/60/20 for MAPEH.
+#
+# A weighted score is just a percentage multiplied by a constant, so feeding
+# the model figures scaled by the new weights would hand it a feature on a
+# different scale from everything it was fitted on — silently, with no error
+# and a plausible-looking number coming back. The percentages themselves are
+# weight-free and are passed through untouched; the weighted features are
+# rebuilt here at the training scale so the model sees the distribution it
+# was fitted on, whatever a particular school's sheet is set to.
+#
+# This keeps today's predictions honest. It is not a substitute for
+# retraining: the target was also derived through the old transmutation
+# table, under which a term grade of 80 began at an initial grade of 68.00,
+# where the MATATAG table puts it at 75.90. Once there are records under the
+# new template the model should be refitted on them.
+TRAINING_WEIGHTS = {"written": 30.0, "performance": 50.0}
+
+
 def features_from_record(record, grade_level_label: Optional[str] = None,
                          quarter: Optional[int] = None,
                          weights: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Read the model's ten inputs off a class-record row.
 
-    Every figure here is one app.services.grading already computed and stored
-    when the record was saved, so the model is shown exactly the numbers the
-    teacher is shown. Nothing is recomputed differently on the way out.
+    The percentages come straight off the stored record, so the model reads
+    the same numbers the teacher does. The weighted figures are recomputed at
+    the training scale — see TRAINING_WEIGHTS above for why.
 
-    The term examination is excluded deliberately, and so are the summative
-    tests that sit with it in the third component. They are the event the
-    warning is meant to precede; a model given them would be restating a
-    result the teacher already has rather than anticipating one. The initial
-    and transmuted grades are excluded twice over — they are the outcome, and
-    they are arithmetic on the examination the model may not see.
+    The examinations are excluded deliberately: both summative tests and the
+    term examination are the event the warning is meant to precede, and a
+    model given them would be restating a result the teacher already has
+    rather than anticipating one. The initial and term grades are excluded
+    twice over — they are the outcome, and they are arithmetic on
+    examinations the model may not see.
 
-    Cells the teacher has not filled in stay ``None``. The service substitutes
-    the training median for those and reports which ones it substituted, so a
-    thin record never passes for a confident reading.
+    Cells the teacher has not filled in stay ``None``. The service
+    substitutes the training median for those and reports which ones it
+    substituted, so a thin record never passes for a confident reading.
 
-    ``weights`` is accepted for callers that still pass it and is ignored: the
-    weighting is already baked into the weighted scores below, which is where
-    the model learned to read it.
+    ``weights`` is accepted for callers that still pass it, and ignored.
     """
     ww_pct = _num(getattr(record, "ww_percent", None))
     pt_pct = _num(getattr(record, "pt_percent", None))
-    ww_weighted = _num(getattr(record, "ww_weighted", None))
-    pt_weighted = _num(getattr(record, "pt_weighted", None))
+
+    def at_training_scale(percentage, key):
+        if percentage is None:
+            return None
+        return round(percentage * TRAINING_WEIGHTS[key] / 100.0, 2)
+
+    ww_weighted = at_training_scale(ww_pct, "written")
+    pt_weighted = at_training_scale(pt_pct, "performance")
 
     # Both derived figures need both components. Computing either from one
     # half would quietly treat an un-entered component as a zero, which is

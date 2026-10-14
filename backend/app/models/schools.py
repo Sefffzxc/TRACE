@@ -94,7 +94,8 @@ class School(Base):
     # national policy changes. A grading rule written into the code is a rule
     # that goes stale without anyone noticing.
     passing_mark = Column(Float, nullable=False, default=75.0)
-    grading_periods = Column(Integer, nullable=False, default=4)
+    # Three terms under the MATATAG class record, not four quarters.
+    grading_periods = Column(Integer, nullable=False, default=3)
     grading_period_label = Column(String(30), nullable=False, default="Quarter")
 
     # ── Approval ──────────────────────────────────────────────────────────

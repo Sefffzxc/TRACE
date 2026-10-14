@@ -144,20 +144,20 @@ class AssessmentInput(BaseModel):
 
     One score per assessment, in column order. A null inside an array is a
     cell left blank; it is stored as blank, never as zero, and the derived
-    figures below are computed from the recorded cells only.
+    figures are computed from the recorded cells only.
     """
 
     ww_scores: ItemScores = None
     pt_scores: ItemScores = None
-    sa_scores: ItemScores = None
-    te_score: Optional[float] = Field(default=None, ge=0)
+    # [ST1, ST2, Term Examination]
+    exam_scores: ItemScores = None
 
     # Operational, not model inputs: the class-record export the model was
     # trained on contains no attendance column.
     absences: Optional[int] = Field(default=None, ge=0, le=200)
     extracurricular_count: Optional[int] = Field(default=None, ge=0, le=50)
 
-    @field_validator("ww_scores", "pt_scores", "sa_scores", mode="before")
+    @field_validator("ww_scores", "pt_scores", "exam_scores", mode="before")
     @classmethod
     def _parse_stored(cls, v):
         """Accept the JSON text the database holds as well as a real list.
@@ -176,7 +176,7 @@ class AssessmentInput(BaseModel):
             return parsed if isinstance(parsed, list) else None
         return v
 
-    @field_validator("ww_scores", "pt_scores", "sa_scores")
+    @field_validator("ww_scores", "pt_scores", "exam_scores")
     @classmethod
     def _sane_scores(cls, v: ItemScores) -> ItemScores:
         if v is None:
@@ -203,34 +203,63 @@ class AssessmentDerived(BaseModel):
     pt_total_raw: Optional[float] = None
     pt_percent: Optional[float] = None
     pt_weighted: Optional[float] = None
-    te_total_raw: Optional[float] = None
-    te_percent: Optional[float] = None
-    te_weighted: Optional[float] = None
+    # The three per-examination weighted figures: WS ST1, WS ST2, WS TE.
+    exam_parts: ItemScores = None
+    exam_percent: Optional[float] = None
+    exam_weighted: Optional[float] = None
     initial_grade: Optional[float] = None
     transmuted_grade: Optional[int] = None
-    letter_grade: Optional[str] = None
+    descriptor: Optional[str] = None
+    record_complete: bool = False
+
+    @field_validator("exam_parts", mode="before")
+    @classmethod
+    def _parse_parts(cls, v):
+        if isinstance(v, str):
+            if not v.strip():
+                return None
+            try:
+                parsed = json.loads(v)
+            except ValueError:
+                return None
+            return parsed if isinstance(parsed, list) else None
+        return v
 
 
 class AssessmentFields(AssessmentInput, AssessmentDerived):
     """Input plus derived, for the endpoints that return a whole record."""
 
 
-# ── The class-record header: highest possible scores and weights ─────────────
+# ── The class-record header: template, highest possible scores, weights ─────
+TEMPLATE_DEFAULTS = {
+    "core": (20.0, 50.0, 30.0),
+    "mapeh": (20.0, 60.0, 20.0),
+}
+
+
 class ClassRecordSetupBase(BaseModel):
+    # Which of the two class records this subject uses.
+    template: Literal["core", "mapeh"] = "core"
     ww_highest: List[Optional[float]] = Field(default_factory=list)
     pt_highest: List[Optional[float]] = Field(default_factory=list)
-    sa_highest: List[Optional[float]] = Field(default_factory=list)
-    te_highest: Optional[float] = Field(default=None, ge=0)
-    ww_weight: float = Field(default=30.0, ge=0, le=100)
+    # [ST1, ST2, Term Examination]
+    exam_highest: List[Optional[float]] = Field(default_factory=list)
+    ww_weight: float = Field(default=20.0, ge=0, le=100)
     pt_weight: float = Field(default=50.0, ge=0, le=100)
-    te_weight: float = Field(default=20.0, ge=0, le=100)
+    ex_weight: float = Field(default=30.0, ge=0, le=100)
+    exam_subweights: List[float] = Field(default_factory=lambda: [30.0, 30.0, 40.0])
 
     @model_validator(mode="after")
     def _weights_total_100(self):
-        total = self.ww_weight + self.pt_weight + self.te_weight
+        total = self.ww_weight + self.pt_weight + self.ex_weight
         if abs(total - 100.0) > 0.01:
             raise ValueError(
                 f"the three component weights must total 100 percent, not {total:g}"
+            )
+        shares = sum(self.exam_subweights)
+        if self.exam_subweights and abs(shares - 100.0) > 0.01:
+            raise ValueError(
+                f"the examination shares must total 100, not {shares:g}"
             )
         return self
 

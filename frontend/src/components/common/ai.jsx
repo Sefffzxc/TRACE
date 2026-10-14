@@ -240,27 +240,21 @@ export function ModelCard({ card }) {
 export function AiInputTable({ prediction }) {
   if (!prediction?.features) return null;
   const imputed = new Set(prediction.imputed_fields || []);
+  // Keyed to the model's own feature names — see FEATURES in
+  // ml/train_risk_model.py and MODEL_FIELDS in app/services/ml_client.py.
+  // A name missing here shows the raw feature name rather than nothing, so a
+  // model that gains an input is never silently hidden from the teacher.
   const LABELS = {
-    absences: 'Absences',
-    ww_total_raw: 'Written Work (raw total)',
-    ww_percent: 'Written Work (%)',
-    pt_total_raw: 'Performance Tasks (raw total)',
-    pt_percent: 'Performance Tasks (%)',
-    missed_ww_items: 'Missed Written Work items',
-    missed_pt_items: 'Missed Performance Task items',
-    extracurricular_count: 'Extracurricular activities',
+    ww_total: 'Written works (raw total)',
+    ww_pct: 'Written works (%)',
+    ww_weighted: 'Written works (weighted)',
+    pt_total: 'Performance tasks (raw total)',
+    pt_pct: 'Performance tasks (%)',
+    pt_weighted: 'Performance tasks (weighted)',
+    pre_exam_weighted: 'Coursework banked before the examinations',
+    component_gap: 'Gap between the two components',
     grade_level: 'Grade level',
-  };
-  const COLUMN_FOR = {
-    absences: 'No of Absences',
-    ww_total_raw: 'WW Total (Raw)',
-    ww_percent: 'WW % Score',
-    pt_total_raw: 'PT Total (Raw)',
-    pt_percent: 'PT % Score',
-    missed_ww_items: 'Missed WW Items',
-    missed_pt_items: 'Missed PT Items',
-    extracurricular_count: 'Extracurricular Activities',
-    grade_level: 'Grade Level',
+    quarter: 'Term',
   };
 
   return (
@@ -274,12 +268,18 @@ export function AiInputTable({ prediction }) {
           </tr>
         </thead>
         <tbody>
-          {Object.keys(LABELS).map((key) => {
-            const wasImputed = imputed.has(COLUMN_FOR[key]);
+          {/* Driven by what the prediction actually carries, not by the list
+              above: a model that gains an input then shows up here under its
+              own name rather than vanishing from the table. */}
+          {Object.keys(prediction.features).map((key) => {
+            // The service reports what it substituted using the model's own
+            // feature names, which is what `key` is. Looking the display
+            // label up here instead meant the badge never appeared.
+            const wasImputed = imputed.has(key);
             const value = prediction.features[key];
             return (
               <tr key={key}>
-                <td>{LABELS[key]}</td>
+                <td>{LABELS[key] || key}</td>
                 <td className="right cell-strong">
                   {value === null || value === undefined ? '—' : value}
                 </td>

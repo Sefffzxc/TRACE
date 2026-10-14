@@ -53,14 +53,30 @@ def _now() -> datetime:
 
 
 # ── Class-record arithmetic ───────────────────────────────────────────────────
-DEFAULT_SETUP = {
-    "ww_highest": [], "pt_highest": [], "sa_highest": [], "te_highest": None,
-    "ww_weight": 30.0, "pt_weight": 50.0, "te_weight": 20.0,
-}
+SCORE_ARRAYS = ("ww_scores", "pt_scores", "exam_scores")
+
+DERIVED_COLUMNS = (
+    "ww_total_raw", "ww_percent", "ww_weighted",
+    "pt_total_raw", "pt_percent", "pt_weighted",
+    "exam_percent", "exam_weighted",
+    "initial_grade", "transmuted_grade", "descriptor",
+)
+
+
+def _default_setup(template: str = grading.CORE) -> dict:
+    profile = grading.TEMPLATES.get(template, grading.TEMPLATES[grading.CORE])
+    return {
+        "template": template,
+        "ww_highest": [], "pt_highest": [], "exam_highest": [],
+        "ww_weight": profile["ww_weight"],
+        "pt_weight": profile["pt_weight"],
+        "ex_weight": profile["ex_weight"],
+        "exam_subweights": list(grading.EXAM_SUBWEIGHTS),
+    }
 
 
 def _loads(raw, fallback=None):
-    """Tolerant JSON read. A row written before this column existed, or one a
+    """Tolerant JSON read. A row written before a column existed, or one a
     migration left as an empty string, must not take a save down with it."""
     if not raw:
         return [] if fallback is None else fallback
@@ -78,15 +94,15 @@ async def _load_setup(
     subject_id: Optional[int],
     grading_period: Optional[int],
 ) -> dict:
-    """The highest possible scores and weights for one class record.
+    """The template, highest possible scores and weights for one class record.
 
-    Falls back to the DepEd default split when a teacher has not filled the
-    header in yet, so encoding can begin before the sheet is fully set up.
+    Falls back to the core template's defaults when a teacher has not filled
+    the header in yet, so encoding can begin before the sheet is set up.
     Without a highest possible score there is no denominator, so percentages
-    stay blank until one is entered — blank, not zero, and not guessed.
+    stay blank until one is entered — blank, not zero, and never guessed.
     """
     if not (section_id and subject_id and grading_period):
-        return dict(DEFAULT_SETUP)
+        return _default_setup()
     row = (
         await db.execute(
             scoped(
@@ -101,19 +117,18 @@ async def _load_setup(
         )
     ).scalar_one_or_none()
     if row is None:
-        return dict(DEFAULT_SETUP)
+        return _default_setup()
     return {
+        "template": row.template or grading.CORE,
         "ww_highest": _loads(row.ww_highest),
         "pt_highest": _loads(row.pt_highest),
-        "sa_highest": _loads(row.sa_highest),
-        "te_highest": row.te_highest,
+        "exam_highest": _loads(row.exam_highest),
         "ww_weight": row.ww_weight,
         "pt_weight": row.pt_weight,
-        "te_weight": row.te_weight,
+        "ex_weight": row.ex_weight,
+        "exam_subweights": _loads(row.exam_subweights,
+                                  list(grading.EXAM_SUBWEIGHTS)),
     }
-
-
-SCORE_ARRAYS = ("ww_scores", "pt_scores", "sa_scores")
 
 
 def _assessment_columns(payload) -> dict:
@@ -130,27 +145,26 @@ def _recompute_grades(row: StudentPace, setup: dict) -> None:
     """Rewrite every derived column on a record from its stored scores.
 
     Called on every write. Nothing derived is ever accepted from a client, so
-    the totals, the initial grade and the transmuted grade on screen are
-    always the ones the stored scores produce.
+    the totals, the initial grade and the term grade on screen are always the
+    ones the stored scores produce.
     """
     result = grading.compute(
         ww_scores=_loads(row.ww_scores),
         pt_scores=_loads(row.pt_scores),
-        sa_scores=_loads(row.sa_scores),
-        te_score=row.te_score,
+        exam_scores=_loads(row.exam_scores),
         ww_highest=setup["ww_highest"],
         pt_highest=setup["pt_highest"],
-        sa_highest=setup["sa_highest"],
-        te_highest=setup["te_highest"],
+        exam_highest=setup["exam_highest"],
+        template=setup["template"],
         ww_weight=setup["ww_weight"],
         pt_weight=setup["pt_weight"],
-        te_weight=setup["te_weight"],
+        ex_weight=setup["ex_weight"],
+        exam_subweights=setup["exam_subweights"],
     )
-    for column in ("ww_total_raw", "ww_percent", "ww_weighted",
-                   "pt_total_raw", "pt_percent", "pt_weighted",
-                   "te_total_raw", "te_percent", "te_weighted",
-                   "initial_grade", "transmuted_grade", "letter_grade"):
+    for column in DERIVED_COLUMNS:
         setattr(row, column, result[column])
+    row.exam_parts = json.dumps(result["exam_parts"])
+    row.record_complete = bool(result["complete"])
 
 
 def _apply_evaluation(row: StudentPace) -> dict:
@@ -412,7 +426,7 @@ async def create_pace(
     # No section or period is supplied on this path, so the record is graded
     # against the DepEd default split until the class record's own header is
     # saved, at which point every row in it is recomputed.
-    _recompute_grades(row, dict(DEFAULT_SETUP))
+    _recompute_grades(row, _default_setup())
     evaluation = _apply_evaluation(row)
     db.add(row)
     await db.flush()  # assigns pace_id, which the prediction row references
@@ -448,8 +462,8 @@ async def update_pace(
             setattr(row, field, json.dumps(value) if value is not None else None)
         else:
             setattr(row, field, value)
-    if any(field in sent for field in SCORE_ARRAYS) or "te_score" in sent:
-        _recompute_grades(row, dict(DEFAULT_SETUP))
+    if any(field in sent for field in SCORE_ARRAYS):
+        _recompute_grades(row, _default_setup())
     if row.current_pace > row.total_paces:
         raise HTTPException(
             status_code=400,
@@ -549,11 +563,11 @@ async def bulk_upsert_paces(
         # that touches only unit progress cannot wipe a class record already
         # encoded. Within an array, however, a null IS meaningful: it is a
         # cell the teacher cleared, and clearing a cell has to stick.
-        for field_name in ("ww_scores", "pt_scores", "sa_scores"):
+        for field_name in SCORE_ARRAYS:
             value = getattr(entry, field_name, None)
             if value is not None:
                 setattr(row, field_name, json.dumps(value))
-        for field_name in ("te_score", "absences", "extracurricular_count"):
+        for field_name in ("absences", "extracurricular_count"):
             value = getattr(entry, field_name, None)
             if value is not None:
                 setattr(row, field_name, value)
@@ -691,13 +705,14 @@ async def put_class_record_setup(
         )
         db.add(row)
 
+    row.template = payload.template
     row.ww_highest = json.dumps(payload.ww_highest)
     row.pt_highest = json.dumps(payload.pt_highest)
-    row.sa_highest = json.dumps(payload.sa_highest)
-    row.te_highest = payload.te_highest
+    row.exam_highest = json.dumps(payload.exam_highest)
     row.ww_weight = payload.ww_weight
     row.pt_weight = payload.pt_weight
-    row.te_weight = payload.te_weight
+    row.ex_weight = payload.ex_weight
+    row.exam_subweights = json.dumps(payload.exam_subweights)
     row.updated_by = current.id
     row.updated_at = _now()
     await db.flush()

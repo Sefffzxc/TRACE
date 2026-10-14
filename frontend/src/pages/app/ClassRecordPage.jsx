@@ -16,43 +16,59 @@ import {
   subjectApi,
 } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
-import { computeRow, show } from '../../lib/grading';
+import {
+  CORE,
+  EXAM_LABELS,
+  TEMPLATES,
+  TERMS,
+  TERM_LABELS,
+  computeRow,
+  show,
+} from '../../lib/grading';
 
 /**
- * The DepEd E-Class Record.
+ * The MATATAG three-term E-Class Record.
  *
- * Laid out as the printed form is, because teachers already keep this sheet
- * and a screen that rearranges it makes them translate between two layouts
- * every time they encode: three component groups across the top, the item
- * columns beneath them, a HIGHEST POSSIBLE SCORE row, then one row per
- * learner ending in the initial, transmuted and letter grades.
+ * Laid out as the workbook is, because teachers already keep that sheet and
+ * a screen that rearranges it makes them translate between two layouts every
+ * time they encode: three component groups across the top, the item columns
+ * beneath them, a HIGHEST POSSIBLE SCORE row, then one row per learner
+ * ending in the initial grade, term grade and descriptor.
  *
- * The totals, percentages and grades are computed here as the teacher types
- * so the sheet behaves like the spreadsheet it replaces. They are computed
- * again on the server when the record is saved, and the server's answer is
- * the one stored and the one the risk model reads — this copy is for the
- * typing, not for the record.
+ * Two records, not one. Science, Mathematics, English, Filipino and Araling
+ * Panlipunan weight the components 20/50/30; Music and Arts and Physical
+ * Education and Health weight them 20/60/20. Which one a subject uses is
+ * part of that record's own setup, so a school runs both at once — which
+ * every school does.
  *
- * A blank cell means "not yet", never zero. That distinction is the whole
- * reason 65 rows of the school's own export read as failing learners when
- * they were really empty columns, so it is preserved from this grid through
- * to the stored grade.
+ * The examinations group is the part that is easy to get wrong. It is not a
+ * total: the two summative tests and the term examination each carry their
+ * own share of the component — 30, 30 and 40 — so each is converted on its
+ * own scale and the three weighted figures are added to make the
+ * component's percentage.
+ *
+ * Everything derived is computed here as the teacher types and again on the
+ * server when the record is saved. The server's answer is the one stored and
+ * the one the risk model reads; this copy is for the typing.
+ *
+ * A blank cell means "not yet", never zero. That distinction is why 65 rows
+ * of the school's own export read as failing learners when they were empty
+ * columns, and it is kept from this grid through to the stored grade: a
+ * record missing a whole component shows no grade rather than a wrong one.
  */
 
-const PERIODS = [1, 2, 3, 4];
-
-/** The default DepEd split, used until a teacher sets the record's own. */
 const DEFAULT_SETUP = {
+  template: CORE,
   ww_highest: [null, null, null, null, null],
   pt_highest: [null, null, null],
-  sa_highest: [null, null],
-  te_highest: null,
-  ww_weight: 20,
-  pt_weight: 50,
-  te_weight: 30,
+  exam_highest: [null, null, null],
+  ww_weight: TEMPLATES[CORE].ww_weight,
+  pt_weight: TEMPLATES[CORE].pt_weight,
+  ex_weight: TEMPLATES[CORE].ex_weight,
+  exam_subweights: [30, 30, 40],
 };
 
-/** '' and '-' are a cleared cell; anything else becomes a number or stays blank. */
+/** '' is a cleared cell; anything else becomes a number or stays blank. */
 const toScore = (raw) => {
   if (raw === '' || raw === null || raw === undefined) return null;
   const n = Number(raw);
@@ -71,7 +87,7 @@ export default function ClassRecordPage() {
 
   const [sectionId, setSectionId] = useState('');
   const [subjectId, setSubjectId] = useState('');
-  const [period, setPeriod] = useState(1);
+  const [term, setTerm] = useState(1);
   const [search, setSearch] = useState('');
 
   const [setup, setSetup] = useState(DEFAULT_SETUP);
@@ -168,36 +184,41 @@ export default function ClassRecordPage() {
     loadRoster();
   }, [loadRoster]);
 
-  // The sheet's own header. Falls back to the DepEd default split so a fresh
+  // The sheet's own header. Falls back to the core template so a fresh
   // record is usable before anyone has set it up.
   useEffect(() => {
-    if (!sectionId || !subjectId) return;
+    if (!sectionId || !subjectId) return undefined;
     let cancelled = false;
     classRecordApi
-      .getSetup({ section_id: sectionId, subject_id: subjectId, grading_period: period })
+      .getSetup({ section_id: sectionId, subject_id: subjectId, grading_period: term })
       .then((data) => {
         if (cancelled || !data) return;
         setSetup({
+          template: data.template || CORE,
           ww_highest: data.ww_highest?.length ? data.ww_highest : DEFAULT_SETUP.ww_highest,
           pt_highest: data.pt_highest?.length ? data.pt_highest : DEFAULT_SETUP.pt_highest,
-          sa_highest: data.sa_highest?.length ? data.sa_highest : DEFAULT_SETUP.sa_highest,
-          te_highest: data.te_highest ?? null,
+          exam_highest: data.exam_highest?.length
+            ? data.exam_highest
+            : DEFAULT_SETUP.exam_highest,
           ww_weight: data.ww_weight,
           pt_weight: data.pt_weight,
-          te_weight: data.te_weight,
+          ex_weight: data.ex_weight,
+          exam_subweights: data.exam_subweights?.length
+            ? data.exam_subweights
+            : DEFAULT_SETUP.exam_subweights,
         });
       })
       .catch(() => setSetup(DEFAULT_SETUP));
     return () => {
       cancelled = true;
     };
-  }, [sectionId, subjectId, period]);
+  }, [sectionId, subjectId, term]);
 
   /** One row per learner: stored scores, overlaid with anything unsaved. */
   const rows = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const needle = search.trim().toLowerCase();
     return enrollments
-      .filter((e) => (term ? (e.student_name || '').toLowerCase().includes(term) : true))
+      .filter((e) => (needle ? (e.student_name || '').toLowerCase().includes(needle) : true))
       .map((enrollment) => {
         const stored = paces.find(
           (p) =>
@@ -214,15 +235,13 @@ export default function ClassRecordPage() {
 
         const ww = cells('ww_scores', setup.ww_highest.length);
         const pt = cells('pt_scores', setup.pt_highest.length);
-        const sa = cells('sa_scores', setup.sa_highest.length);
-        const te = draft.te_score !== undefined ? draft.te_score : asText(stored?.te_score);
+        const exam = cells('exam_scores', setup.exam_highest.length);
 
         const computed = computeRow(
           {
             ww_scores: ww.map(toScore),
             pt_scores: pt.map(toScore),
-            sa_scores: sa.map(toScore),
-            te_score: toScore(te),
+            exam_scores: exam.map(toScore),
           },
           setup,
         );
@@ -232,8 +251,7 @@ export default function ClassRecordPage() {
           stored,
           ww,
           pt,
-          sa,
-          te,
+          exam,
           computed,
           dirty: Object.keys(draft).length > 0,
           ai: stored?.ai_risk_level
@@ -265,12 +283,6 @@ export default function ClassRecordPage() {
       return { ...current, [enrollmentId]: { ...row, [key]: list } };
     });
 
-  const setExam = (enrollmentId, value) =>
-    setDrafts((current) => ({
-      ...current,
-      [enrollmentId]: { ...current[enrollmentId], te_score: value },
-    }));
-
   const save = async () => {
     if (!subject) return;
     const changed = rows.filter((r) => r.dirty);
@@ -286,22 +298,21 @@ export default function ClassRecordPage() {
         enrollment_id: row.enrollment.enrollment_id,
         subject: subject.subject_name,
         // Unit progress is not kept on this screen, so whatever the record
-        // already holds is sent back unchanged rather than reset to zero.
+        // already holds goes back unchanged rather than being reset to zero.
         current_pace: row.stored?.current_pace ?? 0,
         expected_pace: row.stored?.expected_pace ?? 0,
-        total_paces: row.stored?.total_paces ?? subject.total_paces ?? 12,
+        total_paces: row.stored?.total_paces ?? 0,
         attendance: row.stored?.attendance ?? 100,
         average_score: row.stored?.average_score ?? 0,
         ww_scores: row.ww.map(toScore),
         pt_scores: row.pt.map(toScore),
-        sa_scores: row.sa.map(toScore),
-        te_score: toScore(row.te),
+        exam_scores: row.exam.map(toScore),
       }));
 
       const result = await paceApi.bulkSave(entries, {
         section_id: Number(sectionId),
         subject_id: Number(subjectId),
-        grading_period: period,
+        grading_period: term,
       });
 
       toast.success(`Saved ${result.saved} record${result.saved === 1 ? '' : 's'}.`);
@@ -320,29 +331,47 @@ export default function ClassRecordPage() {
     }
   };
 
+  /** Switching record type resets the weights to that type's own. */
+  const chooseTemplate = (value) => {
+    const chosen = TEMPLATES[value] || TEMPLATES[CORE];
+    setSetupDraft({
+      ...setupDraft,
+      template: value,
+      ww_weight: chosen.ww_weight,
+      pt_weight: chosen.pt_weight,
+      ex_weight: chosen.ex_weight,
+    });
+  };
+
   const saveSetup = async () => {
     const payload = {
+      template: setupDraft.template,
       ww_highest: setupDraft.ww_highest.map(toScore),
       pt_highest: setupDraft.pt_highest.map(toScore),
-      sa_highest: setupDraft.sa_highest.map(toScore),
-      te_highest: toScore(setupDraft.te_highest),
+      exam_highest: setupDraft.exam_highest.map(toScore),
       ww_weight: Number(setupDraft.ww_weight),
       pt_weight: Number(setupDraft.pt_weight),
-      te_weight: Number(setupDraft.te_weight),
+      ex_weight: Number(setupDraft.ex_weight),
+      exam_subweights: setupDraft.exam_subweights.map(Number),
     };
-    const total = payload.ww_weight + payload.pt_weight + payload.te_weight;
+    const total = payload.ww_weight + payload.pt_weight + payload.ex_weight;
     if (Math.abs(total - 100) > 0.01) {
-      toast.error(`The three weights must total 100 percent — they total ${total}.`);
+      toast.error(`The three component weights must total 100 — they total ${total}.`);
+      return;
+    }
+    const shares = payload.exam_subweights.reduce((a, b) => a + b, 0);
+    if (Math.abs(shares - 100) > 0.01) {
+      toast.error(`The examination shares must total 100 — they total ${shares}.`);
       return;
     }
     try {
       const saved = await classRecordApi.saveSetup(
-        { section_id: Number(sectionId), subject_id: Number(subjectId), grading_period: period },
+        { section_id: Number(sectionId), subject_id: Number(subjectId), grading_period: term },
         payload,
       );
       setSetup({ ...setup, ...saved });
       setSetupDraft(null);
-      toast.success('Class record setup saved. Every grade in this record was recalculated.');
+      toast.success('Setup saved. Every grade in this record was recalculated.');
       await loadRoster();
     } catch (err) {
       toast.error(err.message);
@@ -351,28 +380,27 @@ export default function ClassRecordPage() {
 
   const editing = setupDraft !== null;
   const head = editing ? setupDraft : setup;
+  const profile = TEMPLATES[head.template] || TEMPLATES[CORE];
 
-  const groups = [
-    { key: 'ww', label: 'Written / Oral Works', weight: head.ww_weight, count: head.ww_highest.length },
-    { key: 'pt', label: 'Product / Performance Tasks', weight: head.pt_weight, count: head.pt_highest.length },
-    {
-      key: 'te',
-      label: 'Summative Tests & Term Examination',
-      weight: head.te_weight,
-      count: head.sa_highest.length + 1,
-    },
-  ];
+  const patchDraft = (key, index, value) => {
+    const next = [...setupDraft[key]];
+    next[index] = value;
+    setSetupDraft({ ...setupDraft, [key]: next });
+  };
 
   if (loading) return <TableSkeleton rows={8} />;
+
+  const examCount = head.exam_highest.length;
 
   return (
     <div className="page">
       <PageHead
         title="Class record"
         subtitle={
-          'The DepEd E-Class Record. Written works and performance tasks are what ' +
-          'the risk model reads; the term examination is not, because it is the ' +
-          'result the warning is meant to come before.'
+          'The MATATAG three-term E-Class Record. Written works and performance ' +
+          'tasks are what the risk model reads; the summative tests and the term ' +
+          'examination are not, because they are the result the warning is meant ' +
+          'to come before.'
         }
       />
 
@@ -410,13 +438,13 @@ export default function ClassRecordPage() {
 
         <select
           className="select"
-          value={period}
-          onChange={(e) => setPeriod(Number(e.target.value))}
-          aria-label="Grading period"
+          value={term}
+          onChange={(e) => setTerm(Number(e.target.value))}
+          aria-label="Term"
         >
-          {PERIODS.map((p) => (
-            <option key={p} value={p}>
-              Quarter {p}
+          {TERMS.map((t) => (
+            <option key={t} value={t}>
+              {TERM_LABELS[t]}
             </option>
           ))}
         </select>
@@ -434,10 +462,26 @@ export default function ClassRecordPage() {
 
         {editing ? (
           <div className="cr-setup-actions">
+            <select
+              className="select"
+              value={head.template}
+              onChange={(e) => chooseTemplate(e.target.value)}
+              aria-label="Class record type"
+            >
+              {Object.entries(TEMPLATES).map(([key, t]) => (
+                <option key={key} value={key}>
+                  {t.short} — {t.ww_weight}/{t.pt_weight}/{t.ex_weight}
+                </option>
+              ))}
+            </select>
             <button type="button" className="btn btn-primary" onClick={saveSetup}>
               <Check size={15} /> Save setup
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setSetupDraft(null)}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setSetupDraft(null)}
+            >
               <X size={15} /> Cancel
             </button>
           </div>
@@ -453,13 +497,21 @@ export default function ClassRecordPage() {
         )}
       </div>
 
-      {editing && (
-        <p className="cr-setup-hint">
-          Enter the highest possible score for each assessment and the weight of each
-          component. Saving recalculates every grade in this record, because a
-          percentage means nothing without the total it was taken out of.
-        </p>
-      )}
+      <p className="cr-template-note">
+        {editing ? (
+          <>
+            Enter the highest possible score for each assessment, choose the record
+            type, and save. Every grade in this record is recalculated, because a
+            percentage means nothing without the total it came out of.
+          </>
+        ) : (
+          <>
+            <b>{profile.short}</b> — {profile.label}. Written works{' '}
+            {show(head.ww_weight, 0)}%, performance tasks {show(head.pt_weight, 0)}%,
+            examinations {show(head.ex_weight, 0)}%.
+          </>
+        )}
+      </p>
 
       {loadingRoster ? (
         <TableSkeleton rows={8} />
@@ -477,39 +529,30 @@ export default function ClassRecordPage() {
                   <th className="cr-sticky cr-name" rowSpan={3}>
                     Learners&rsquo; names
                   </th>
-                  {groups.map((g) => (
-                    <th key={g.key} colSpan={g.count + 3} className="cr-group">
-                      {g.label}
-                      <span className="cr-weight">
-                        {editing ? (
-                          <input
-                            className="cr-input cr-weight-input"
-                            value={head[`${g.key}_weight`]}
-                            onChange={(e) =>
-                              setSetupDraft({ ...setupDraft, [`${g.key}_weight`]: e.target.value })
-                            }
-                            aria-label={`${g.label} weight, percent`}
-                          />
-                        ) : (
-                          `${show(g.weight, 0)}%`
-                        )}
-                      </span>
-                    </th>
-                  ))}
+                  <th className="cr-group" colSpan={head.ww_highest.length + 3}>
+                    Written / Oral Works (WWs)
+                    <span className="cr-weight">{show(head.ww_weight, 0)}%</span>
+                  </th>
+                  <th className="cr-group" colSpan={head.pt_highest.length + 3}>
+                    Product / Performance Tasks (PTs)
+                    <span className="cr-weight">{show(head.pt_weight, 0)}%</span>
+                  </th>
+                  <th className="cr-group" colSpan={examCount * 2 + 2}>
+                    Examinations (EXs)
+                    <span className="cr-weight">{show(head.ex_weight, 0)}%</span>
+                  </th>
                   <th className="cr-out" rowSpan={3}>
                     Initial
                     <br />
                     Grade
                   </th>
                   <th className="cr-out" rowSpan={3}>
-                    Transmuted
+                    Term
                     <br />
                     Grade
                   </th>
                   <th className="cr-out" rowSpan={3}>
-                    Letter
-                    <br />
-                    Grade
+                    Descriptor
                   </th>
                   <th className="cr-out cr-risk-head" rowSpan={3}>
                     Risk
@@ -518,7 +561,7 @@ export default function ClassRecordPage() {
 
                 <tr>
                   {head.ww_highest.map((_, i) => (
-                    <th key={`wwh${i}`} className="cr-item">
+                    <th key={`wh${i}`} className="cr-item">
                       {i + 1}
                     </th>
                   ))}
@@ -527,7 +570,7 @@ export default function ClassRecordPage() {
                   <th className="cr-derived">WS</th>
 
                   {head.pt_highest.map((_, i) => (
-                    <th key={`pth${i}`} className="cr-item">
+                    <th key={`ph${i}`} className="cr-item">
                       {i + 1}
                     </th>
                   ))}
@@ -535,50 +578,74 @@ export default function ClassRecordPage() {
                   <th className="cr-derived">PS</th>
                   <th className="cr-derived">WS</th>
 
-                  {head.sa_highest.map((_, i) => (
-                    <th key={`sah${i}`} className="cr-item">
-                      SA{i + 1}
+                  {/* Each examination is converted on its own scale, so this
+                      group prints the raw marks and then a weighted figure
+                      for each one, rather than a single total. */}
+                  {head.exam_highest.map((_, i) => (
+                    <th key={`eh${i}`} className="cr-item">
+                      {EXAM_LABELS[i] || `EX${i + 1}`}
                     </th>
                   ))}
-                  <th className="cr-item">TE</th>
-                  <th className="cr-derived">Total</th>
+                  {head.exam_highest.map((_, i) => (
+                    <th key={`ew${i}`} className="cr-derived">
+                      WS {EXAM_LABELS[i] || i + 1}
+                    </th>
+                  ))}
                   <th className="cr-derived">PS</th>
                   <th className="cr-derived">WS</th>
                 </tr>
 
                 <tr className="cr-hps">
-                  {[
-                    ['ww_highest', head.ww_highest, head.ww_weight],
-                    ['pt_highest', head.pt_highest, head.pt_weight],
-                  ].map(([key, list, weight]) => (
-                    <HighestCells
-                      key={key}
-                      name={key}
-                      list={list}
-                      weight={weight}
-                      editing={editing}
-                      onChange={(i, v) => {
-                        const next = [...setupDraft[key]];
-                        next[i] = v;
-                        setSetupDraft({ ...setupDraft, [key]: next });
-                      }}
-                    />
-                  ))}
                   <HighestCells
-                    name="sa_highest"
-                    list={head.sa_highest}
-                    weight={head.te_weight}
+                    name="ww_highest"
+                    list={head.ww_highest}
+                    weight={head.ww_weight}
                     editing={editing}
-                    trailing={{
-                      value: head.te_highest,
-                      onChange: (v) => setSetupDraft({ ...setupDraft, te_highest: v }),
-                    }}
-                    onChange={(i, v) => {
-                      const next = [...setupDraft.sa_highest];
-                      next[i] = v;
-                      setSetupDraft({ ...setupDraft, sa_highest: next });
-                    }}
+                    onChange={(i, v) => patchDraft('ww_highest', i, v)}
                   />
+                  <HighestCells
+                    name="pt_highest"
+                    list={head.pt_highest}
+                    weight={head.pt_weight}
+                    editing={editing}
+                    onChange={(i, v) => patchDraft('pt_highest', i, v)}
+                  />
+                  {/* For the examinations: each mark's maximum, then the
+                      share of the component each one carries. */}
+                  {head.exam_highest.map((value, i) => (
+                    <td key={`ehv${i}`} className="cr-cell">
+                      {editing ? (
+                        <input
+                          className="cr-input"
+                          inputMode="decimal"
+                          value={asText(value)}
+                          onChange={(e) => patchDraft('exam_highest', i, e.target.value)}
+                          aria-label={`highest possible score, ${EXAM_LABELS[i] || i + 1}`}
+                        />
+                      ) : (
+                        show(value, 0)
+                      )}
+                    </td>
+                  ))}
+                  {head.exam_subweights.map((value, i) => (
+                    <td key={`esw${i}`} className="cr-derived cr-hps-label">
+                      {editing ? (
+                        <input
+                          className="cr-input"
+                          inputMode="decimal"
+                          value={asText(value)}
+                          onChange={(e) => patchDraft('exam_subweights', i, e.target.value)}
+                          aria-label={`share of the examinations component, ${
+                            EXAM_LABELS[i] || i + 1
+                          }`}
+                        />
+                      ) : (
+                        show(value, 0)
+                      )}
+                    </td>
+                  ))}
+                  <td className="cr-derived cr-hps-label">100.00</td>
+                  <td className="cr-derived cr-hps-label">{show(head.ex_weight, 0)}%</td>
                 </tr>
               </thead>
 
@@ -609,34 +676,34 @@ export default function ClassRecordPage() {
                     <Derived value={row.computed.pt_ws} />
 
                     <ScoreCells
-                      values={row.sa}
-                      onChange={(i, v) => setCell(row.enrollment.enrollment_id, 'sa_scores', i, v)}
-                      label={`${row.enrollment.student_name} summative test`}
+                      values={row.exam}
+                      onChange={(i, v) =>
+                        setCell(row.enrollment.enrollment_id, 'exam_scores', i, v)
+                      }
+                      label={`${row.enrollment.student_name} examination`}
                     />
-                    <td className="cr-cell">
-                      <input
-                        className="cr-input"
-                        inputMode="decimal"
-                        value={row.te}
-                        onChange={(e) => setExam(row.enrollment.enrollment_id, e.target.value)}
-                        aria-label={`${row.enrollment.student_name} term examination`}
-                      />
-                    </td>
-                    <Derived value={row.computed.te_total} />
-                    <Derived value={row.computed.te_pct} />
-                    <Derived value={row.computed.te_ws} />
+                    {row.computed.exam_parts.map((part, i) => (
+                      <Derived key={`p${i}`} value={part} />
+                    ))}
+                    <Derived value={row.computed.exam_pct} />
+                    <Derived value={row.computed.exam_ws} />
 
                     <Derived value={row.computed.initial_grade} strong />
                     <td className="cr-derived cr-strong">
                       {show(row.computed.transmuted_grade, 0)}
                     </td>
                     <td className="cr-derived">
-                      {row.computed.letter_grade ? (
+                      {row.computed.descriptor ? (
                         <span
-                          className={`cr-letter cr-letter-${row.computed.letter_grade.toLowerCase()}`}
-                          title={row.computed.descriptor}
+                          className={`cr-band cr-band-${row.computed.descriptor.toLowerCase()}`}
+                          title={
+                            row.computed.complete
+                              ? undefined
+                              : 'Provisional — some assessments are still unmarked'
+                          }
                         >
-                          {row.computed.letter_grade}
+                          {row.computed.descriptor}
+                          {row.computed.complete ? '' : ' *'}
                         </span>
                       ) : (
                         '—'
@@ -660,6 +727,11 @@ export default function ClassRecordPage() {
               ) : (
                 'All changes saved'
               )}
+              <span className="cr-foot-note">
+                {' '}
+                · a grade marked * is provisional, computed from a record with
+                assessments still unmarked
+              </span>
             </span>
             <button
               type="button"
@@ -677,16 +749,12 @@ export default function ClassRecordPage() {
 }
 
 /**
- * The HIGHEST POSSIBLE SCORE row for one component group.
- *
- * Its Total / PS / WS cells mirror the printed form: the sum of the highest
- * possible scores, a flat 100.00, and the component's weight — the figures a
- * learner who scored full marks on everything would reach.
+ * The HIGHEST POSSIBLE SCORE row for a written-works or performance-task
+ * group: each item's maximum, then the figures a learner with full marks
+ * would reach — the sum, a flat 100.00, and the component's weight.
  */
-function HighestCells({ name, list, weight, editing, onChange, trailing }) {
-  const entered = [...list, ...(trailing ? [trailing.value] : [])]
-    .map((v) => Number(v))
-    .filter((n) => Number.isFinite(n) && n > 0);
+function HighestCells({ name, list, weight, editing, onChange }) {
+  const entered = list.map(Number).filter((n) => Number.isFinite(n) && n > 0);
   const total = entered.length ? entered.reduce((a, b) => a + b, 0) : null;
   return (
     <>
@@ -705,21 +773,6 @@ function HighestCells({ name, list, weight, editing, onChange, trailing }) {
           )}
         </td>
       ))}
-      {trailing && (
-        <td className="cr-cell">
-          {editing ? (
-            <input
-              className="cr-input"
-              inputMode="decimal"
-              value={asText(trailing.value)}
-              onChange={(e) => trailing.onChange(e.target.value)}
-              aria-label="highest possible score, term examination"
-            />
-          ) : (
-            show(trailing.value, 0)
-          )}
-        </td>
-      )}
       <td className="cr-derived cr-hps-label">{show(total, 0)}</td>
       <td className="cr-derived cr-hps-label">100.00</td>
       <td className="cr-derived cr-hps-label">{show(weight, 0)}%</td>

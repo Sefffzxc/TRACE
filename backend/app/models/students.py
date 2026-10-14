@@ -205,28 +205,36 @@ class StudentPace(Base):
     # as one. The arrays are the record of truth; everything below them is
     # derived from these by app.services.grading and recomputed on every save,
     # so a stored grade can never drift away from the scores behind it.
-    ww_scores = Column(Text, nullable=True)             # JSON array, Written Works
-    pt_scores = Column(Text, nullable=True)             # JSON array, Performance Tasks
-    sa_scores = Column(Text, nullable=True)             # JSON array, summative tests
-    te_score = Column(Float, nullable=True)             # term examination
+    ww_scores = Column(Text, nullable=True)      # JSON array, Written Works
+    pt_scores = Column(Text, nullable=True)      # JSON array, Performance Tasks
+    # [ST1, ST2, Term Examination]. One array rather than three columns
+    # because the three are one component of the grade, each with its own
+    # share of it.
+    exam_scores = Column(Text, nullable=True)
 
-    # Derived, in the order the DepEd sheet presents them.
+    # Derived, in the order the class record prints them.
     ww_total_raw = Column(Float, nullable=True)
     ww_percent = Column(Float, nullable=True)
     ww_weighted = Column(Float, nullable=True)
     pt_total_raw = Column(Float, nullable=True)
     pt_percent = Column(Float, nullable=True)
     pt_weighted = Column(Float, nullable=True)
-    te_total_raw = Column(Float, nullable=True)
-    te_percent = Column(Float, nullable=True)
-    te_weighted = Column(Float, nullable=True)
+    # The three per-examination weighted figures the sheet prints as
+    # WS ST1 / WS ST2 / WS TE, as a JSON array.
+    exam_parts = Column(Text, nullable=True)
+    exam_percent = Column(Float, nullable=True)
+    exam_weighted = Column(Float, nullable=True)
     initial_grade = Column(Float, nullable=True)
     transmuted_grade = Column(Integer, nullable=True)
-    letter_grade = Column(String(8), nullable=True)
+    descriptor = Column(String(20), nullable=True)
+    # False while any assessment is still unmarked. A grade computed from a
+    # part-filled record is provisional, and the interface says so rather
+    # than presenting it as settled.
+    record_complete = Column(Boolean, nullable=False, default=False)
 
     # Kept because schools use them operationally, though the model trained on
-    # the merged class-record export reads neither: that export carries no
-    # attendance column at all.
+    # the class-record export reads neither: that export carries no attendance
+    # column at all.
     absences = Column(Integer, nullable=True)
     extracurricular_count = Column(Integer, nullable=True)
 
@@ -269,18 +277,28 @@ class ClassRecordSetup(Base):
     subject_id = Column(
         Integer, ForeignKey("subjects.subject_id", ondelete="CASCADE"), nullable=False
     )
+    # Three terms, not four quarters.
     grading_period = Column(Integer, nullable=False, default=1)
+
+    # Which of the two class records this subject uses. The template decides
+    # the default weights: Science, Mathematics, English, Filipino and
+    # Araling Panlipunan run 20/50/30, while Music and Arts and Physical
+    # Education and Health run 20/60/20.
+    template = Column(String(10), nullable=False, default="core")
 
     # JSON arrays of the highest possible score per item. Their lengths are
     # what decides how many columns the class record draws.
     ww_highest = Column(Text, nullable=False, default="[]")
     pt_highest = Column(Text, nullable=False, default="[]")
-    sa_highest = Column(Text, nullable=False, default="[]")
-    te_highest = Column(Float, nullable=True)
+    # [ST1, ST2, Term Examination]
+    exam_highest = Column(Text, nullable=False, default="[]")
 
-    ww_weight = Column(Float, nullable=False, default=30.0)
+    ww_weight = Column(Float, nullable=False, default=20.0)
     pt_weight = Column(Float, nullable=False, default=50.0)
-    te_weight = Column(Float, nullable=False, default=20.0)
+    ex_weight = Column(Float, nullable=False, default=30.0)
+    # How the examinations component is split between ST1, ST2 and the term
+    # examination. The sheet ships 30/30/40 and a school may change it.
+    exam_subweights = Column(Text, nullable=False, default="[30, 30, 40]")
 
     updated_by = Column(GUID(), ForeignKey("staff.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=_utcnow)

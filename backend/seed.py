@@ -1,353 +1,142 @@
-"""Populate the database with two realistic demo schools.
+"""Database setup for SmartPACE.
 
-    python seed.py                              # create tables and seed if empty
-    python seed.py --reset                      # drop everything first
-    python seed.py --create-superadmin EMAIL    # only add a system operator
+    python seed.py --fresh-start    empty everything, keep one operator account
+    python seed.py --demo           add the small demonstration school
+    python seed.py --score          as --demo, then ask the model to score it
+    python seed.py --score-only     re-score whatever is already stored
+    python seed.py --purge-demo     remove the demonstration school only
 
-Two schools, not one, on purpose: a demo with a single school proves nothing
-about multi-tenancy. The second school is a public DepEd school that does not
-track PACE booklets, so the pair also demonstrates that `tracks_units` — not
-`school_type` — is what decides what a teacher sees.
+Running it with no arguments does nothing and prints this list. That is
+deliberate: a bare `python seed.py` used to fill the database with invented
+schools and learners, which is how demonstration data ends up in a live
+deployment and stays there.
 
-Accounts created (password for all of them: Lbca@2026):
+What --demo creates
+-------------------
+One school, one principal, two teachers, ten learners in one section, two
+subjects, and a class record for each learner in each subject. Small enough
+to read end to end on screen, large enough that every screen in the system
+has something real to show.
 
-    superadmin@example.com    system operator, belongs to no school
-
-    Lord's Blessing Christian Academy (private, tracks PACEs)
-    admin@lbca.edu.ph          principal
-    mramos@lbca.edu.ph         teacher (adviser, Grade 7 - Faith)
-    jsantos@lbca.edu.ph        teacher (adviser, Grade 8 - Hope)
-    alim@lbca.edu.ph           teacher (adviser, Grade 9 - Love)
-    rcruz@lbca.edu.ph          teacher
-    pending@lbca.edu.ph        teacher, still awaiting approval
-
-    Mabini National High School (public, no unit tracking)
-    principal@mabini.edu.ph    principal
-    tdelacruz@mabini.edu.ph    teacher (adviser, Grade 7 - Narra)
-    mbaluyot@mabini.edu.ph     teacher (adviser, Grade 8 - Molave)
+Every learner here is invented. The names, the scores and the guardians are
+made up, and nothing in this file is ever used to train or evaluate the risk
+model — that is done in the ml/ scripts, against the school's own records.
+The predictions this script can write are genuine model output; only the
+inputs are invented.
 """
 from __future__ import annotations
 
 import argparse
 import asyncio
-import random
+import json
 import secrets
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.core.security import get_password_hash
 from app.db.session import AsyncSessionLocal, Base, async_engine, init_models
-from app.models.academic import (
-    ClassSchedule,
-    GradeLevel,
-    SchoolYear,
-    Section,
-    Subject,
-    TeacherAssignment,
-)
-from app.models.schools import (
-    SCHOOL_APPROVED,
-    TYPE_PRIVATE,
-    TYPE_PUBLIC,
-    School,
-)
+from app.models.academic import GradeLevel, SchoolYear, Section, Subject, TeacherAssignment
+from app.models.schools import SCHOOL_APPROVED, TYPE_PUBLIC, School
 from app.models.staff import (
     ROLE_ADMIN,
     ROLE_SUPER_ADMIN,
     ROLE_TEACHER,
     STATUS_APPROVED,
-    STATUS_PENDING,
     Staff,
 )
-from app.models.students import EarlyWarning, Student, StudentEnrollment, StudentPace
-from app.services import risk
+from app.models.students import (
+    ClassRecordSetup,
+    Student,
+    StudentEnrollment,
+    StudentPace,
+)
+from app.services import grading
 
 PASSWORD = "Lbca@2026"
-# The demo's system operator.
-#
+
 # `example.com` rather than something like `system.local`: `.local` is reserved
-# for multicast DNS, and the address validation the API applies at sign-in
-# refuses reserved domains outright. An account created at such an address can
-# be written to the database and then never signed into — which is exactly what
-# happened here before this was changed. `example.com` is reserved by RFC 2606
-# for documentation, so it can never belong to anyone, and it passes validation.
+# for multicast DNS and the address validation the API applies at sign-in
+# refuses reserved domains outright, so an account created there could be
+# written to the database and then never signed into. `example.com` is
+# reserved by RFC 2606 for documentation, so it can never belong to anyone and
+# it passes validation.
 SUPERADMIN_EMAIL = "superadmin@example.com"
-random.seed(20260920)
 
-FIRST_NAMES_M = [
-    "Josiah", "Caleb", "Nathaniel", "Elijah", "Gabriel", "Samuel", "Isaiah",
-    "Ezekiel", "Matthias", "Lucas", "Andrei", "Rafael", "Miguel", "Paolo",
-    "Joshua", "Daniel", "Ezra", "Simon", "Tobias", "Emmanuel",
-]
-FIRST_NAMES_F = [
-    "Abigail", "Hannah", "Naomi", "Rebekah", "Esther", "Miriam", "Leah",
-    "Rachel", "Deborah", "Priscilla", "Sofia", "Isabella", "Althea", "Bianca",
-    "Yvonne", "Clarisse", "Danielle", "Elena", "Faith", "Grace",
-]
-LAST_NAMES = [
-    "Reyes", "Santos", "Cruz", "Bautista", "Ocampo", "Garcia", "Mendoza",
-    "Torres", "Domingo", "Villanueva", "Aquino", "Castillo", "Navarro",
-    "Del Rosario", "Fernandez", "Pascual", "Gonzales", "Ramirez", "Salazar",
-    "Tolentino",
-]
-STREETS = [
-    "Mabini St.", "Rizal Ave.", "Bonifacio Drive", "Del Pilar St.",
-    "Luna Street", "Aguinaldo Road", "San Juan St.", "Katipunan Ave.",
-]
-BARANGAYS = ["Bagong Silang", "San Isidro", "Sta. Cruz", "Poblacion", "Maligaya"]
+DEMO_SCHOOL_NAME = "Looc National High School"
 
-SUBJECT_PLAN = [
-    ("Mathematics", "MATH", 12),
-    ("English", "ENG", 12),
-    ("Science", "SCI", 12),
-    ("Social Studies", "SOC", 10),
-    ("Word Building", "WRB", 10),
-    ("Bible Reading", "BIB", 8),
+# Highest possible score per assessment. The same sheet shape as the
+# MATATAG workbook: five written works, three performance tasks, two
+# summative tests and a term examination.
+WW_HIGHEST = [20.0, 20.0, 15.0, 15.0, 15.0]     # 85 in total
+PT_HIGHEST = [25.0, 25.0, 25.0]                 # 75
+EXAM_HIGHEST = [25.0, 25.0, 50.0]               # ST1, ST2, TE
+
+# Four subjects across BOTH class records, because a school runs both at
+# once and the system has to show that it does. The weights come from the
+# template, not from here — see app/services/grading.py.
+# The last field nudges every mark in that subject up or down a point, so a
+# learner is not identical across all four. Kept small: the point is that a
+# learner can be fine in one subject and not in another, not that the
+# demonstration should look like a failing cohort.
+SUBJECTS = [
+    ("Filipino", "FIL", grading.CORE, 0),
+    ("Science", "SCI", grading.CORE, -1),
+    ("Music and Arts", "MA", grading.MAPEH, +1),
+    ("Physical Education and Health", "PEH", grading.MAPEH, -1),
 ]
 
-# The second school follows the DepEd curriculum, so its subject list is the
-# DepEd one. The unit totals are still filled in because a StudentPace row also
-# carries the class record the risk model reads — see `build_school`.
-DEPED_SUBJECT_PLAN = [
-    ("Mathematics", "MATH", 12),
-    ("English", "ENG", 12),
-    ("Science", "SCI", 12),
-    ("Filipino", "FIL", 10),
-    ("Araling Panlipunan", "AP", 10),
+# Ten learners. The scores are written out rather than generated at random so
+# that the demonstration is the same every time it is seeded — a screenshot
+# taken today still matches the database next week, and a figure quoted in
+# the manuscript does not move underneath it.
+#
+# Columns: first, last, sex, five written works, three performance tasks,
+#          [ST1, ST2, term examination].
+# A None is a blank cell: the assessment has not been taken or not yet marked.
+LEARNERS = [
+    ("Althea Mae",   "Bontigao", "Female", [18, 17, 14, 13, 14], [23, 22, 24], [22, 23, 44]),
+    ("Jerome",       "Cabanlit", "Male",   [11,  9,  8,  7,  9], [14, 13, 12], [12, 11, 23]),
+    ("Kyla Marie",   "Dagohoy",  "Female", [19, 18, 14, 14, 15], [24, 24, 23], [23, 24, 47]),
+    ("Mark Anthony", "Escobido", "Male",   [14, 13, 10, 11, 10], [18, 17, 19], [16, 17, 33]),
+    ("Shaira",       "Fuentes",  "Female", [16, 15, 12, 12, 13], [21, 20, 21], [19, 20, 39]),
+    ("Paulo",        "Gumapac",  "Male",   [ 9,  8,  7,  6,  8], [13, 12, 11], [10, 12, 21]),
+    ("Jenny Rose",   "Lumabao",  "Female", [17, 16, 13, 13, 12], [22, 21, 22], [20, 21, 41]),
+    ("Rhoda",        "Makinano", "Female", [13, 12, 10,  9, 11], [17, 16, 18], [15, 16, 31]),
+    ("Carl Jason",   "Nunez",    "Male",   [20, 19, 15, 14, 15], [25, 24, 25], [24, 25, 48]),
+    # No examinations sat yet, so the class record shows coursework complete
+    # and no term grade. That is the ordinary mid-term state and the only one
+    # in which an early warning has any point.
+    ("Trisha Mae",   "Olvido",   "Female", [12, 11,  9,  8, 10], [16, 15, 14], [None, None, None]),
 ]
-
-DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-PERIODS = [("08:00", "09:00"), ("09:15", "10:15"), ("10:30", "11:30"),
-           ("13:00", "14:00"), ("14:15", "15:15")]
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# The two schools, as data
-# ══════════════════════════════════════════════════════════════════════════════
-# Kept as plain dictionaries rather than two copies of the seeding code, so the
-# schools differ only in the ways a reader cares about — curriculum, unit
-# tracking, size, accounts — and so a third school is a dict rather than a
-# branch. Everything here is invented demo data.
-SCHOOL_PLANS = [
-    {
-        "school": {
-            "name": "Lord's Blessing Christian Academy",
-            "short_name": "LBCA",
-            "school_type": TYPE_PRIVATE,
-            "address": "Purok 3, Zone 5, Gusa",
-            "city": "Cagayan de Oro",
-            "province": "Misamis Oriental",
-            "region": "Region X (Northern Mindanao)",
-            "contact_number": "(088) 856 1024",
-            "contact_email": "office@lbca.edu.ph",
-            # A School of Tomorrow school: progress is counted in PACE
-            # booklets, so the unit screens are the ones its teachers live in.
-            "tracks_units": True,
-            "unit_label_singular": "PACE",
-            "unit_label_plural": "PACEs",
-            "default_units_per_subject": 12,
-            "passing_mark": 75.0,
-        },
-        "admin": {
-            "email": "admin@lbca.edu.ph", "first": "Grace", "last": "Mercado",
-            "contact": "0917 555 0100", "department": "School Administration",
-        },
-        "teachers": [
-            {"email": "mramos@lbca.edu.ph", "first": "Maria", "last": "Ramos",
-             "contact": "0917 555 0111", "department": "Junior High School"},
-            {"email": "jsantos@lbca.edu.ph", "first": "Jonathan", "last": "Santos",
-             "contact": "0917 555 0122", "department": "Junior High School"},
-            {"email": "alim@lbca.edu.ph", "first": "Angeline", "last": "Lim",
-             "contact": "0917 555 0133", "department": "Junior High School"},
-            {"email": "rcruz@lbca.edu.ph", "first": "Ruben", "last": "Cruz",
-             "contact": "0917 555 0144", "department": "Values Education"},
-        ],
-        # One account left unapproved so the principal's approval queue is not
-        # empty in the demo.
-        "pending": {
-            "email": "pending@lbca.edu.ph", "first": "Katrina", "last": "Velasco",
-            "contact": "0917 555 0155", "department": "Junior High School",
-        },
-        "levels": [7, 8, 9, 10],
-        "sections": {
-            7: ["Faith", "Charity"],
-            8: ["Hope", "Patience"],
-            9: ["Love", "Kindness"],
-            10: ["Joy"],
-        },
-        "subjects": SUBJECT_PLAN,
-        "roster": (14, 20),
-        "timetable_sections": 3,
-    },
-    {
-        "school": {
-            "name": "Mabini National High School",
-            "short_name": "MNHS",
-            "school_type": TYPE_PUBLIC,
-            "address": "Mabini Extension, Barangay Carmen",
-            "city": "Cagayan de Oro",
-            "province": "Misamis Oriental",
-            "region": "Region X (Northern Mindanao)",
-            "contact_number": "(088) 858 7731",
-            "contact_email": "mabini.nhs@deped.gov.ph",
-            # No booklets here. The unit labels are deliberately left at their
-            # model defaults: an unused label that says "Module" is honest,
-            # whereas copying "PACE" across would put a word on the screen that
-            # this school has never used.
-            "tracks_units": False,
-            "passing_mark": 75.0,
-        },
-        "admin": {
-            "email": "principal@mabini.edu.ph", "first": "Rodolfo", "last": "Bagamasbad",
-            "contact": "0918 442 0190", "department": "Office of the Principal",
-        },
-        "teachers": [
-            {"email": "tdelacruz@mabini.edu.ph", "first": "Teresita", "last": "Dela Cruz",
-             "contact": "0918 442 0191", "department": "Junior High School"},
-            {"email": "mbaluyot@mabini.edu.ph", "first": "Melchor", "last": "Baluyot",
-             "contact": "0918 442 0192", "department": "Junior High School"},
-        ],
-        # Deliberately about half of the first school: the point of the second
-        # tenant is that the scoping holds, not that it is large, and a seed
-        # that takes twice as long to run is a seed people stop running.
-        "levels": [7, 8, 9],
-        "sections": {
-            7: ["Narra"],
-            8: ["Molave"],
-            9: ["Acacia"],
-        },
-        "subjects": DEPED_SUBJECT_PLAN,
-        "roster": (10, 14),
-        "timetable_sections": 2,
-    },
-]
-
-
-def assessment_record(profile: str) -> dict:
-    """Invent a DepEd class record that matches a demo student's profile.
-
-    These are the nine inputs the risk model reads. They are made up — these
-    are demo schools with invented students, not real school data — but they
-    are made up *coherently*: a struggling learner gets absences, low
-    percentage scores and unsubmitted items together, so the model's output on
-    the demo is interpretable rather than random.
-
-    One row in eight is left partly blank on purpose, so the "scored with
-    partial data" state that a real half-finished quarter produces is visible
-    in the demo instead of only in production.
-    """
-    if profile == "strong":
-        absences = random.randint(0, 1)
-        ww = round(random.uniform(90, 99), 1)
-        pt = round(random.uniform(90, 100), 1)
-        missed_ww, missed_pt = 0, 0
-    elif profile == "steady":
-        absences = random.randint(0, 2)
-        ww = round(random.uniform(80, 92), 1)
-        pt = round(random.uniform(82, 94), 1)
-        missed_ww, missed_pt = random.randint(0, 1), 0
-    elif profile == "slipping":
-        absences = random.randint(2, 4)
-        ww = round(random.uniform(70, 83), 1)
-        pt = round(random.uniform(70, 85), 1)
-        missed_ww, missed_pt = random.randint(1, 3), random.randint(0, 2)
-    else:  # struggling
-        absences = random.randint(4, 9)
-        ww = round(random.uniform(48, 72), 1)
-        pt = round(random.uniform(45, 70), 1)
-        missed_ww, missed_pt = random.randint(3, 6), random.randint(2, 5)
-
-    record = {
-        "absences": absences,
-        "ww_percent": ww,
-        "ww_total_raw": round(ww * 0.6, 1),   # a 60-point Written Work total
-        "pt_percent": pt,
-        "pt_total_raw": round(pt * 0.5, 1),   # a 50-point Performance Task total
-        "missed_ww_items": missed_ww,
-        "missed_pt_items": missed_pt,
-        "extracurricular_count": random.randint(0, 3),
-    }
-
-    if random.random() < 0.125:
-        for key in ("pt_percent", "pt_total_raw", "missed_pt_items"):
-            record[key] = None
-
-    return record
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def make_staff(school_id, email, first, last, role, contact, department,
-               approved=True, employee_no=None):
-    """One school's staff account.
-
-    ``school_id`` is first and required because it is the field that decides
-    what this person can ever see — forgetting it is the one mistake in this
-    script that would quietly break tenant isolation, so it cannot be omitted.
-    """
-    return Staff(
-        school_id=school_id,
-        email=email,
-        password_hash=get_password_hash(PASSWORD),
-        first_name=first,
-        last_name=last,
-        contact_number=contact,
-        role=role,
-        employee_no=employee_no,
-        department=department,
-        account_status=STATUS_APPROVED if approved else STATUS_PENDING,
-        is_approved=approved,
-        is_active=True,
-        approved_at=_now() if approved else None,
-    )
+# ── Guards ───────────────────────────────────────────────────────────────────
+RESERVED_TLDS = {"local", "localhost", "example", "invalid", "test"}
 
 
 def check_signinable(email: str) -> str:
     """Refuse an address the API's own sign-in validation would reject.
 
-    The API validates the email field on sign-in with pydantic's EmailStr,
-    which rejects reserved domains such as `.local`, `.test` and `.invalid`.
-    Nothing stops this script writing such an address straight into the
-    database, so without this check the script can cheerfully create an account
-    that is impossible to sign in to — and the failure surfaces much later, as
-    a validation error on the login screen that looks like a bug in the form.
-
-    Better to fail here, where the cause is obvious.
+    Catching it here means a bad address fails while the account is being
+    created, rather than becoming an account nobody can ever sign in to.
+    `example.com` is fine — it is the reserved *domain* example.com, not the
+    reserved top-level domain `.example`.
     """
-    def refuse(reason: str):
+    if "@" not in email:
+        raise SystemExit(f"'{email}' is not an email address.")
+    domain = email.rsplit("@", 1)[1].lower().strip(".")
+    tld = domain.rsplit(".", 1)[-1] if "." in domain else domain
+    if tld in RESERVED_TLDS:
         raise SystemExit(
-            f"\n'{email}' cannot be used as a sign-in address.\n"
-            f"  {reason}\n"
-            "  The sign-in form applies the same rule, so this account would be\n"
-            "  created and then be impossible to sign in to. Use a real domain,\n"
-            "  or example.com for a demo account.\n"
+            f"'{email}' uses the reserved top-level domain '.{tld}', which the "
+            f"API refuses at sign-in. Use a real domain, or "
+            f"{SUPERADMIN_EMAIL}."
         )
-
-    # Checked directly, not only through email-validator, so the guard still
-    # works when this script runs somewhere that package is not installed —
-    # which is precisely when a silent bad account would go unnoticed.
-    # RFC 2606 and RFC 6761 reserve these; no mail is deliverable to any of them.
-    reserved = ("local", "localhost", "test", "invalid", "example", "internal",
-                "onion", "arpa")
-    domain = email.rpartition("@")[2].lower().strip(".")
-    if not domain or "." not in domain and domain not in ("",):
-        if not domain:
-            refuse("There is no domain after the @ sign.")
-    tld = domain.rpartition(".")[2] if "." in domain else domain
-    if tld in reserved or domain in reserved:
-        refuse(f"'.{tld}' is a reserved domain and cannot receive mail.")
-
-    try:
-        from email_validator import EmailNotValidError, validate_email
-    except ImportError:  # pragma: no cover
-        return email
-    try:
-        validate_email(email, check_deliverability=False)
-    except EmailNotValidError as exc:
-        refuse(str(exc))
     return email
 
 
@@ -376,428 +165,282 @@ def make_super_admin(email: str, password: str) -> Staff:
     )
 
 
-async def build_school(db, plan: dict, approved_by) -> dict:
-    """Create one school and a full year of its work.
+def make_staff(school_id, email, first, last, role, contact, department, employee_no):
+    """One school's staff account.
 
-    Called once per school. Every row written here takes its ``school_id`` from
-    the school created at the top — nothing is derived from "the only school in
-    the database", because after this script runs there is no such thing.
-
-    Returns a small summary for the printed report at the end.
+    ``school_id`` is first and required because it is the field that decides
+    what this person can ever see — omitting it is the one mistake in this
+    script that would quietly break tenant isolation.
     """
+    return Staff(
+        school_id=school_id,
+        email=email,
+        password_hash=get_password_hash(PASSWORD),
+        first_name=first,
+        last_name=last,
+        contact_number=contact,
+        role=role,
+        employee_no=employee_no,
+        department=department,
+        account_status=STATUS_APPROVED,
+        is_approved=True,
+        is_active=True,
+        approved_at=_now(),
+    )
+
+
+# ── The demonstration school ─────────────────────────────────────────────────
+async def build_demo(db, operator_id) -> dict:
+    """One school, two teachers, ten learners, two subjects."""
     school = School(
+        name=DEMO_SCHOOL_NAME,
+        short_name="LNHS",
+        school_type=TYPE_PUBLIC,
+        address="Looc, Barangay Looc",
+        city="Cagayan de Oro",
+        province="Misamis Oriental",
+        region="Region X (Northern Mindanao)",
+        contact_number="(088) 855 0199",
+        contact_email="office@lnhs.deped.gov.ph",
+        # A DepEd school: no PACE booklets, so the unit screens stay hidden
+        # and the class record is the only place marks are entered.
+        tracks_units=False,
+        passing_mark=75.0,
+        grading_periods=3,
         status=SCHOOL_APPROVED,
         approved_at=_now(),
-        # Recording which operator approved the school makes the approval chain
-        # visible in the demo data rather than only in the docstrings.
-        approved_by=approved_by,
-        **plan["school"],
+        approved_by=operator_id,
     )
     db.add(school)
-    # Flushed on its own first: every insert below needs the generated id.
-    await db.flush()
-    school_id = school.school_id
+    await db.flush()                      # the generated id is needed below
+    sid = school.school_id
 
-    # ── Staff ────────────────────────────────────────────────────────────────
-    # Employee numbers restart at EMP-0001 for each school, which the schema
-    # allows (they are unique per school, not globally) and which is what a
-    # school actually does.
-    admin = make_staff(
-        school_id, role=ROLE_ADMIN, employee_no="EMP-0001", **plan["admin"]
+    principal = make_staff(
+        sid, "principal@lnhs.deped.gov.ph", "Remedios", "Alcantara",
+        ROLE_ADMIN, "0917 300 1001", "School Administration", "EMP-0001",
     )
     teachers = [
-        make_staff(school_id, role=ROLE_TEACHER, employee_no=f"EMP-{number:04d}",
-                   **teacher)
-        for number, teacher in enumerate(plan["teachers"], start=2)
+        make_staff(sid, "teacher1@lnhs.deped.gov.ph", "Marivic", "Bermudez",
+                   ROLE_TEACHER, "0917 300 1002", "Filipino", "EMP-0002"),
+        make_staff(sid, "teacher2@lnhs.deped.gov.ph", "Dennis", "Carcedo",
+                   ROLE_TEACHER, "0917 300 1003", "Araling Panlipunan", "EMP-0003"),
     ]
-    pending = (
-        make_staff(school_id, role=ROLE_TEACHER, approved=False, **plan["pending"])
-        if plan.get("pending")
-        else None
-    )
-    accounts = [admin, *teachers]
-    if pending:
-        accounts.append(pending)
-    db.add_all(accounts)
+    db.add_all([principal, *teachers])
     await db.flush()
 
-    # ── School year ──────────────────────────────────────────────────────────
-    # Both schools run the same calendar, and "2026-2027" is unique per school
-    # rather than globally, so each gets its own row.
     year = SchoolYear(
-        school_id=school_id,
-        year="2026-2027",
-        start_date=date(2026, 6, 1),
-        end_date=date(2027, 3, 31),
+        school_id=sid, year="2026-2027",
+        start_date=date(2026, 6, 1), end_date=date(2027, 3, 31),
         is_current=True,
     )
-    previous = SchoolYear(
-        school_id=school_id,
-        year="2025-2026",
-        start_date=date(2025, 6, 2),
-        end_date=date(2026, 3, 31),
-        is_current=False,
+    db.add(year)
+    await db.flush()
+
+    level = GradeLevel(school_id=sid, level="8", name="Grade 8", sort_order=1)
+    db.add(level)
+    await db.flush()
+
+    section = Section(
+        school_id=sid,
+        grade_level_id=level.grade_level_id,
+        section_code="G8-CAT",
+        name="Grade 8 - Cattleya",
+        room="Room 801",
+        capacity=40,
     )
-    db.add_all([year, previous])
+    db.add(section)
     await db.flush()
 
-    # ── Grade levels, sections, subjects ─────────────────────────────────────
-    levels = []
-    for index, number in enumerate(plan["levels"], start=1):
-        levels.append(
-            GradeLevel(
-                school_id=school_id,
-                level=str(number),
-                name=f"Grade {number}",
-                sort_order=index,
-            )
-        )
-    db.add_all(levels)
-    await db.flush()
-
-    section_names = plan["sections"]
-    sections = []
-    for level in levels:
-        for name in section_names[int(level.level)]:
-            sections.append(
-                Section(
-                    school_id=school_id,
-                    grade_level_id=level.grade_level_id,
-                    section_code=f"G{level.level}-{name[:3].upper()}",
-                    name=f"Grade {level.level} - {name}",
-                    room=f"Room {level.level}0{len(sections) % 3 + 1}",
-                    capacity=40,
-                )
-            )
-    db.add_all(sections)
-    await db.flush()
-
-    subjects = []
-    for level in levels:
-        for name, code, total in plan["subjects"]:
-            subjects.append(
-                Subject(
-                    school_id=school_id,
-                    grade_level_id=level.grade_level_id,
-                    subject_name=name,
-                    subject_code=f"{code}{level.level}",
-                    total_paces=total,
-                    is_active=True,
-                )
-            )
+    subjects = [
+        Subject(school_id=sid, grade_level_id=level.grade_level_id,
+                subject_name=name, subject_code=f"{code}8",
+                total_paces=0, is_active=True)
+        for name, code, _template, _shift in SUBJECTS
+    ]
     db.add_all(subjects)
     await db.flush()
+    template_of = {name: tpl for name, _code, tpl, _s in SUBJECTS}
+    shift_of = {name: shift for name, _code, _tpl, shift in SUBJECTS}
 
-    # ── Teacher assignments (one adviser per section) ────────────────────────
-    assignments = []
-    for index, section in enumerate(sections):
-        adviser = teachers[index % len(teachers)]
-        assignments.append(
-            TeacherAssignment(
-                school_id=school_id,
-                teacher_id=adviser.id,
+    # The core subjects belong to the first teacher, MAPEH to the second;
+    # the first is also the section's adviser.
+    db.add_all([
+        TeacherAssignment(school_id=sid, teacher_id=teachers[0].id,
+                          section_id=section.section_id, is_adviser=True),
+        TeacherAssignment(school_id=sid, teacher_id=teachers[1].id,
+                          section_id=section.section_id, is_adviser=False),
+    ])
+
+    # One class-record header per subject per term. Without it there is no
+    # denominator, so every percentage would stay blank.
+    for subject in subjects:
+        tpl = template_of[subject.subject_name]
+        profile = grading.TEMPLATES[tpl]
+        for period in grading.TERMS:
+            db.add(ClassRecordSetup(
+                school_id=sid,
                 section_id=section.section_id,
-                is_adviser=True,
-            )
+                subject_id=subject.subject_id,
+                grading_period=period,
+                template=tpl,
+                ww_highest=json.dumps(WW_HIGHEST),
+                pt_highest=json.dumps(PT_HIGHEST),
+                exam_highest=json.dumps(EXAM_HIGHEST),
+                ww_weight=profile["ww_weight"],
+                pt_weight=profile["pt_weight"],
+                ex_weight=profile["ex_weight"],
+                exam_subweights=json.dumps(list(grading.EXAM_SUBWEIGHTS)),
+                updated_by=principal.id,
+            ))
+
+    at_risk = 0
+    for index, (first, last, sex, ww, pt, exam) in enumerate(LEARNERS, start=1):
+        student = Student(
+            school_id=sid,
+            first_name=first,
+            last_name=last,
+            gender=sex,
+            birth_date=date(2013, (index % 12) + 1, (index % 28) + 1),
+            address=f"Purok {index}, Barangay Looc, Cagayan de Oro",
+            guardian_first_name="Maria" if index % 2 else "Roberto",
+            guardian_last_name=last,
+            guardian_contact=f"0917 300 2{index:03d}",
+            guardian_relationship="Parent",
+            created_by=principal.id,
         )
-    db.add_all(assignments)
-    await db.flush()
+        db.add(student)
+        await db.flush()
+        student.login_id = f"S{student.student_id:04d}"
 
-    # ── Timetable for the first few sections ─────────────────────────────────
-    schedules = []
-    for section in sections[:plan["timetable_sections"]]:
-        level_subjects = [
-            s for s in subjects if s.grade_level_id == section.grade_level_id
-        ]
-        adviser = next(a for a in assignments if a.section_id == section.section_id)
-        for day_index, day in enumerate(DAYS):
-            for period_index, (start, end) in enumerate(PERIODS[:4]):
-                subject = level_subjects[
-                    (day_index + period_index) % len(level_subjects)
-                ]
-                schedules.append(
-                    ClassSchedule(
-                        school_id=school_id,
-                        school_year_id=year.school_year_id,
-                        section_id=section.section_id,
-                        subject_id=subject.subject_id,
-                        teacher_id=adviser.teacher_id,
-                        day_of_week=day,
-                        start_time=start,
-                        end_time=end,
-                        room=section.room or "TBA",
-                    )
-                )
-    db.add_all(schedules)
-
-    # ── Students, enrolments, PACE records ───────────────────────────────────
-    # Roughly 14 weeks into a 40-week year, so ~4 of 12 booklets expected.
-    weeks_elapsed = 14
-    total_weeks = 36
-
-    adviser_names = {
-        a.section_id: next(t for t in teachers if t.id == a.teacher_id).full_name
-        for a in assignments
-    }
-
-    student_count = 0
-    warning_count = 0
-    for section in sections:
-        level = next(
-            l for l in levels if l.grade_level_id == section.grade_level_id
+        enrollment = StudentEnrollment(
+            school_id=sid,
+            student_id=student.student_id,
+            grade_level_id=level.grade_level_id,
+            section_id=section.section_id,
+            school_year_id=year.school_year_id,
+            enrolled_by=principal.id,
+            enrollment_date=date(2026, 6, 3),
+            is_active=True,
         )
-        level_subjects = [
-            s for s in subjects if s.grade_level_id == section.grade_level_id
-        ]
-        roster_size = random.randint(*plan["roster"])
-
-        for _ in range(roster_size):
-            gender = random.choice(["Male", "Female"])
-            first = random.choice(
-                FIRST_NAMES_M if gender == "Male" else FIRST_NAMES_F
-            )
-            last = random.choice(LAST_NAMES)
-            guardian_first = random.choice(FIRST_NAMES_M + FIRST_NAMES_F)
-            age = 12 + int(level.level) - 7
-
-            student = Student(
-                school_id=school_id,
-                first_name=first,
-                last_name=last,
-                gender=gender,
-                birth_date=date(2026 - age, random.randint(1, 12), random.randint(1, 28)),
-                address=f"{random.randint(1, 240)} {random.choice(STREETS)}, "
-                        f"Brgy. {random.choice(BARANGAYS)}",
-                guardian_first_name=guardian_first,
-                guardian_last_name=last,
-                guardian_contact=f"09{random.randint(10, 99)} {random.randint(100, 999)} {random.randint(1000, 9999)}",
-                guardian_relationship=random.choice(["Parent", "Parent", "Guardian"]),
-                created_by=admin.id,
-            )
-            db.add(student)
-            await db.flush()
-            student.login_id = f"S{student.student_id:04d}"
-            student_count += 1
-
-            enrollment = StudentEnrollment(
-                school_id=school_id,
-                student_id=student.student_id,
-                grade_level_id=section.grade_level_id,
-                section_id=section.section_id,
-                school_year_id=year.school_year_id,
-                enrolled_by=admin.id,
-                enrollment_date=date(2026, 6, 3),
-                is_active=True,
-            )
-            db.add(enrollment)
-            await db.flush()
-
-            # A few learners are deliberately struggling so the early-warning
-            # screens have something real to show.
-            profile = random.choices(
-                ["strong", "steady", "slipping", "struggling"],
-                weights=[25, 45, 20, 10],
-            )[0]
-
-            for subject in level_subjects:
-                expected = max(
-                    1, round(subject.total_paces * weeks_elapsed / total_weeks)
-                )
-                if profile == "strong":
-                    current = min(subject.total_paces, expected + random.randint(0, 2))
-                    attendance = round(random.uniform(96, 100), 1)
-                elif profile == "steady":
-                    current = max(0, expected - random.randint(0, 1))
-                    attendance = round(random.uniform(92, 99), 1)
-                elif profile == "slipping":
-                    current = max(0, expected - random.randint(1, 3))
-                    attendance = round(random.uniform(84, 94), 1)
-                else:
-                    current = max(0, expected - random.randint(3, 5))
-                    attendance = round(random.uniform(70, 86), 1)
-
-                evaluation = risk.evaluate(
-                    current, expected, subject.total_paces, attendance
-                )
-                # A StudentPace row is written for both schools even though only
-                # one of them counts booklets: the row is also where the DepEd
-                # class record lives, and that is what the risk model reads. A
-                # school with `tracks_units = False` simply never shows the
-                # unit columns — the screens hide them, the data stays uniform.
-                pace = StudentPace(
-                    school_id=school_id,
-                    student_id=student.student_id,
-                    enrollment_id=enrollment.enrollment_id,
-                    subject_id=subject.subject_id,
-                    subject=subject.subject_name,
-                    current_pace=current,
-                    expected_pace=expected,
-                    total_paces=subject.total_paces,
-                    pace_percent=evaluation["pace_percent"],
-                    paces_behind=evaluation["paces_behind"],
-                    attendance=attendance,
-                    average_score=round(random.uniform(74, 97), 1),
-                    recorded_by=admin.id,
-                    **assessment_record(profile),
-                )
-                db.add(pace)
-
-                if evaluation["risk_level"] != "low":
-                    warning_count += 1
-                    db.add(
-                        EarlyWarning(
-                            school_id=school_id,
-                            student_id=student.student_id,
-                            enrollment_id=enrollment.enrollment_id,
-                            subject=subject.subject_name,
-                            teacher=adviser_names.get(section.section_id, "Unassigned"),
-                            risk_level=evaluation["risk_level"],
-                            risk_score=evaluation["risk_score"],
-                            paces_behind=evaluation["paces_behind"],
-                            pace_percent=evaluation["pace_percent"],
-                            attendance=attendance,
-                            status=evaluation["status"],
-                            trend=random.choice(
-                                ["declining", "stable", "stable", "improving"]
-                            ),
-                            last_activity=random.choice(
-                                ["Today", "Yesterday", "2 days ago", "This week"]
-                            ),
-                            intervention=evaluation["intervention"],
-                        )
-                    )
-
-    return {
-        "school": school,
-        "admin": admin,
-        "teachers": teachers,
-        "pending": pending,
-        "sections": len(sections),
-        "subjects": len(subjects),
-        "students": student_count,
-        "warnings": warning_count,
-    }
-
-
-async def seed() -> None:
-    async with AsyncSessionLocal() as db:
-        existing = (await db.execute(select(func.count()).select_from(Staff))).scalar_one()
-        if existing:
-            print(f"Database already has {existing} staff account(s) — nothing to do.")
-            print("Run `python seed.py --reset` to rebuild the demo data.")
-            return
-
-        # ── The operator account ─────────────────────────────────────────────
-        # Created before the schools because it is the account that approves
-        # them: a full seed should leave a demo that is usable immediately,
-        # including the one screen only this role can open.
-        superadmin = make_super_admin(SUPERADMIN_EMAIL, PASSWORD)
-        db.add(superadmin)
+        db.add(enrollment)
         await db.flush()
 
-        results = [
-            await build_school(db, plan, approved_by=superadmin.id)
-            for plan in SCHOOL_PLANS
-        ]
+        for subject in subjects:
+            tpl = template_of[subject.subject_name]
+            profile = grading.TEMPLATES[tpl]
+            shift = shift_of[subject.subject_name]
+            bump = lambda values: [None if v is None else max(0, v + shift)
+                                   for v in values]
+            scores = {
+                "ww_scores": bump(ww),
+                "pt_scores": bump(pt),
+                "exam_scores": bump(exam),
+            }
 
-        await db.commit()
-
-        print("Demo data created.")
-        print()
-        print("System operator (manages schools and accounts only):")
-        print(f"  {SUPERADMIN_EMAIL}  / {PASSWORD}")
-        print("  Belongs to no school, so it cannot open a student record at all —")
-        print("  its school_id is NULL and every student query is scoped by school.")
-        print("  Use it to review, approve or deactivate the two schools below.")
-
-        for index, result in enumerate(results, start=1):
-            school = result["school"]
-            units = (
-                f"tracks {school.unit_label_plural} — "
-                f"{school.default_units_per_subject} per subject"
-                if school.tracks_units
-                else "no unit tracking (DepEd class record only)"
+            # Computed by the same module the API uses, so the seeded grades
+            # are identical to the ones a teacher would get by typing these
+            # marks in by hand.
+            derived = grading.compute(
+                **scores,
+                ww_highest=WW_HIGHEST,
+                pt_highest=PT_HIGHEST,
+                exam_highest=EXAM_HIGHEST,
+                template=tpl,
+                ww_weight=profile["ww_weight"],
+                pt_weight=profile["pt_weight"],
+                ex_weight=profile["ex_weight"],
             )
-            print()
-            print(f"School {index}: {school.name}")
-            print(f"  {school.school_type}, {school.city} · {school.status}")
-            print(f"  {units} · passing mark {school.passing_mark:g}")
-            print(
-                f"  sections {result['sections']} · subjects {result['subjects']} · "
-                f"students {result['students']} · warnings {result['warnings']}"
-            )
-            print(f"  {result['admin'].email:<26} / {PASSWORD}   (principal)")
-            for teacher in result["teachers"]:
-                print(f"  {teacher.email:<26} / {PASSWORD}   (teacher)")
-            if result["pending"]:
-                print(
-                    f"  {result['pending'].email:<26} / {PASSWORD}   "
-                    f"(teacher, awaiting the principal's approval)"
-                )
+            if derived["transmuted_grade"] is not None and derived["transmuted_grade"] < 80:
+                at_risk += 1
 
-        print()
-        print("Neither school can see the other's students, sections or warnings:")
-        print("every row above carries its own school_id and every query is")
-        print("filtered by the signed-in account's school.")
-        print()
-        print("First sign-in on a new browser asks for a 6-digit code — it is")
-        print("printed in this server's console and, while DEBUG_OTP is on, shown")
-        print("on the verification screen itself.")
+            db.add(StudentPace(
+                school_id=sid,
+                student_id=student.student_id,
+                enrollment_id=enrollment.enrollment_id,
+                subject_id=subject.subject_id,
+                subject=subject.subject_name,
+                # This school counts no booklets; the row exists because it
+                # is also where the class record lives.
+                current_pace=0, expected_pace=0, total_paces=0,
+                pace_percent=0.0, paces_behind=0, attendance=100.0,
+                average_score=derived["transmuted_grade"] or 0.0,
+                recorded_by=teachers[0 if tpl == grading.CORE else 1].id,
+                ww_scores=json.dumps(scores["ww_scores"]),
+                pt_scores=json.dumps(scores["pt_scores"]),
+                exam_scores=json.dumps(scores["exam_scores"]),
+                exam_parts=json.dumps(derived["exam_parts"]),
+                record_complete=bool(derived["complete"]),
+                **{k: derived[k] for k in (
+                    "ww_total_raw", "ww_percent", "ww_weighted",
+                    "pt_total_raw", "pt_percent", "pt_weighted",
+                    "exam_percent", "exam_weighted",
+                    "initial_grade", "transmuted_grade", "descriptor")},
+            ))
+
+    return {
+        "school": school.name,
+        "learners": len(LEARNERS),
+        "records": len(LEARNERS) * len(subjects),
+        "subjects": ", ".join(
+            f"{name} ({grading.TEMPLATES[tpl]['short']})"
+            for name, _code, tpl, _s in SUBJECTS),
+        "at_risk": at_risk,
+        "principal": principal.email,
+        "teachers": [t.email for t in teachers],
+    }
 
 
-async def create_super_admin(email: str, password: str | None) -> None:
-    """Add one system-operator account to an existing database.
-
-    Separate from seeding on purpose: this is the command a real deployment
-    runs once, against a database that already holds real schools, so it must
-    never touch anything else. It refuses to overwrite an existing account —
-    quietly resetting a live operator's password from a seed script is not a
-    behaviour anyone wants to discover afterwards.
-    """
-    # Sign-in lower-cases the address before looking it up, so an account
-    # stored with capitals could never be signed into. The same reasoning
-    # applies to the domain, which is why it is validated before anything is
-    # written — see check_signinable.
-    email = check_signinable(email.strip().lower())
-    generated = password is None
-    password = password or secrets.token_urlsafe(12)
-
+async def demo() -> None:
     async with AsyncSessionLocal() as db:
         existing = (
-            await db.execute(select(Staff).where(Staff.email == email))
+            await db.execute(select(School).where(School.name == DEMO_SCHOOL_NAME))
         ).scalar_one_or_none()
-        if existing:
-            print(f"An account already exists for {email} (role: {existing.role}).")
-            print("Nothing was changed. Use a different address, or reset the")
-            print("password through the application rather than from here.")
+        if existing is not None:
+            print(f"{DEMO_SCHOOL_NAME} is already in the database — nothing to do.")
+            print("Run `python seed.py --purge-demo` first to rebuild it.")
             return
 
-        account = make_super_admin(email, password)
-        db.add(account)
+        operator = (
+            await db.execute(select(Staff).where(Staff.role == ROLE_SUPER_ADMIN))
+        ).scalars().first()
+        if operator is None:
+            operator = make_super_admin(SUPERADMIN_EMAIL, PASSWORD)
+            db.add(operator)
+            await db.flush()
+            made_operator = True
+        else:
+            made_operator = False
+
+        summary = await build_demo(db, operator.id)
         await db.commit()
 
-        print(f"Super admin created: {email}")
-        print(f"  password : {password}")
-        if generated:
-            print("  This password was generated now and is NOT stored anywhere in")
-            print("  readable form — it will not be shown again. Copy it before you")
-            print("  close this terminal.")
-        print("  The account manages schools and accounts only; it belongs to no")
-        print("  school and cannot open student records.")
+        print("Demonstration data created. Every learner in it is invented.")
+        print()
+        print(f"  School     {summary['school']} (public, no unit tracking)")
+        print(f"  Learners   {summary['learners']} in Grade 8 - Cattleya")
+        print(f"  Subjects   {summary['subjects']}")
+        print(f"  Records    {summary['records']} class records, first term "
+              f"({summary['at_risk']} below a term grade of 80)")
+        print()
+        print(f"  Password for every account below: {PASSWORD}")
+        if made_operator:
+            print(f"  Operator   {SUPERADMIN_EMAIL}")
+            print("             manages schools and accounts; cannot open a "
+                  "student record anywhere")
+        print(f"  Principal  {summary['principal']}")
+        for email in summary["teachers"]:
+            print(f"  Teacher    {email}")
 
 
+# ── Scoring ──────────────────────────────────────────────────────────────────
 async def score() -> None:
-    """Ask the real AI service to score every seeded record.
+    """Ask the real AI service to score every stored class record.
 
-    The predictions are genuine model output; only the inputs are invented. No
-    prediction is ever written by hand here — if the service cannot be reached
-    the rows are marked ``source="fallback"`` exactly as they would be in
-    production, and this prints how many, so a demo is never quietly showing
-    rule-based numbers under an AI label.
-
-    It scores every school's records in one pass, which is right for an
-    operator-side batch job: the predictions it writes are scoped per row, not
-    per run.
+    The predictions are genuine model output; only the inputs are invented.
+    Nothing is written by hand — if the service cannot be reached the rows are
+    marked ``source="fallback"`` exactly as they would be in production, and
+    this prints how many, so a demonstration never quietly shows rule-based
+    numbers under a model label.
     """
     from app.models.students import AIRiskPrediction
     from app.services import ml_client
@@ -816,79 +459,82 @@ async def score() -> None:
             e.enrollment_id: e
             for e in (await db.execute(select(StudentEnrollment))).scalars()
         }
-
         pairs = [
-            (
-                row,
-                levels.get(
-                    getattr(enrollments.get(row.enrollment_id), "grade_level_id", None)
-                ),
-            )
+            (row, levels.get(getattr(enrollments.get(row.enrollment_id),
+                                     "grade_level_id", None)))
             for row in rows
         ]
 
         fallback, versions, reason = 0, set(), None
-        batch = 500
-        for start in range(0, len(pairs), batch):
-            part = pairs[start:start + batch]
-            results = await ml_client.predict_many(part)
-            for (row, _label), result in zip(part, results):
+        for start in range(0, len(pairs), 500):
+            part = pairs[start:start + 500]
+            for (row, _label), result in zip(part, await ml_client.predict_many(part)):
                 if result.source == "fallback":
                     fallback += 1
                     reason = reason or result.error
                 else:
                     versions.add(result.model_version)
-                db.add(
-                    AIRiskPrediction(
-                        # Taken from the PACE row rather than from any notion of
-                        # "the current school": a prediction belongs to the same
-                        # tenant as the record it was made from.
-                        school_id=row.school_id,
-                        student_id=row.student_id,
-                        enrollment_id=row.enrollment_id,
-                        pace_id=row.pace_id,
-                        subject=row.subject,
-                        **result.as_columns(),
-                    )
-                )
+                db.add(AIRiskPrediction(
+                    # Taken from the record rather than from any notion of
+                    # "the current school": a prediction belongs to the same
+                    # tenant as the record it was made from.
+                    school_id=row.school_id,
+                    student_id=row.student_id,
+                    enrollment_id=row.enrollment_id,
+                    pace_id=row.pace_id,
+                    subject=row.subject,
+                    **result.as_columns(),
+                ))
         await db.commit()
 
-        print(f"Scored {len(pairs)} PACE record(s).")
+        print(f"Scored {len(pairs)} class record(s).")
         if fallback:
-            print(
-                f"  WARNING: {fallback} of them fell back to the PACE rules rather "
-                f"than the model."
-            )
+            print(f"  WARNING: {fallback} fell back to the rule rather than the model.")
             print(f"    service : {ml_client.settings.AI_SERVICE_URL}")
-            print(f"    token   : {'set' if ml_client.settings.AI_SERVICE_TOKEN else 'NOT SET'}")
+            print(f"    token   : "
+                  f"{'set' if ml_client.settings.AI_SERVICE_TOKEN else 'NOT SET'}")
             print(f"    reason  : {reason}")
-            print("  They are labelled 'rule-based' in the UI, not passed off as model")
-            print("  output. Fix the cause above, then either re-run this with")
-            print("  --score-only or press 'Re-score records' on the AI Risk Model page.")
+            print("  They are labelled rule-based in the interface, not passed off")
+            print("  as model output. Fix the cause above, then re-run with")
+            print("  --score-only or press 'Re-score records' on the AI Risk page.")
         else:
             print(f"  All scored by the model: {', '.join(sorted(versions))}")
 
 
+# ── Emptying ─────────────────────────────────────────────────────────────────
 async def reset() -> None:
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     print("All tables dropped.")
 
 
-# The two schools the demonstration seed creates. Nothing else is matched, so
-# a purge cannot touch a school a principal registered. Read from the plans
-# themselves rather than written out again, so renaming a demonstration
-# school cannot leave a purge quietly unable to find it.
-DEMO_SCHOOL_NAMES = [plan["school"]["name"] for plan in SCHOOL_PLANS]
+async def create_super_admin(email: str, password: str | None) -> None:
+    password = password or (secrets.token_urlsafe(12) + "A1!")
+    async with AsyncSessionLocal() as db:
+        existing = (
+            await db.execute(select(Staff).where(Staff.email == email))
+        ).scalar_one_or_none()
+        if existing is not None:
+            print(f"An account already exists for {email} — nothing created.")
+            return
+        db.add(make_super_admin(email, password))
+        await db.commit()
+    print(f"System operator created: {email}")
+    print(f"Password: {password}")
+    print("Save it now. It is not stored anywhere in readable form.")
 
 
 async def fresh_start(email: str, password: str | None) -> None:
     """Empty the database completely and leave one operator account behind.
 
     Every table is dropped and rebuilt, so no demonstration learner, class
-    record, prediction or school survives. The operator account is recreated
-    immediately afterwards because without it nobody can sign in to approve
-    the first real school.
+    record, prediction or school survives. The operator is recreated straight
+    afterwards because without it nobody can sign in to approve the first
+    real school.
+
+    This is also how to apply a schema change: ``create_all`` adds missing
+    tables but never adds a column to a table that already exists, so after
+    the model gains a column this is what puts it in the database.
     """
     import app.models  # noqa: F401  (registers every table before the drop)
 
@@ -902,146 +548,84 @@ async def fresh_start(email: str, password: str | None) -> None:
 
 
 async def purge_demo() -> None:
-    """Delete only the demonstration schools, leaving real ones alone.
+    """Delete the demonstration school, leaving any real one alone.
 
-    For a database that already holds a real school. Everything belonging to
-    a demonstration school goes with it — learners, enrolments, class
+    Everything belonging to it goes with it — learners, enrolments, class
     records, warnings, predictions — because every tenant table carries a
     school_id and the foreign keys cascade from the school row.
     """
-    from app.models.schools import School
-
     async with AsyncSessionLocal() as db:
         rows = (
-            await db.execute(
-                select(School).where(School.name.in_(DEMO_SCHOOL_NAMES))
-            )
+            await db.execute(select(School).where(School.name == DEMO_SCHOOL_NAME))
         ).scalars().all()
-
         if not rows:
-            print("No demonstration schools found — nothing to remove.")
+            print("No demonstration school found — nothing to remove.")
         for school in rows:
             print(f"Removing {school.name} (school_id={school.school_id}) "
-                  "and everything belonging to it…")
+                  f"and everything belonging to it…")
             await db.delete(school)
-
-        # Staff attached to no school are operator accounts and are kept; the
-        # demonstration teachers and principals went with their schools.
         await db.commit()
 
         remaining = (
             await db.execute(select(School.name).order_by(School.name))
         ).scalars().all()
-        print()
-        print(f"Schools remaining: {len(remaining)}")
+        print(f"\nSchools remaining: {len(remaining)}")
         for name in remaining:
             print(f"  - {name}")
 
 
+# ── Command line ─────────────────────────────────────────────────────────────
 async def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Database setup for SmartPACE. Creating demonstration data is no "
-            "longer the default: it has to be asked for with --demo, so that "
-            "running this script against the live database cannot put "
-            "invented learners into it."
+            "Database setup for SmartPACE. Creating demonstration data is not "
+            "the default: it has to be asked for with --demo, so that running "
+            "this script against the live database cannot put invented "
+            "learners into it."
         )
     )
-    parser.add_argument(
-        "--demo",
-        action="store_true",
-        help="create the two demonstration schools and their invented "
-             "learners (development and screenshots only)",
-    )
-    parser.add_argument(
-        "--fresh-start",
-        action="store_true",
-        help="empty the database completely and leave one operator account; "
-             "this is how to clear every trace of the demonstration data",
-    )
-    parser.add_argument(
-        "--purge-demo",
-        action="store_true",
-        help="delete only the two demonstration schools, leaving any real "
-             "school and its records untouched",
-    )
-    parser.add_argument("--reset", action="store_true", help="drop all tables first")
-    parser.add_argument(
-        "--score",
-        action="store_true",
-        help="after seeding, ask the AI service to score every record",
-    )
-    parser.add_argument(
-        "--score-only",
-        action="store_true",
-        help="skip seeding and only re-score what is already in the database",
-    )
-    parser.add_argument(
-        "--create-superadmin",
-        metavar="EMAIL",
-        help="create a system-operator account for this address and exit, "
-             "seeding nothing",
-    )
-    parser.add_argument(
-        "--password",
-        help="password for --create-superadmin (a strong one is generated and "
-             "printed if omitted)",
-    )
+    parser.add_argument("--fresh-start", action="store_true",
+                        help="empty the database and leave one operator account; "
+                             "also how to apply a schema change")
+    parser.add_argument("--demo", action="store_true",
+                        help="add the demonstration school: 1 principal, "
+                             "2 teachers, 10 learners")
+    parser.add_argument("--purge-demo", action="store_true",
+                        help="remove the demonstration school, leaving real ones")
+    parser.add_argument("--score", action="store_true",
+                        help="after --demo, ask the model to score every record")
+    parser.add_argument("--score-only", action="store_true",
+                        help="skip seeding; re-score what is already stored")
+    parser.add_argument("--create-superadmin", metavar="EMAIL",
+                        help="create an operator account for this address and exit")
+    parser.add_argument("--password",
+                        help="password for the operator account (a strong one is "
+                             "generated and printed if omitted)")
     args = parser.parse_args()
 
-    # Checked before everything else: these are the commands run against a
-    # real database holding real schools, so none of them may drag seeding or
-    # scoring along behind it.
-    #
-    # --fresh-start comes first because it accepts --create-superadmin as the
-    # address for the account it leaves behind; tested the other way round,
-    # that combination would quietly create an account and never empty
-    # anything.
+    # --fresh-start is tested first because it accepts --create-superadmin as
+    # the address for the account it leaves behind; the other way round, that
+    # combination would create an account and never empty anything.
     if args.fresh_start:
         await fresh_start(args.create_superadmin or SUPERADMIN_EMAIL, args.password)
-        await async_engine.dispose()
-        return
-
-    if args.create_superadmin:
-        # Tables may not exist yet on a fresh deployment, and this creates only
-        # what is missing.
+    elif args.create_superadmin:
+        # Tables may not exist yet on a fresh deployment; this adds only what
+        # is missing and touches nothing that is already there.
         await init_models()
         await create_super_admin(args.create_superadmin, args.password)
-        await async_engine.dispose()
-        return
-
-    if args.purge_demo:
+    elif args.purge_demo:
         await purge_demo()
-        await async_engine.dispose()
-        return
-
-    if args.score_only:
+    elif args.score_only:
         await score()
-        await async_engine.dispose()
-        return
-
-    # Seeding is now opt-in. Running this script with no arguments used to
-    # fill the database with invented schools and learners, which is exactly
-    # how demonstration data ends up in a live deployment.
-    if not args.demo:
+    elif args.demo:
+        await init_models()
+        await demo()
+        if args.score:
+            await score()
+    else:
         parser.print_help()
-        print()
-        print("Nothing was changed. Pick one:")
-        print("  --fresh-start   empty the database, keep one operator account")
-        print("  --purge-demo    remove only the demonstration schools")
-        print("  --demo          create the demonstration data (development only)")
-        print("  --score-only    re-score the records already stored")
-        return
+        print("\nNothing was changed.")
 
-    if args.reset:
-        import app.models  # noqa: F401
-
-        await reset()
-
-    await init_models()
-    await seed()
-    if args.score:
-        await score()
     await async_engine.dispose()
 
 
