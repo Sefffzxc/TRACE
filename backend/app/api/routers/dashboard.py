@@ -18,11 +18,11 @@ from app.models.staff import (
     AuditLog,
     Staff,
 )
+from app.models.schools import School
 from app.models.students import EarlyWarning, Student, StudentEnrollment, StudentPace
 from app.schemas.students import DashboardStats
 from app.services import risk
-from app.services.enrichment import (Lookups, school_passing_mark,
-                                     sections_for_teacher)
+from app.services.enrichment import Lookups, sections_for_teacher
 
 router = APIRouter(tags=["Dashboard"])
 
@@ -42,6 +42,14 @@ ACTIVITY_LABELS = {
     "account_locked": "Account locked",
     "account_perm_lock": "Account permanently locked",
 }
+
+
+def _standing_summary(values: list[float], passing_mark: float) -> dict:
+    return {
+        "average": round(sum(values) / len(values), 1),
+        "below": sum(1 for v in values if v < passing_mark),
+        "students": len(values),
+    }
 
 
 def _relative(when: Optional[datetime]) -> str:
@@ -65,9 +73,10 @@ async def dashboard(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    # The bands follow the school's own passing mark, and every screen
-    # reads it from the same place.
-    passing_mark = await school_passing_mark(db, scope)
+    # The bands follow the school's own passing mark, and whether the school
+    # tracks units decides which half of the figures below the page draws.
+    school = await db.get(School, scope)
+    passing_mark = float(school.passing_mark) if school and school.passing_mark else 75.0
     lookups = await Lookups.load(db, school_id=scope)
     is_admin = current.role == ROLE_ADMIN
 
@@ -110,6 +119,11 @@ async def dashboard(
         warnings = [w for w in warnings if w.enrollment_id in enrollment_ids]
 
     stats = DashboardStats()
+    stats.passing_mark = passing_mark
+    if school is not None:
+        stats.tracks_units = bool(school.tracks_units)
+        stats.unit_label_plural = school.unit_label_plural or "Modules"
+        stats.grading_period_label = school.grading_period_label or "Quarter"
     stats.total_students = len(student_ids)
     stats.active_enrollments = len(enrollments)
     stats.total_sections = (
@@ -154,21 +168,20 @@ async def dashboard(
             )
         ).scalar_one()
 
+    evaluated = [(pace, risk.evaluate_row(pace, passing_mark)) for pace in paces]
+    graded = [(pace, ev["standing"]) for pace, ev in evaluated if ev["standing"] is not None]
+
     if paces:
         stats.average_pace = round(sum(p.pace_percent for p in paces) / len(paces), 1)
-        standings = [
-            risk.evaluate_row(p, passing_mark)["standing"]
-            for p in paces
-        ]
-        standings = [v for v in standings if v is not None]
-        if standings:
-            stats.average_standing = round(sum(standings) / len(standings), 1)
+    if graded:
+        stats.average_standing = round(sum(v for _, v in graded) / len(graded), 1)
 
     # ── Risk distribution, one entry per student (worst subject wins) ─────────
     per_student: dict[int, float] = {}
-    for pace in paces:
-        score = risk.evaluate_row(pace, passing_mark)["risk_score"]
-        per_student[pace.student_id] = max(per_student.get(pace.student_id, 0.0), score)
+    for pace, ev in evaluated:
+        per_student[pace.student_id] = max(
+            per_student.get(pace.student_id, 0.0), ev["risk_score"]
+        )
 
     buckets = {"critical": 0, "high": 0, "moderate": 0, "low": 0}
     for score in per_student.values():
@@ -233,6 +246,41 @@ async def dashboard(
         for name, rows in sorted(by_subject.items())
     ]
 
+    # ── The same three views, read on grades rather than completion ──────────
+    # For a school without units these replace the charts above. Standing is
+    # the term grade once a record is complete, the coursework banked before.
+    grade_by_section: dict[int, list[float]] = {}
+    grade_by_subject: dict[str, list[float]] = {}
+    grade_by_period: dict[int, list[float]] = {}
+    for pace, standing in graded:
+        section_id = section_of.get(pace.enrollment_id)
+        if section_id is not None:
+            grade_by_section.setdefault(section_id, []).append(standing)
+        grade_by_subject.setdefault(pace.subject, []).append(standing)
+        grade_by_period.setdefault(pace.grading_period or 1, []).append(standing)
+
+    stats.standing_by_section = [
+        {
+            "section": lookups.sections.get(section_id, f"Section {section_id}"),
+            **_standing_summary(values, passing_mark),
+        }
+        for section_id, values in sorted(
+            grade_by_section.items(), key=lambda kv: lookups.sections.get(kv[0], "")
+        )
+    ]
+    stats.standing_by_subject = [
+        {"subject": name, **_standing_summary(values, passing_mark)}
+        for name, values in sorted(grade_by_subject.items())
+    ]
+    stats.standing_by_period = [
+        {
+            "label": f"{stats.grading_period_label} {period}",
+            "passing": passing_mark,
+            **_standing_summary(values, passing_mark),
+        }
+        for period, values in sorted(grade_by_period.items())
+    ]
+
     # ── The students who need attention first ─────────────────────────────────
     students = {
         s.student_id: s
@@ -259,6 +307,8 @@ async def dashboard(
             "risk_score": w.risk_score,
             "paces_behind": w.paces_behind,
             "pace_percent": w.pace_percent,
+            "standing": w.standing,
+            "basis": w.basis,
             "trend": w.trend,
         }
         for w in ranked
@@ -280,7 +330,11 @@ async def dashboard(
     stats.recent_activity = [
         {
             "action": log.action,
-            "label": ACTIVITY_LABELS.get(log.action, log.action.replace("_", " ").title()),
+            "label": (
+                "Class record updated"
+                if log.action == "pace_recorded" and not stats.tracks_units
+                else ACTIVITY_LABELS.get(log.action, log.action.replace("_", " ").title())
+            ),
             "detail": log.detail,
             "actor": lookups.staff.get(str(log.admin_id), "System"),
             "when": _relative(log.created_at),

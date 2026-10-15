@@ -526,6 +526,16 @@ class DashboardStats(BaseModel):
     pace_by_section: List[dict] = []
     pace_by_subject: List[dict] = []
     trend: List[dict] = []
+    # Which dashboard to draw. A school that tracks units (PACE booklets) is
+    # read on completion; every other school is read on its class record, and
+    # the completion figures above are all zero for it.
+    tracks_units: bool = False
+    unit_label_plural: str = "Modules"
+    passing_mark: float = 75.0
+    grading_period_label: str = "Quarter"
+    standing_by_section: List[dict] = []
+    standing_by_subject: List[dict] = []
+    standing_by_period: List[dict] = []
     recent_activity: List[dict] = []
     top_concerns: List[dict] = []
     school_year: Optional[str] = None

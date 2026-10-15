@@ -13,7 +13,15 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { RiskDonut, SectionPaceChart, SubjectChart, TrendChart } from '../../components/charts/Charts';
+import {
+  PeriodGradeChart,
+  RiskDonut,
+  SectionGradeChart,
+  SectionPaceChart,
+  SubjectChart,
+  SubjectGradeChart,
+  TrendChart,
+} from '../../components/charts/Charts';
 import { chartColors } from '../../components/charts/chartTheme';
 import { EmptyState, ErrorNote, RiskBadge } from '../../components/common/ui';
 import { dashboardApi } from '../../api/endpoints';
@@ -103,6 +111,15 @@ export default function DashboardPage() {
     critical: colors.critical,
   };
   const totalRisk = stats.risk_distribution.reduce((sum, row) => sum + row.value, 0);
+  /* A school that tracks units (PACE booklets) is read on completion; every
+     other school is read on its class record. The answer comes with the
+     figures, so the page never draws one kind of school with the other's
+     charts while the school lookup is still in flight. */
+  const units = stats.tracks_units;
+  const passing = stats.passing_mark;
+  const unitsPlural = stats.unit_label_plural;
+  const periodLabel = stats.grading_period_label.toLowerCase();
+  const belowPassing = stats.standing_by_subject.reduce((sum, row) => sum + row.below, 0);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
@@ -136,8 +153,17 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="hero-figure">
-            <span className="v">{stats.average_pace.toFixed(0)}%</span>
-            <span className="l">Average completion</span>
+            {units ? (
+              <>
+                <span className="v">{stats.average_pace.toFixed(0)}%</span>
+                <span className="l">Average completion</span>
+              </>
+            ) : (
+              <>
+                <span className="v">{stats.average_standing ? stats.average_standing.toFixed(0) : '—'}</span>
+                <span className="l">Average grade</span>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -158,7 +184,7 @@ export default function DashboardPage() {
           value={stats.at_risk}
           icon={AlertTriangle}
           tone="warn"
-          foot="Behind the expected pace"
+          foot={units ? 'Behind the expected pace' : `Near or below the passing mark of ${passing}`}
         />
         <Stat
           label="Critical"
@@ -194,13 +220,21 @@ export default function DashboardPage() {
               )
             }
           />
-        ) : (
+        ) : units ? (
           <Stat
             label="Average standing"
             value={(stats.average_standing ?? 0).toFixed(0)}
             unit="%"
             icon={Activity}
             foot="Across your sections"
+          />
+        ) : (
+          <Stat
+            label="Below passing"
+            value={belowPassing}
+            icon={Activity}
+            tone={belowPassing > 0 ? 'warn' : ''}
+            foot={`Subject grades under ${passing} in your sections`}
           />
         )}
       </section>
@@ -210,12 +244,20 @@ export default function DashboardPage() {
         <div className="card chart-card">
           <div className="card-header">
             <div>
-              <h2>Completion by section</h2>
-              <div className="card-subtitle">Average share of the year&rsquo;s curriculum finished</div>
+              <h2>{units ? 'Completion by section' : 'Average grade by section'}</h2>
+              <div className="card-subtitle">
+                {units
+                  ? `Average share of the year’s ${unitsPlural.toLowerCase()} finished`
+                  : `Mean subject grade in each section, against the passing mark of ${passing}`}
+              </div>
             </div>
           </div>
           <div className="card-body">
-            <SectionPaceChart data={stats.pace_by_section} />
+            {units ? (
+              <SectionPaceChart data={stats.pace_by_section} />
+            ) : (
+              <SectionGradeChart data={stats.standing_by_section} passingMark={passing} />
+            )}
           </div>
         </div>
 
@@ -227,7 +269,11 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="card-body">
-            <RiskDonut data={stats.risk_distribution} total={totalRisk} />
+            <RiskDonut
+              data={stats.risk_distribution}
+              total={totalRisk}
+              emptyMessage={units ? `No ${unitsPlural} records yet.` : 'No grades recorded yet.'}
+            />
             <div className="risk-key">
               {stats.risk_distribution.map((row) => (
                 <div className="risk-key-row" key={row.key}>
@@ -248,24 +294,36 @@ export default function DashboardPage() {
         <div className="card chart-card">
           <div className="card-header">
             <div>
-              <h2>Actual pace vs. expected</h2>
-              <div className="card-subtitle">Where each subject sits against the curriculum plan</div>
+              <h2>{units ? 'Actual pace vs. expected' : `Grades by ${periodLabel}`}</h2>
+              <div className="card-subtitle">
+                {units
+                  ? 'Where each subject sits against the curriculum plan'
+                  : `Whether the average grade holds above the passing mark from one ${periodLabel} to the next`}
+              </div>
             </div>
           </div>
           <div className="card-body">
-            <TrendChart data={stats.trend} />
+            {units ? (
+              <TrendChart data={stats.trend} />
+            ) : (
+              <PeriodGradeChart data={stats.standing_by_period} />
+            )}
           </div>
         </div>
 
         <div className="card chart-card">
           <div className="card-header">
             <div>
-              <h2>Completion by subject</h2>
+              <h2>{units ? 'Completion by subject' : 'Average grade by subject'}</h2>
               <div className="card-subtitle">Which subjects the school is carrying, and which are lagging</div>
             </div>
           </div>
           <div className="card-body">
-            <SubjectChart data={stats.pace_by_subject} />
+            {units ? (
+              <SubjectChart data={stats.pace_by_subject} />
+            ) : (
+              <SubjectGradeChart data={stats.standing_by_subject} passingMark={passing} />
+            )}
           </div>
         </div>
       </section>
@@ -286,7 +344,7 @@ export default function DashboardPage() {
             {stats.top_concerns.length === 0 ? (
               <EmptyState
                 icon={CheckCircle2}
-                title="Everyone is keeping pace"
+                title={units ? 'Everyone is keeping pace' : 'No one is flagged'}
                 description="No student is currently flagged. New warnings appear here the moment records are encoded."
               />
             ) : (
@@ -297,8 +355,14 @@ export default function DashboardPage() {
                       <th>Student</th>
                       <th>Section</th>
                       <th>Subject</th>
-                      <th className="right">Behind</th>
-                      <th>Completion</th>
+                      {units ? (
+                        <>
+                          <th className="right">Behind</th>
+                          <th>Completion</th>
+                        </>
+                      ) : (
+                        <th>Grade</th>
+                      )}
                       <th>Risk</th>
                     </tr>
                   </thead>
@@ -312,18 +376,30 @@ export default function DashboardPage() {
                         <td className="cell-strong">{row.student_name}</td>
                         <td className="muted">{row.section}</td>
                         <td>{row.subject}</td>
-                        <td className="right cell-strong">{row.paces_behind}</td>
-                        <td style={{ minWidth: 130 }}>
-                          <div className="progress-row">
-                            <div className="progress">
-                              <div
-                                className={`progress-fill is-${row.risk_level}`}
-                                style={{ width: `${row.pace_percent}%` }}
-                              />
-                            </div>
-                            <span className="progress-value">{row.pace_percent.toFixed(0)}%</span>
-                          </div>
-                        </td>
+                        {units ? (
+                          <>
+                            <td className="right cell-strong">{row.paces_behind}</td>
+                            <td style={{ minWidth: 130 }}>
+                              <div className="progress-row">
+                                <div className="progress">
+                                  <div
+                                    className={`progress-fill is-${row.risk_level}`}
+                                    style={{ width: `${row.pace_percent}%` }}
+                                  />
+                                </div>
+                                <span className="progress-value">{row.pace_percent.toFixed(0)}%</span>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <td>
+                            <span className="cell-strong">
+                              {row.standing == null ? '—' : row.standing.toFixed(0)}
+                            </span>
+                            {row.basis === 'coursework' && <span className="muted"> so far</span>}
+                            {row.basis === 'year' && <span className="muted"> year avg.</span>}
+                          </td>
+                        )}
                         <td>
                           <RiskBadge level={row.risk_level} />
                         </td>
