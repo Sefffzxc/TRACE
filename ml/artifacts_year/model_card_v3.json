@@ -1,0 +1,296 @@
+{
+  "model": "LogisticRegression",
+  "version": "3.0.0-year",
+  "task": "binary classification: will the learner's remaining terms in a subject average below 80, predicted from the first term's class record once that term is graded",
+  "dataset": {
+    "source": "Cleaned E-Class Record export, Looc National High School, SY 2023-2024 and 2025-2026 (2022-2023 has no first term)",
+    "rows_used": 286,
+    "learners": 286,
+    "at_risk": 37,
+    "at_risk_rate": 0.1294,
+    "later_terms_below_75": 1,
+    "subjects": {
+      "Filipino": 286
+    },
+    "grade_levels": {
+      "8": 286
+    },
+    "balancing_applied": "class weights only; no resampling"
+  },
+  "features_used": [
+    "q1_ww_pct",
+    "q1_pt_pct",
+    "q1_exam_pct",
+    "q1_composite",
+    "q1_component_gap",
+    "grade_level"
+  ],
+  "features_explained": {
+    "q1_ww_pct": "first-term Written Works percentage score",
+    "q1_pt_pct": "first-term Performance Tasks percentage score",
+    "q1_exam_pct": "first-term examination percentage score",
+    "q1_composite": "0.30 x WW% + 0.50 x PT% + 0.20 x Exam%, at fixed weights",
+    "q1_component_gap": "highest minus lowest of the three percentages",
+    "grade_level": "7-10"
+  },
+  "features_excluded": {
+    "Weighted scores, initial grade, transmuted term grade": "depend on the weight template and transmutation table, which differ between the training export and the live MATATAG record; the percentages carry the same information in a form that means the same thing under every template",
+    "Later terms": "they are the outcome",
+    "Name": "hashed to a learner key for grouping, never stored",
+    "Sex": "excluded as a fairness liability",
+    "Subject / Section / School Year": "identifiers; 95% of rows are Filipino"
+  },
+  "target": "average term grade of the terms after the first < 80",
+  "protocol": {
+    "splits": "StratifiedGroupKFold by learner, 5 folds x 10 repeats",
+    "threshold_selection": "inner 4-fold grouped CV on training learners only; best F1 subject to recall >= 0.8",
+    "baselines": "Q1 term grade < 80 (no fitting); Q1 composite below a cut fitted on the training folds"
+  },
+  "threshold": 0.6853877765245333,
+  "results": [
+    {
+      "model": "Rule: Q1 term grade < 80",
+      "recall": 0.7296,
+      "recall_sd": 0.1436,
+      "precision": 0.7018,
+      "precision_sd": 0.1079,
+      "f1": 0.7067,
+      "macro_f1": 0.8312,
+      "macro_f1_sd": 0.0572,
+      "false_neg": 2.0,
+      "false_pos": 2.4,
+      "roc_auc": 0.9283,
+      "pr_auc": 0.6533
+    },
+    {
+      "model": "Rule: Q1 composite < fitted cut",
+      "recall": 0.7975,
+      "recall_sd": 0.1648,
+      "precision": 0.6095,
+      "precision_sd": 0.1167,
+      "f1": 0.672,
+      "macro_f1": 0.8059,
+      "macro_f1_sd": 0.048,
+      "false_neg": 1.5,
+      "false_pos": 4.28,
+      "roc_auc": 0.9285,
+      "pr_auc": 0.6775
+    },
+    {
+      "model": "Logistic Regression",
+      "recall": 0.8136,
+      "recall_sd": 0.1627,
+      "precision": 0.5499,
+      "precision_sd": 0.1115,
+      "f1": 0.6389,
+      "macro_f1": 0.7831,
+      "macro_f1_sd": 0.0489,
+      "false_neg": 1.38,
+      "false_pos": 5.48,
+      "roc_auc": 0.9275,
+      "pr_auc": 0.6906
+    },
+    {
+      "model": "Extra Trees",
+      "recall": 0.7929,
+      "recall_sd": 0.1525,
+      "precision": 0.5248,
+      "precision_sd": 0.1228,
+      "f1": 0.6148,
+      "macro_f1": 0.7677,
+      "macro_f1_sd": 0.0536,
+      "false_neg": 1.54,
+      "false_pos": 5.94,
+      "roc_auc": 0.9291,
+      "pr_auc": 0.7059
+    },
+    {
+      "model": "Random Forest",
+      "recall": 0.7871,
+      "recall_sd": 0.16,
+      "precision": 0.5009,
+      "precision_sd": 0.1143,
+      "f1": 0.5953,
+      "macro_f1": 0.7545,
+      "macro_f1_sd": 0.055,
+      "false_neg": 1.58,
+      "false_pos": 6.48,
+      "roc_auc": 0.9204,
+      "pr_auc": 0.7046
+    },
+    {
+      "model": "Gradient Boosting",
+      "recall": 0.8139,
+      "recall_sd": 0.1472,
+      "precision": 0.4803,
+      "precision_sd": 0.1291,
+      "f1": 0.5857,
+      "macro_f1": 0.7436,
+      "macro_f1_sd": 0.0674,
+      "false_neg": 1.38,
+      "false_pos": 7.58,
+      "roc_auc": 0.9026,
+      "pr_auc": 0.701
+    }
+  ],
+  "results_with_term_grade": [
+    {
+      "model": "Rule: Q1 term grade < 80",
+      "recall": 0.7296,
+      "recall_sd": 0.1436,
+      "precision": 0.7018,
+      "precision_sd": 0.1079,
+      "f1": 0.7067,
+      "macro_f1": 0.8312,
+      "macro_f1_sd": 0.0572,
+      "false_neg": 2.0,
+      "false_pos": 2.4,
+      "roc_auc": 0.9283,
+      "pr_auc": 0.6533
+    },
+    {
+      "model": "Rule: Q1 composite < fitted cut",
+      "recall": 0.7975,
+      "recall_sd": 0.1648,
+      "precision": 0.6095,
+      "precision_sd": 0.1167,
+      "f1": 0.672,
+      "macro_f1": 0.8059,
+      "macro_f1_sd": 0.048,
+      "false_neg": 1.5,
+      "false_pos": 4.28,
+      "roc_auc": 0.9285,
+      "pr_auc": 0.6775
+    },
+    {
+      "model": "Logistic Regression",
+      "recall": 0.8054,
+      "recall_sd": 0.159,
+      "precision": 0.5787,
+      "precision_sd": 0.119,
+      "f1": 0.6551,
+      "macro_f1": 0.7942,
+      "macro_f1_sd": 0.0482,
+      "false_neg": 1.44,
+      "false_pos": 4.9,
+      "roc_auc": 0.9288,
+      "pr_auc": 0.6939
+    },
+    {
+      "model": "Extra Trees",
+      "recall": 0.7868,
+      "recall_sd": 0.1638,
+      "precision": 0.5519,
+      "precision_sd": 0.1249,
+      "f1": 0.6278,
+      "macro_f1": 0.7771,
+      "macro_f1_sd": 0.0489,
+      "false_neg": 1.58,
+      "false_pos": 5.4,
+      "roc_auc": 0.9286,
+      "pr_auc": 0.7033
+    },
+    {
+      "model": "Random Forest",
+      "recall": 0.7871,
+      "recall_sd": 0.1677,
+      "precision": 0.5286,
+      "precision_sd": 0.1289,
+      "f1": 0.6096,
+      "macro_f1": 0.764,
+      "macro_f1_sd": 0.0529,
+      "false_neg": 1.58,
+      "false_pos": 6.06,
+      "roc_auc": 0.9195,
+      "pr_auc": 0.7139
+    },
+    {
+      "model": "Gradient Boosting",
+      "recall": 0.8189,
+      "recall_sd": 0.1485,
+      "precision": 0.4763,
+      "precision_sd": 0.1341,
+      "f1": 0.5833,
+      "macro_f1": 0.742,
+      "macro_f1_sd": 0.0668,
+      "false_neg": 1.34,
+      "false_pos": 7.72,
+      "roc_auc": 0.9053,
+      "pr_auc": 0.711
+    }
+  ],
+  "temporal_validation": {
+    "train": "2023-2024",
+    "test": "2025-2026",
+    "results": {
+      "Rule: Q1 term grade < 80": {
+        "recall": 0.5625,
+        "precision": 0.6429,
+        "f1": 0.6,
+        "macro_f1": 0.7748,
+        "false_neg": 7.0,
+        "false_pos": 5.0,
+        "roc_auc": 0.9052,
+        "pr_auc": 0.5351
+      },
+      "Rule: Q1 composite < fitted cut": {
+        "recall": 0.5625,
+        "precision": 0.6429,
+        "f1": 0.6,
+        "macro_f1": 0.7748,
+        "false_neg": 7.0,
+        "false_pos": 5.0,
+        "roc_auc": 0.9065,
+        "pr_auc": 0.5231
+      },
+      "Logistic Regression": {
+        "recall": 0.25,
+        "precision": 0.4,
+        "f1": 0.3077,
+        "macro_f1": 0.6167,
+        "false_neg": 12.0,
+        "false_pos": 6.0,
+        "roc_auc": 0.7786,
+        "pr_auc": 0.3604
+      },
+      "Random Forest": {
+        "recall": 0.25,
+        "precision": 0.4444,
+        "f1": 0.32,
+        "macro_f1": 0.625,
+        "false_neg": 12.0,
+        "false_pos": 5.0,
+        "roc_auc": 0.8514,
+        "pr_auc": 0.45
+      },
+      "Extra Trees": {
+        "recall": 0.25,
+        "precision": 0.4444,
+        "f1": 0.32,
+        "macro_f1": 0.625,
+        "false_neg": 12.0,
+        "false_pos": 5.0,
+        "roc_auc": 0.8835,
+        "pr_auc": 0.4461
+      },
+      "Gradient Boosting": {
+        "recall": 0.625,
+        "precision": 0.5263,
+        "f1": 0.5714,
+        "macro_f1": 0.7535,
+        "false_neg": 6.0,
+        "false_pos": 9.0,
+        "roc_auc": 0.7526,
+        "pr_auc": 0.4478
+      }
+    }
+  },
+  "limitations": [
+    "Predicts below 80, not failing (below 75): only 1 learner-subject-year in the export went on to average below 75, too few to train or validate a pass/fail model.",
+    "Trained on 286 learner-subject-years with 37 at risk. Every metric carries a wide margin; read the standard deviations.",
+    "No school year in the export is complete, so 'the remaining terms' means whichever later terms were recorded (one to three).",
+    "95% of rows are Filipino and most are Grade 8. Conclusions do not extend to other subjects or grade levels without new data.",
+    "Learners' grades barely move between terms, so the first term's own grade is a strong rule on its own. The comparison table reports it beside the model; where the model does not beat it, that is the finding.",
+    "The export carries no attendance column, so attendance plays no part."
+  ]
+}

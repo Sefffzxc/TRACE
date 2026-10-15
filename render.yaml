@@ -72,7 +72,7 @@ services:
       - key: AI_SERVICE_TOKEN
         generateValue: true
       - key: MODEL_VERSION
-        value: v2-2026-09
+        value: v4-2026-10-final-grade
       - key: MODEL_DIR
         value: model
       # Nothing in a browser calls this service — the backend does, over

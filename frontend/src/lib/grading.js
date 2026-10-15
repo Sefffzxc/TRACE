@@ -184,8 +184,8 @@ export function computeRow(row, setup) {
     transmuted_grade: final,
     descriptor: descriptor(final),
     complete: ready && exam.complete,
-    // What the model is shown. The examinations are excluded: they are the
-    // event the warning is meant to come before.
+    // Coursework banked before the examinations, which the rule reads for a
+    // term in progress. The year model reads the finished first term instead.
     pre_exam_weighted: wwWs !== null && ptWs !== null ? round2(wwWs + ptWs) : null,
   };
 }

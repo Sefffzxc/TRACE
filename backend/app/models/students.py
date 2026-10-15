@@ -424,9 +424,15 @@ class AIRiskPrediction(Base):
     )
     subject = Column(String(100), nullable=False, default="")
 
-    # Model output
-    risk_score = Column(Float, nullable=False, default=0.0)  # probability, 0–1
+    # Model output. risk_score is the chance of failing (final grade below
+    # 75), 0–1; HIGH when it reaches used_threshold.
+    risk_score = Column(Float, nullable=False, default=0.0)
     risk_level = Column(String(10), nullable=False, default="LOW")  # HIGH | LOW
+    # The final-grade model's answer: the expected final grade and its likely
+    # (80%) range. Nullable: rows written by earlier models never had one.
+    predicted_final = Column(Float, nullable=True)
+    range_low = Column(Float, nullable=True)
+    range_high = Column(Float, nullable=True)
     used_threshold = Column(Float, nullable=False, default=0.5)
     primary_factor = Column(String(120), nullable=True)
     suggested_action = Column(Text, nullable=True)

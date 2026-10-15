@@ -33,6 +33,7 @@ import asyncio
 import json
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 import httpx
@@ -40,38 +41,33 @@ import httpx
 from app.core.config import settings
 from app.services import risk
 
-# Request field -> the dataset column it stands for. This mirrors FIELD_MAP in
-# ai-service/main.py; the two must be changed together.
+# The model's inputs, named exactly as the training columns and the fields of
+# StudentRecord in ai-service/main.py; the three must be changed together.
+# See ml/train_final_grade_model.py for why each is there.
 MODEL_FIELDS = (
-    "ww_total",
-    "ww_pct",
-    "ww_weighted",
-    "pt_total",
-    "pt_pct",
-    "pt_weighted",
-    "pre_exam_weighted",
-    "component_gap",
+    "q1_term_grade",
+    "q1_initial_grade",
+    "q1_ww_pct",
+    "q1_pt_pct",
+    "q1_exam_pct",
+    "q1_component_gap",
     "grade_level",
-    "quarter",
 )
 
-# The subset that comes from the learner's own row of the class record. The
-# grade level comes from the enrolment and the quarter from the record being
-# encoded, so neither belongs in a loop over a learner's cells.
-ENCODED_FIELDS = (
-    "ww_total",
-    "ww_pct",
-    "ww_weighted",
-    "pt_total",
-    "pt_pct",
-    "pt_weighted",
-    "pre_exam_weighted",
-    "component_gap",
-)
+# The final-grade model reads the FIRST term and nothing else.
+FIRST_TERM = 1
 
-# How the rule engine's four levels collapse onto the model's two. The model
-# answers one question — "is this learner heading for a term grade below 80" —
-# so a fallback has to answer the same question, not a different one.
+# The fallback rule: "final grade = first-term grade + the average rise for
+# the grade level", with its range and chance of failing read off the rule's
+# own errors. Written by ml/train_final_grade_model.py from the same rows the
+# model was fitted on, so the two answer the same question on the same
+# footing. Loaded once; it is a few kilobytes.
+_RULE_PATH = Path(__file__).with_name("final_grade_rule.json")
+RULE = json.loads(_RULE_PATH.read_text(encoding="utf-8"))
+PASSING = float(RULE["passing"])
+
+# How the rule engine's four levels collapse onto the model's two, for the
+# booklet fallback below.
 _FALLBACK_HIGH_LEVELS = {"critical", "high"}
 
 
@@ -79,7 +75,7 @@ _FALLBACK_HIGH_LEVELS = {"critical", "high"}
 class PredictionResult:
     """What gets written to ``ai_risk_predictions``."""
 
-    risk_score: float = 0.0            # probability 0–1
+    risk_score: float = 0.0            # chance of failing, 0–1
     risk_level: str = "LOW"            # HIGH | LOW
     used_threshold: float = 0.5
     primary_factor: Optional[str] = None
@@ -91,12 +87,18 @@ class PredictionResult:
     features: Dict[str, Any] = field(default_factory=dict)
     latency_ms: Optional[int] = None
     error: Optional[str] = None
+    predicted_final: Optional[float] = None
+    range_low: Optional[float] = None
+    range_high: Optional[float] = None
 
     def as_columns(self) -> dict:
         """Shape it for the ORM model (JSON columns serialised)."""
         return {
             "risk_score": self.risk_score,
             "risk_level": self.risk_level,
+            "predicted_final": self.predicted_final,
+            "range_low": self.range_low,
+            "range_high": self.range_high,
             "used_threshold": self.used_threshold,
             "primary_factor": self.primary_factor,
             "suggested_action": self.suggested_action,
@@ -128,96 +130,56 @@ def grade_level_number(label: Optional[str]) -> Optional[float]:
     return value if 1 <= value <= 12 else None
 
 
-# The component weights the model was TRAINED under. The records it learned
-# from came from class records weighted 30/50/20 and 40/40/20; the MATATAG
-# template this system now uses runs 20/50/30 for the core subjects and
-# 20/60/20 for MAPEH.
-#
-# A weighted score is just a percentage multiplied by a constant, so feeding
-# the model figures scaled by the new weights would hand it a feature on a
-# different scale from everything it was fitted on — silently, with no error
-# and a plausible-looking number coming back. The percentages themselves are
-# weight-free and are passed through untouched; the weighted features are
-# rebuilt here at the training scale so the model sees the distribution it
-# was fitted on, whatever a particular school's sheet is set to.
-#
-# This keeps today's predictions honest. It is not a substitute for
-# retraining: the target was also derived through the old transmutation
-# table, under which a term grade of 80 began at an initial grade of 68.00,
-# where the MATATAG table puts it at 75.90. Once there are records under the
-# new template the model should be refitted on them.
-TRAINING_WEIGHTS = {"written": 30.0, "performance": 50.0}
+def first_term_ready(record) -> bool:
+    """Is this the first term of a subject, graded far enough for the model?
 
-
-def features_from_record(record, grade_level_label: Optional[str] = None,
-                         quarter: Optional[int] = None,
-                         weights: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Read the model's ten inputs off a class-record row.
-
-    The percentages come straight off the stored record, so the model reads
-    the same numbers the teacher does. The weighted figures are recomputed at
-    the training scale — see TRAINING_WEIGHTS above for why.
-
-    The examinations are excluded deliberately: both summative tests and the
-    term examination are the event the warning is meant to precede, and a
-    model given them would be restating a result the teacher already has
-    rather than anticipating one. The initial and term grades are excluded
-    twice over — they are the outcome, and they are arithmetic on
-    examinations the model may not see.
-
-    Cells the teacher has not filled in stay ``None``. The service
-    substitutes the training median for those and reports which ones it
-    substituted, so a thin record never passes for a confident reading.
-
-    ``weights`` is accepted for callers that still pass it, and ignored.
+    All three components and the resulting grade must be in. A record with
+    the examinations still blank is a term in progress, and the model was
+    trained on finished terms.
     """
-    ww_pct = _num(getattr(record, "ww_percent", None))
-    pt_pct = _num(getattr(record, "pt_percent", None))
+    return (
+        (getattr(record, "grading_period", None) or FIRST_TERM) == FIRST_TERM
+        and _num(getattr(record, "ww_percent", None)) is not None
+        and _num(getattr(record, "pt_percent", None)) is not None
+        and _num(getattr(record, "exam_percent", None)) is not None
+        and _num(getattr(record, "transmuted_grade", None)) is not None
+        and _num(getattr(record, "initial_grade", None)) is not None
+    )
 
-    def at_training_scale(percentage, key):
-        if percentage is None:
-            return None
-        return round(percentage * TRAINING_WEIGHTS[key] / 100.0, 2)
 
-    ww_weighted = at_training_scale(ww_pct, "written")
-    pt_weighted = at_training_scale(pt_pct, "performance")
+def features_from_record(record, grade_level_label: Optional[str] = None
+                         ) -> Dict[str, Any]:
+    """Read the model's seven inputs off a learner's FIRST-TERM record.
 
-    # Both derived figures need both components. Computing either from one
-    # half would quietly treat an un-entered component as a zero, which is
-    # the defect that made 65 rows of the training export look like failures.
-    pre_exam = (round(ww_weighted + pt_weighted, 2)
-                if ww_weighted is not None and pt_weighted is not None else None)
-    gap = (round(abs(ww_pct - pt_pct), 2)
-           if ww_pct is not None and pt_pct is not None else None)
+    The first-term grade is the anchor: the model predicts the change from it
+    and the service adds that change back, so the answer is on the scale the
+    school itself reports. The examinations percentage is the combined
+    component (ST1, ST2 and the term examination), the figure the class
+    record prints.
 
+    A blank stays ``None``; the service substitutes the training median and
+    reports it. Callers only send records for which ``first_term_ready`` is
+    true, so in practice nothing is substituted.
+    """
+    ww = _num(getattr(record, "ww_percent", None))
+    pt = _num(getattr(record, "pt_percent", None))
+    ex = _num(getattr(record, "exam_percent", None))
+    parts = [v for v in (ww, pt, ex) if v is not None]
     return {
-        "ww_total": _num(getattr(record, "ww_total_raw", None)),
-        "ww_pct": ww_pct,
-        "ww_weighted": ww_weighted,
-        "pt_total": _num(getattr(record, "pt_total_raw", None)),
-        "pt_pct": pt_pct,
-        "pt_weighted": pt_weighted,
-        "pre_exam_weighted": pre_exam,
-        "component_gap": gap,
+        "q1_term_grade": _num(getattr(record, "transmuted_grade", None)),
+        "q1_initial_grade": _num(getattr(record, "initial_grade", None)),
+        "q1_ww_pct": ww,
+        "q1_pt_pct": pt,
+        "q1_exam_pct": ex,
+        # Needs all three components; built from fewer it would quietly treat
+        # a blank as a zero.
+        "q1_component_gap": round(max(parts) - min(parts), 2) if len(parts) == 3 else None,
         "grade_level": grade_level_number(grade_level_label),
-        "quarter": _num(quarter if quarter is not None
-                        else getattr(record, "grading_period", None)),
     }
 
 
-# The previous name, kept so existing callers keep working while the class
-# record screens are migrated.
+# The previous name, kept so existing callers keep working.
 features_from_pace = features_from_record
-
-
-def _fraction(value) -> Optional[float]:
-    """Accept a weight as either 30 or 0.30 and return it as a fraction."""
-    number = _num(value)
-    if number is None:
-        return None
-    if number > 1.0:
-        number = number / 100.0
-    return round(number, 4) if 0.0 <= number <= 1.0 else None
 
 
 def _num(value) -> Optional[float]:
@@ -238,45 +200,71 @@ def coverage(features: Dict[str, Any]) -> float:
 # ══════════════════════════════════════════════════════════════════════════════
 # The rule-based fallback
 # ══════════════════════════════════════════════════════════════════════════════
-# Where the arithmetic rule puts the line, fitted on the 1,094 usable rows of
-# the merged class-record export: flag a learner whose weighted coursework
-# total before the term examination falls below this. On that data it reaches
-# macro F1 0.864 with recall 0.814 and precision 0.730 — close enough to the
-# model that it is the honest comparator, and good enough to stand in when the
-# model cannot be reached.
-ARITHMETIC_CUT = 56.6
+def rule_projection(first_grade: float, grade_level: Optional[float]) -> dict:
+    """The fallback rule's answer, in the same shape as the model's.
+
+    Final grade = first-term grade + the average rise for the grade level
+    (the overall average rise for a grade level the training data did not
+    have). The range and the chance of failing are read off the rule's own
+    errors, measured on the same rows the model was trained on.
+    """
+    level_key = str(int(grade_level)) if grade_level is not None else None
+    rise = RULE["rise_by_grade_level"].get(level_key, RULE["overall_rise"])
+    final = first_grade + rise
+    low_off, high_off = RULE["interval_offsets"]
+    quantiles = RULE["residual_quantiles"]          # 0th..100th percentile
+    # Share of the rule's past errors that would carry it below 75.
+    below = sum(1 for q in quantiles if q < PASSING - final)
+
+    def grade(value: float) -> float:
+        # The scale a report card can show: the transmutation table bottoms
+        # out at 60 and nothing goes above 100. Matches the AI service.
+        return round(min(100.0, max(60.0, value)), 1)
+
+    return {
+        "predicted_final": grade(final),
+        "range_low": grade(final + low_off),
+        "range_high": grade(final + high_off),
+        "fail_chance": round(below / len(quantiles), 4),
+    }
 
 
 def fallback_prediction(pace, reason: str, features: Dict[str, Any]) -> PredictionResult:
-    """What to store when the model could not be reached.
+    """What to store when the model could not be reached — asleep, crashed,
+    unreachable or switched off.
 
-    Two different rules, because the system serves two kinds of school. A
-    school keeping a DepEd class record is judged on the coursework it has
-    actually banked; a school tracking PACE booklets has no such figure and
-    falls back to the booklet rule instead.
+    For a class-record school the stand-in is the rule the model is measured
+    against: first-term grade plus the average rise for the grade level. It
+    gives the same kind of answer — an expected final grade, a range and a
+    chance of failing — and on the training data it is nearly as accurate.
+    A school tracking PACE booklets has no first-term grade and falls back to
+    the booklet rule instead.
 
-    Neither score is a probability and neither must be read as one — which is
-    why ``source`` says "fallback" and the interface shows a different badge.
+    Neither is the model and neither must be read as it — which is why
+    ``source`` says "fallback" and the interface shows a different badge.
     """
-    pre_exam = features.get("pre_exam_weighted")
-    if pre_exam is not None:
-        at_risk = pre_exam < ARITHMETIC_CUT
-        # Distance from the line, squashed into 0–1 so the badge can sort by
-        # it. It is a rule's confidence, not the model's probability.
-        margin = min(1.0, abs(pre_exam - ARITHMETIC_CUT) / ARITHMETIC_CUT)
+    first_grade = features.get("q1_term_grade")
+    if first_grade is None:
+        first_grade = _num(getattr(pace, "transmuted_grade", None))
+    if first_grade is not None:
+        p = rule_projection(first_grade, features.get("grade_level"))
+        at_risk = p["fail_chance"] >= 0.5
         return PredictionResult(
-            risk_score=round(0.5 + (margin / 2 if at_risk else -margin / 2), 4),
+            risk_score=p["fail_chance"],
             risk_level="HIGH" if at_risk else "LOW",
-            used_threshold=ARITHMETIC_CUT,
-            primary_factor=("weighted coursework before the term exam "
-                            "(rule-based)" if at_risk else None),
+            predicted_final=p["predicted_final"],
+            range_low=p["range_low"],
+            range_high=p["range_high"],
+            used_threshold=0.5,
+            primary_factor=("first-term grade (rule-based)" if at_risk else None),
             suggested_action=(
-                "Coursework banked so far is below the level that usually ends "
-                "the term under 80. Review written works and performance tasks "
-                "with the learner before the term examination."
+                "The first term points to a final grade below 75, and final "
+                "grades rarely move far from the first term. Meet the learner "
+                "now and plan for the next term's written works and "
+                "performance tasks."
                 if at_risk else None),
             source="fallback",
-            model_version="rule-based (arithmetic cut)",
+            model_version=f"rule-based ({RULE['version']})",
             used_baseline_defaults=False,
             imputed_fields=[],
             features=features,
@@ -376,6 +364,9 @@ def _from_payload(payload: dict, features: Dict[str, Any], latency_ms: int) -> P
     return PredictionResult(
         risk_score=float(payload.get("risk_score", 0.0)),
         risk_level=str(payload.get("risk_level", "LOW")).upper(),
+        predicted_final=_num(payload.get("predicted_final")),
+        range_low=_num(payload.get("range_low")),
+        range_high=_num(payload.get("range_high")),
         used_threshold=float(payload.get("used_threshold", 0.5)),
         primary_factor=payload.get("primary_factor"),
         suggested_action=payload.get("suggested_action"),

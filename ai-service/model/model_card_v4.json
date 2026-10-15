@@ -1,0 +1,409 @@
+{
+  "model": "ExtraTreesRegressor",
+  "version": "4.0.0-final-grade",
+  "task": "regression: predict a learner's final grade in a subject from their first-term class record, as the change from the first-term grade; report an 80% range and the chance the final grade falls below 75",
+  "target": "final grade = first-term grade + predicted change",
+  "dataset": {
+    "source": "Class_Record_Dataset_v6 (cleaned E-Class Records with final grades and remarks), three schools",
+    "rows_used": 1393,
+    "learners": 582,
+    "schools": {
+      "Deogracias U. Tenazas Memorial Elementary School": 797,
+      "Gumagamot Elementary School": 299,
+      "Looc National High School": 297
+    },
+    "failed": 14,
+    "final_below_80": 77,
+    "subjects": {
+      "Filipino": 318,
+      "Mathematics": 280,
+      "English": 142,
+      "Science": 115,
+      "Music and Arts": 80,
+      "PE and Health": 80,
+      "ESP": 65,
+      "GMRC": 63,
+      "MAPEH - Arts": 43,
+      "MAPEH - Health": 43,
+      "MAPEH - Music": 43,
+      "MAPEH - PE": 43,
+      "Araling Panlipunan": 21,
+      "Language": 19,
+      "Makabansa": 19,
+      "Reading": 19
+    },
+    "grade_levels": {
+      "1": 95,
+      "3": 148,
+      "4": 212,
+      "5": 297,
+      "6": 344,
+      "8": 297
+    }
+  },
+  "features_used": [
+    "q1_term_grade",
+    "q1_initial_grade",
+    "q1_ww_pct",
+    "q1_pt_pct",
+    "q1_exam_pct",
+    "q1_component_gap",
+    "grade_level"
+  ],
+  "features_excluded": {
+    "Later terms": "they are what is being predicted",
+    "Name": "hashed to a learner key for grouping, never stored",
+    "Sex": "excluded as a fairness liability",
+    "School / Section / Subject / School Year": "identifiers; including them would let the model memorise a cohort instead of reading the learner"
+  },
+  "protocol": {
+    "splits": "GroupKFold by learner, 5 folds x 5 shuffled repeats",
+    "range_and_fail_chance": "from out-of-fold residuals on the training learners only (empirical, no distribution assumed)",
+    "fail_flag": "chance of final < 75 at least 50%",
+    "transfer": "leave one school out",
+    "baseline": "final grade = first-term grade (a change of zero)"
+  },
+  "interval": 0.8,
+  "interval_offsets": [
+    -1.938,
+    2.017
+  ],
+  "results": [
+    {
+      "model": "Extra Trees",
+      "mae": 1.227,
+      "mae_sd": 0.08,
+      "rmse": 1.72,
+      "within_1": 0.56,
+      "within_2": 0.798,
+      "range_coverage": 0.792,
+      "range_width": 3.912,
+      "fail_tp": 11.0,
+      "fail_fn": 3.0,
+      "fail_fp": 1.0
+    },
+    {
+      "model": "Random Forest",
+      "mae": 1.245,
+      "mae_sd": 0.079,
+      "rmse": 1.747,
+      "within_1": 0.558,
+      "within_2": 0.795,
+      "range_coverage": 0.801,
+      "range_width": 4.026,
+      "fail_tp": 11.0,
+      "fail_fn": 3.0,
+      "fail_fp": 1.0
+    },
+    {
+      "model": "Gradient Boosting",
+      "mae": 1.265,
+      "mae_sd": 0.059,
+      "rmse": 1.769,
+      "within_1": 0.544,
+      "within_2": 0.799,
+      "range_coverage": 0.799,
+      "range_width": 4.031,
+      "fail_tp": 11.0,
+      "fail_fn": 3.0,
+      "fail_fp": 2.0
+    },
+    {
+      "model": "Baseline: Term 1 + average rise for the grade level",
+      "mae": 1.285,
+      "mae_sd": 0.099,
+      "rmse": 1.832,
+      "within_1": 0.566,
+      "within_2": 0.788,
+      "range_coverage": 0.808,
+      "range_width": 4.093,
+      "fail_tp": 12.0,
+      "fail_fn": 2.0,
+      "fail_fp": 4.0
+    },
+    {
+      "model": "Ridge Regression",
+      "mae": 1.321,
+      "mae_sd": 0.064,
+      "rmse": 1.781,
+      "within_1": 0.503,
+      "within_2": 0.793,
+      "range_coverage": 0.801,
+      "range_width": 4.146,
+      "fail_tp": 11.0,
+      "fail_fn": 3.0,
+      "fail_fp": 1.0
+    },
+    {
+      "model": "Baseline: Term 1 + average rise",
+      "mae": 1.345,
+      "mae_sd": 0.099,
+      "rmse": 1.871,
+      "within_1": 0.538,
+      "within_2": 0.791,
+      "range_coverage": 0.847,
+      "range_width": 4.0,
+      "fail_tp": 11.0,
+      "fail_fn": 3.0,
+      "fail_fp": 2.0
+    },
+    {
+      "model": "Baseline: final = Term 1 grade",
+      "mae": 1.751,
+      "mae_sd": 0.123,
+      "rmse": 2.188,
+      "within_1": 0.468,
+      "within_2": 0.784,
+      "range_coverage": 0.847,
+      "range_width": 4.0,
+      "fail_tp": 11.0,
+      "fail_fn": 3.0,
+      "fail_fp": 2.0
+    }
+  ],
+  "leave_one_school_out": {
+    "Deogracias U. Tenazas Memorial Elementary School": {
+      "Baseline: final = Term 1 grade": {
+        "mae": 1.9046,
+        "rmse": 2.3233,
+        "within_1": 0.3915,
+        "within_2": 0.7641,
+        "range_coverage": 0.8356,
+        "range_width": 4.0,
+        "fail_tp": 6.0,
+        "fail_fn": 2.0,
+        "fail_fp": 0.0
+      },
+      "Baseline: Term 1 + average rise": {
+        "mae": 1.4556,
+        "rmse": 2.009,
+        "within_1": 0.542,
+        "within_2": 0.7716,
+        "range_coverage": 0.8356,
+        "range_width": 4.0,
+        "fail_tp": 6.0,
+        "fail_fn": 2.0,
+        "fail_fp": 0.0
+      },
+      "Baseline: Term 1 + average rise for the grade level": {
+        "mae": 1.3727,
+        "rmse": 1.9975,
+        "within_1": 0.542,
+        "within_2": 0.7716,
+        "range_coverage": 0.7553,
+        "range_width": 3.9478,
+        "fail_tp": 6.0,
+        "fail_fn": 2.0,
+        "fail_fp": 0.0
+      },
+      "Ridge Regression": {
+        "mae": 1.4967,
+        "rmse": 2.0353,
+        "within_1": 0.4467,
+        "within_2": 0.7365,
+        "range_coverage": 0.7164,
+        "range_width": 3.7039,
+        "fail_tp": 6.0,
+        "fail_fn": 2.0,
+        "fail_fp": 0.0
+      },
+      "Random Forest": {
+        "mae": 1.4723,
+        "rmse": 1.9846,
+        "within_1": 0.4529,
+        "within_2": 0.7591,
+        "range_coverage": 0.7315,
+        "range_width": 3.7568,
+        "fail_tp": 6.0,
+        "fail_fn": 2.0,
+        "fail_fp": 0.0
+      },
+      "Extra Trees": {
+        "mae": 1.4785,
+        "rmse": 2.0415,
+        "within_1": 0.4517,
+        "within_2": 0.7578,
+        "range_coverage": 0.7215,
+        "range_width": 3.7032,
+        "fail_tp": 6.0,
+        "fail_fn": 2.0,
+        "fail_fp": 0.0
+      },
+      "Gradient Boosting": {
+        "mae": 1.5203,
+        "rmse": 2.0504,
+        "within_1": 0.4429,
+        "within_2": 0.7491,
+        "range_coverage": 0.6876,
+        "range_width": 3.5588,
+        "fail_tp": 6.0,
+        "fail_fn": 2.0,
+        "fail_fp": 0.0
+      }
+    },
+    "Gumagamot Elementary School": {
+      "Baseline: final = Term 1 grade": {
+        "mae": 1.5987,
+        "rmse": 1.9475,
+        "within_1": 0.5284,
+        "within_2": 0.8361,
+        "range_coverage": 0.9298,
+        "range_width": 4.0,
+        "fail_tp": 0.0,
+        "fail_fn": 0.0,
+        "fail_fp": 0.0
+      },
+      "Baseline: Term 1 + average rise": {
+        "mae": 0.8806,
+        "rmse": 1.276,
+        "within_1": 0.6957,
+        "within_2": 0.9164,
+        "range_coverage": 0.9298,
+        "range_width": 4.0,
+        "fail_tp": 0.0,
+        "fail_fn": 0.0,
+        "fail_fp": 0.0
+      },
+      "Baseline: Term 1 + average rise for the grade level": {
+        "mae": 0.8813,
+        "rmse": 1.1783,
+        "within_1": 0.689,
+        "within_2": 0.8997,
+        "range_coverage": 0.9465,
+        "range_width": 4.8552,
+        "fail_tp": 0.0,
+        "fail_fn": 0.0,
+        "fail_fp": 0.0
+      },
+      "Ridge Regression": {
+        "mae": 0.9497,
+        "rmse": 1.2681,
+        "within_1": 0.6254,
+        "within_2": 0.8863,
+        "range_coverage": 0.9197,
+        "range_width": 4.4651,
+        "fail_tp": 0.0,
+        "fail_fn": 0.0,
+        "fail_fp": 0.0
+      },
+      "Random Forest": {
+        "mae": 1.0649,
+        "rmse": 1.3741,
+        "within_1": 0.5686,
+        "within_2": 0.8629,
+        "range_coverage": 0.9064,
+        "range_width": 4.5011,
+        "fail_tp": 0.0,
+        "fail_fn": 0.0,
+        "fail_fp": 0.0
+      },
+      "Extra Trees": {
+        "mae": 0.9632,
+        "rmse": 1.2599,
+        "within_1": 0.6054,
+        "within_2": 0.8863,
+        "range_coverage": 0.9498,
+        "range_width": 4.5538,
+        "fail_tp": 0.0,
+        "fail_fn": 0.0,
+        "fail_fp": 0.0
+      },
+      "Gradient Boosting": {
+        "mae": 0.9932,
+        "rmse": 1.3567,
+        "within_1": 0.6388,
+        "within_2": 0.8829,
+        "range_coverage": 0.9264,
+        "range_width": 4.547,
+        "fail_tp": 0.0,
+        "fail_fn": 0.0,
+        "fail_fp": 0.0
+      }
+    },
+    "Looc National High School": {
+      "Baseline: final = Term 1 grade": {
+        "mae": 1.4949,
+        "rmse": 2.0564,
+        "within_1": 0.6128,
+        "within_2": 0.7845,
+        "range_coverage": 0.7946,
+        "range_width": 4.0,
+        "fail_tp": 5.0,
+        "fail_fn": 1.0,
+        "fail_fp": 0.0
+      },
+      "Baseline: Term 1 + average rise": {
+        "mae": 1.5721,
+        "rmse": 2.073,
+        "within_1": 0.3704,
+        "within_2": 0.7172,
+        "range_coverage": 0.7946,
+        "range_width": 4.0,
+        "fail_tp": 5.0,
+        "fail_fn": 1.0,
+        "fail_fp": 2.0
+      },
+      "Baseline: Term 1 + average rise for the grade level": {
+        "mae": 1.5721,
+        "rmse": 2.073,
+        "within_1": 0.3704,
+        "within_2": 0.7172,
+        "range_coverage": 0.7172,
+        "range_width": 3.8755,
+        "fail_tp": 5.0,
+        "fail_fn": 1.0,
+        "fail_fp": 2.0
+      },
+      "Ridge Regression": {
+        "mae": 1.6467,
+        "rmse": 2.0957,
+        "within_1": 0.3704,
+        "within_2": 0.6768,
+        "range_coverage": 0.6599,
+        "range_width": 3.8579,
+        "fail_tp": 5.0,
+        "fail_fn": 1.0,
+        "fail_fp": 1.0
+      },
+      "Random Forest": {
+        "mae": 1.7896,
+        "rmse": 2.2636,
+        "within_1": 0.3199,
+        "within_2": 0.6532,
+        "range_coverage": 0.5926,
+        "range_width": 3.6288,
+        "fail_tp": 5.0,
+        "fail_fn": 1.0,
+        "fail_fp": 1.0
+      },
+      "Extra Trees": {
+        "mae": 1.7757,
+        "rmse": 2.2417,
+        "within_1": 0.3333,
+        "within_2": 0.6599,
+        "range_coverage": 0.5892,
+        "range_width": 3.5655,
+        "fail_tp": 5.0,
+        "fail_fn": 1.0,
+        "fail_fp": 0.0
+      },
+      "Gradient Boosting": {
+        "mae": 1.7054,
+        "rmse": 2.1716,
+        "within_1": 0.3569,
+        "within_2": 0.6599,
+        "range_coverage": 0.6094,
+        "range_width": 3.7417,
+        "fail_tp": 5.0,
+        "fail_fn": 1.0,
+        "fail_fp": 2.0
+      }
+    }
+  },
+  "limitations": [
+    "Only 14 learner-subject-years in the data failed, so the fail flag's catch rate rests on very few cases; the grade error (MAE) is measured on every learner and is the more reliable figure.",
+    "The final grade is the mean of the term grades, so it contains the first term; the model is measured against simply carrying the first-term grade forward.",
+    "Trained on records graded under older transmutation tables; the prediction is anchored on the school's own first-term grade to limit the effect.",
+    "The export carries no attendance, so attendance plays no part."
+  ]
+}

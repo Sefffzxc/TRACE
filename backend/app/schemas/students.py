@@ -325,6 +325,9 @@ class PaceResponse(ORMModel, PaceBase, AssessmentFields):
     ai_model_version: Optional[str] = None
     ai_used_baseline_defaults: Optional[bool] = None
     ai_primary_factor: Optional[str] = None
+    ai_predicted_final: Optional[float] = None
+    ai_range_low: Optional[float] = None
+    ai_range_high: Optional[float] = None
 
 
 class BulkPaceEntry(AssessmentInput):
@@ -414,6 +417,11 @@ class AIPredictionResponse(ORMModel):
     used_threshold: float = 0.5
     primary_factor: Optional[str] = None
     suggested_action: Optional[str] = None
+    # Expected final grade and its likely range (final-grade model and its
+    # rule fallback; empty on rows from earlier models).
+    predicted_final: Optional[float] = None
+    range_low: Optional[float] = None
+    range_high: Optional[float] = None
 
     source: Literal["model", "fallback"] = "model"
     model_version: str = "unknown"

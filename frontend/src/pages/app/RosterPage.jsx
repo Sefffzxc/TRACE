@@ -49,6 +49,9 @@ function aiOf(pace) {
     model_version: pace.ai_model_version,
     used_baseline_defaults: pace.ai_used_baseline_defaults,
     primary_factor: pace.ai_primary_factor,
+    predicted_final: pace.ai_predicted_final,
+    range_low: pace.ai_range_low,
+    range_high: pace.ai_range_high,
     imputed_fields: [],
   };
 }

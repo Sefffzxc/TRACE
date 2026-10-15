@@ -115,7 +115,7 @@ Where the rules above count PACE booklets, the model reads the DepEd class
 record — absences, Written Work and Performance Task scores, unsubmitted items,
 extracurricular load, grade level — and estimates the probability of finishing
 the quarter below the 75 passing mark. It is a Random Forest, trained and
-audited separately (see `ai-service/model/model_card_v2.json`), and it runs as
+audited separately (see `ai-service/model/model_card_v4.json`), and it runs as
 its own service.
 
 The two readings are shown side by side and neither overrides the other. Three

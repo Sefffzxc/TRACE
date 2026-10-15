@@ -252,8 +252,8 @@ def compute(
         "transmuted_grade": final,
         "descriptor": descriptor(final),
         "complete": complete,
-        # What the model is shown: coursework banked before the examinations.
-        # The examinations are the event the warning is meant to precede.
+        # Coursework banked before the examinations. The rule reads it to judge a
+        # term still in progress; the year model reads the finished first term.
         "pre_exam_weighted": (round(ww_ws + pt_ws, 2)
                               if ww_ws is not None and pt_ws is not None else None),
         # The most that coursework could be worth. Stored with the figure

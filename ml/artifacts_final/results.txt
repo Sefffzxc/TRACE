@@ -1,0 +1,53 @@
+FINAL-GRADE MODEL — first term in, final grade out
+================================================================
+Learner-subject-years with a first term and a final grade: 1393
+Learners: 582   Schools: 3
+Failed (Remarks): 14   Final below 80: 77
+Change from Term 1 to final: mean +1.14, sd 1.87, range -9 to +7
+By school: {'Deogracias U. Tenazas Memorial Elementary School': 797, 'Gumagamot Elementary School': 299, 'Looc National High School': 297}
+Features: ['q1_term_grade', 'q1_initial_grade', 'q1_ww_pct', 'q1_pt_pct', 'q1_exam_pct', 'q1_component_gap', 'grade_level']
+
+Grouped CV by learner, 5 x 5-fold (fail counts are per full pass over all 14 failures)
+                                              model   mae  mae_sd  rmse  within_1  within_2  range_coverage  range_width  fail_tp  fail_fn  fail_fp
+                                        Extra Trees 1.227   0.080 1.720     0.560     0.798           0.792        3.912     11.0      3.0      1.0
+                                      Random Forest 1.245   0.079 1.747     0.558     0.795           0.801        4.026     11.0      3.0      1.0
+                                  Gradient Boosting 1.265   0.059 1.769     0.544     0.799           0.799        4.031     11.0      3.0      2.0
+Baseline: Term 1 + average rise for the grade level 1.285   0.099 1.832     0.566     0.788           0.808        4.093     12.0      2.0      4.0
+                                   Ridge Regression 1.321   0.064 1.781     0.503     0.793           0.801        4.146     11.0      3.0      1.0
+                    Baseline: Term 1 + average rise 1.345   0.099 1.871     0.538     0.791           0.847        4.000     11.0      3.0      2.0
+                     Baseline: final = Term 1 grade 1.751   0.123 2.188     0.468     0.784           0.847        4.000     11.0      3.0      2.0
+
+Leave one school out — trained without that school, tested on it
+
+  Deogracias U. Tenazas Memorial Elementary School: 797 rows, 8 failed
+                                                         mae  within_2  range_coverage  fail_tp  fail_fn  fail_fp
+  Baseline: final = Term 1 grade                       1.905     0.764           0.836      6.0      2.0      0.0
+  Baseline: Term 1 + average rise                      1.456     0.772           0.836      6.0      2.0      0.0
+  Baseline: Term 1 + average rise for the grade level  1.373     0.772           0.755      6.0      2.0      0.0
+  Ridge Regression                                     1.497     0.737           0.716      6.0      2.0      0.0
+  Random Forest                                        1.472     0.759           0.731      6.0      2.0      0.0
+  Extra Trees                                          1.478     0.758           0.721      6.0      2.0      0.0
+  Gradient Boosting                                    1.520     0.749           0.688      6.0      2.0      0.0
+
+  Gumagamot Elementary School: 299 rows, 0 failed
+                                                         mae  within_2  range_coverage  fail_tp  fail_fn  fail_fp
+  Baseline: final = Term 1 grade                       1.599     0.836           0.930      0.0      0.0      0.0
+  Baseline: Term 1 + average rise                      0.881     0.916           0.930      0.0      0.0      0.0
+  Baseline: Term 1 + average rise for the grade level  0.881     0.900           0.946      0.0      0.0      0.0
+  Ridge Regression                                     0.950     0.886           0.920      0.0      0.0      0.0
+  Random Forest                                        1.065     0.863           0.906      0.0      0.0      0.0
+  Extra Trees                                          0.963     0.886           0.950      0.0      0.0      0.0
+  Gradient Boosting                                    0.993     0.883           0.926      0.0      0.0      0.0
+
+  Looc National High School: 297 rows, 6 failed
+                                                         mae  within_2  range_coverage  fail_tp  fail_fn  fail_fp
+  Baseline: final = Term 1 grade                       1.495     0.785           0.795      5.0      1.0      0.0
+  Baseline: Term 1 + average rise                      1.572     0.717           0.795      5.0      1.0      2.0
+  Baseline: Term 1 + average rise for the grade level  1.572     0.717           0.717      5.0      1.0      2.0
+  Ridge Regression                                     1.647     0.677           0.660      5.0      1.0      1.0
+  Random Forest                                        1.790     0.653           0.593      5.0      1.0      1.0
+  Extra Trees                                          1.776     0.660           0.589      5.0      1.0      0.0
+  Gradient Boosting                                    1.705     0.660           0.609      5.0      1.0      2.0
+
+Deployed: Extra Trees (MAE 1.227 vs baseline 1.285), fitted on all 1393 rows
+Importances: q1_pt_pct=0.213, grade_level=0.204, q1_term_grade=0.151, q1_initial_grade=0.125, q1_ww_pct=0.112, q1_exam_pct=0.111, q1_component_gap=0.085

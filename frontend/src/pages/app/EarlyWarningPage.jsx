@@ -141,7 +141,8 @@ export default function EarlyWarningPage() {
       'Student', 'Section', 'Subject', 'Risk', 'Score', 'Behind', 'Completion %',
       'Standing', 'Basis', 'Trend', 'Action',
       // Carried through so the export can be checked, not just read.
-      'AI probability', 'AI level', 'AI source', 'AI model version', 'AI inputs imputed',
+      'AI expected final grade', 'AI range low', 'AI range high', 'AI chance of failing',
+      'AI level', 'AI source', 'AI model version', 'AI inputs imputed',
     ];
     const lines = filtered.map((warning) => {
       const prediction = predictionFor.get(`${warning.student_id}::${warning.subject}`);
@@ -157,6 +158,9 @@ export default function EarlyWarningPage() {
         warning.basis ?? '',
         warning.trend,
         warning.intervention || '',
+        prediction?.predicted_final ?? '',
+        prediction?.range_low ?? '',
+        prediction?.range_high ?? '',
         prediction ? prediction.risk_score : '',
         prediction ? prediction.risk_level : 'not scored',
         prediction ? prediction.source : '',
@@ -299,8 +303,10 @@ export default function EarlyWarningPage() {
             <div className="card-subtitle">
               Two independent readings. <strong>School rules</strong> is the school&rsquo;s own
               judgement from where the learner stands against the passing mark, and it is what the flags
-              and interventions are based on. <strong>AI model</strong> is a separate estimate of
-              the chance of ending the quarter below 75, from the assessment record. They will
+              and interventions are based on. <strong>AI model</strong> is a separate estimate, made
+              once the first term is graded, of the learner&rsquo;s final grade and the chance it
+              ends below 75. It is blank until then, and when the AI service is down a school rule
+              answers in its place, labelled rule-based. They will
               sometimes disagree — where they do, the disagreement is the useful part, and neither
               one decides anything on its own.
             </div>

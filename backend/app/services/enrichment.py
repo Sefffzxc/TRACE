@@ -241,35 +241,62 @@ async def build_student_list(
     ]
 
 
+def is_year_prediction(row) -> bool:
+    """Was this prediction made by the final-grade model (or its fallback)?
+
+    That model reads a learner's first term and predicts their final grade
+    in the subject. Rows from earlier models answered different questions —
+    "will THIS term end below 80", "will the rest of the year average below
+    80" — and stay in the table as history, but they are not a current answer
+    to the question asked now. They are told apart by their stored inputs,
+    the one thing that cannot be mislabelled: only the final-grade model
+    reads ``q1_term_grade``.
+    """
+    return '"q1_term_grade"' in (row.features or "")
+
+
+def newest_year_predictions(rows) -> Dict[tuple, "AIRiskPrediction"]:
+    """The current prediction per learner and subject.
+
+    ``rows`` must be ordered by ``prediction_id`` ascending; the table is
+    append-only, so the last one per key is the current one. Keyed by
+    ``(student_id, enrollment_id, subject)`` because one year-model answer
+    covers every term of that subject.
+    """
+    out: Dict[tuple, AIRiskPrediction] = {}
+    for row in rows:
+        if is_year_prediction(row):
+            out[(row.student_id, row.enrollment_id, row.subject)] = row
+    return out
+
+
 async def latest_predictions(
     db: AsyncSession,
-    pace_ids: Optional[Iterable[int]] = None,
+    enrollment_ids: Optional[Iterable[int]] = None,
     *,
     school_id: int,
-) -> Dict[int, "AIRiskPrediction"]:
-    """The newest AI prediction per PACE record, keyed by ``pace_id``.
+) -> Dict[tuple, "AIRiskPrediction"]:
+    """The current year-model prediction per enrolment and subject, keyed by
+    ``(enrollment_id, subject)``, so every term of a subject shows it.
 
-    ``ai_risk_predictions`` is append-only, so "current" means "the most
-    recently created row for this PACE record". Done in Python rather than with
-    a window function so the same query works on SQLite and PostgreSQL.
+    Done in Python rather than with a window function so the same query works
+    on SQLite and PostgreSQL.
     """
     stmt = (
         select(AIRiskPrediction)
         .where(AIRiskPrediction.school_id == school_id)
         .order_by(AIRiskPrediction.prediction_id)
     )
-    if pace_ids is not None:
-        ids = [int(i) for i in pace_ids if i is not None]
+    if enrollment_ids is not None:
+        ids = list({int(i) for i in enrollment_ids if i is not None})
         if not ids:
             return {}
-        stmt = stmt.where(AIRiskPrediction.pace_id.in_(ids))
+        stmt = stmt.where(AIRiskPrediction.enrollment_id.in_(ids))
     rows = (await db.execute(stmt)).scalars().all()
-
-    out: Dict[int, AIRiskPrediction] = {}
-    for row in rows:
-        if row.pace_id is not None:
-            out[row.pace_id] = row  # ordered ascending, so the last one wins
-    return out
+    return {
+        (enrollment_id, subject): row
+        for (_, enrollment_id, subject), row in newest_year_predictions(rows).items()
+    }
 
 
 async def latest_prediction_per_student(
@@ -297,12 +324,8 @@ async def latest_prediction_per_student(
         stmt = stmt.where(AIRiskPrediction.student_id.in_(ids))
     rows = (await db.execute(stmt)).scalars().all()
 
-    newest: Dict[tuple, AIRiskPrediction] = {}
-    for row in rows:
-        newest[(row.student_id, row.pace_id, row.subject)] = row
-
     worst: Dict[int, AIRiskPrediction] = {}
-    for row in newest.values():
+    for row in newest_year_predictions(rows).values():
         current = worst.get(row.student_id)
         if current is None or row.risk_score > current.risk_score:
             worst[row.student_id] = row

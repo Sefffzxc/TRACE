@@ -1,0 +1,3 @@
+# Raw class-record exports hold learner names. Never commit them.
+*
+!.gitignore

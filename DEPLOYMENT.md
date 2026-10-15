@@ -48,8 +48,8 @@ Sources: [Render free tier](https://render.com/docs/free) ·
 2. **Make sure the model file is committed.** The service is useless without it:
 
    ```bash
-   git add -f ai-service/model/risk_model_v2.joblib ai-service/model/model_card_v2.json
-   git status   # both files should be staged, ~1.7 MB total
+   git add -f ai-service/model/final_grade_model_v4.joblib ai-service/model/model_card_v4.json
+   git status   # both files should be staged
    ```
 
    `.gitignore` does not exclude them, but joblib files are the kind of thing
@@ -228,7 +228,7 @@ described as giving early warning weeks ahead of a failing grade.
 | What changed | What to do |
 |---|---|
 | Backend or frontend code | push to the branch; Render redeploys on commit |
-| A retrained model | replace `ai-service/model/risk_model_v2.joblib`, bump `MODEL_VERSION` in `render.yaml`, push. Then **Re-score records** in the app so stored predictions carry the new version |
+| A retrained model | re-run `ml/train_final_grade_model.py`, copy `final_grade_model_v4.joblib` and `model_card_v4.json` into `ai-service/model/` and `final_grade_rule.json` into `backend/app/services/`, bump `MODEL_VERSION` in `render.yaml`, push. Then **Re-score records** in the app so stored predictions carry the new version |
 | The model only, without a redeploy | `curl -X POST -H "X-Service-Token: <token>" https://lbca-ai.onrender.com/reload` |
 | Service renamed | update `ALLOWED_ORIGINS`, and rebuild `lbca-web` — `VITE_API_URL` is baked in at build time, so a restart is not enough |
 | Database expired | create a new free Postgres, update `DATABASE_URL`, re-run the seed |

@@ -184,13 +184,13 @@ async def student_profile(
     # Newest AI prediction per PACE record, shown alongside — never instead of —
     # the school's own rule-based standing.
     predictions = await latest_predictions(
-        db, [r.pace_id for r in pace_rows], school_id=scope
+        db, [r.enrollment_id for r in pace_rows], school_id=scope
     )
 
     subjects = []
     for row in pace_rows:
         evaluation = risk.evaluate_row(row, passing_mark)
-        prediction = predictions.get(row.pace_id)
+        prediction = predictions.get((row.enrollment_id, row.subject))
         subjects.append(
             {
                 "pace_id": row.pace_id,
@@ -207,13 +207,14 @@ async def student_profile(
                 "average_score": row.average_score,
                 "remarks": row.remarks,
                 "updated_at": row.updated_at,
-                # The class-record values the model reads, so the profile shows
-                # what the prediction was actually based on.
+                # The class-record values behind this term, so the profile
+                # shows what the readings were based on. The year model reads
+                # these from the FIRST term; ``ai`` carries its exact inputs.
+                "grading_period": row.grading_period,
                 "absences": row.absences,
                 "ww_percent": row.ww_percent,
                 "pt_percent": row.pt_percent,
-                "missed_ww_items": row.missed_ww_items,
-                "missed_pt_items": row.missed_pt_items,
+                "exam_percent": row.exam_percent,
                 "extracurricular_count": row.extracurricular_count,
                 "ai": (
                     AIPredictionResponse.model_validate(prediction).model_dump(mode="json")

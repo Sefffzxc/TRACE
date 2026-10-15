@@ -10,9 +10,20 @@
 import { AlertTriangle, Brain, CircleSlash, Info, ServerOff, Sparkles } from 'lucide-react';
 
 export const AI_HELP =
-  'The classifier estimates the chance of finishing the quarter below the 75 passing mark. ' +
-  'It is a second opinion beside the school’s own rules — not a replacement for them, ' +
-  'and not a decision.';
+  'Once a learner’s first term in a subject is graded, the model predicts their final grade ' +
+  'in it, a likely range, and the chance of finishing below 75. It reads the first term’s ' +
+  'grade, written works, performance tasks and examinations. If the AI service cannot ' +
+  'answer, the school rule (first-term grade plus the usual rise for the grade level) ' +
+  'answers instead and is labelled as such. It is a second opinion beside the school’s own ' +
+  'rules — not a replacement for them, and not a decision.';
+
+/** "74 (72–76)", or null when the prediction carries no final grade. */
+export function finalGradeText(prediction) {
+  if (prediction?.predicted_final == null) return null;
+  const grade = Math.round(prediction.predicted_final);
+  if (prediction.range_low == null || prediction.range_high == null) return `${grade}`;
+  return `${grade} (${Math.round(prediction.range_low)}–${Math.round(prediction.range_high)})`;
+}
 
 /* ── The score itself ────────────────────────────────────────────────────── */
 /**
@@ -32,15 +43,25 @@ export function AiRiskBadge({ prediction, compact = false }) {
   const percent = Math.round((prediction.risk_score || 0) * 100);
   const isFallback = prediction.source === 'fallback';
   const isHigh = prediction.risk_level === 'HIGH';
+  const finalText = finalGradeText(prediction);
+  // The final-grade model's score is a chance of failing; earlier models'
+  // rows carry no final grade and read as before.
+  const detail = finalText
+    ? `final ≈ ${finalText} · ${percent}% fail`
+    : `${percent}%`;
 
   if (isFallback) {
     return (
       <span
         className="badge badge-neutral ai-badge is-fallback"
-        title={`Rule-based fallback — the AI service did not answer. ${prediction.error || ''}`}
+        title={
+          `Rule-based fallback — the AI service did not answer, so the school rule ` +
+          `(first-term grade + the usual rise for the grade level) gave this projection. ` +
+          `${prediction.error || ''}`
+        }
       >
         <ServerOff size={12} />
-        Rule-based{compact ? '' : ` · ${percent}%`}
+        Rule-based{compact ? '' : ` · ${detail}`}
       </span>
     );
   }
@@ -49,12 +70,19 @@ export function AiRiskBadge({ prediction, compact = false }) {
     <span className="row" style={{ gap: '.35rem', flexWrap: 'nowrap' }}>
       <span
         className={`badge ai-badge ${isHigh ? 'is-high' : 'is-low'}`}
-        title={`Model probability ${percent}% · flags at ${Math.round(
-          (prediction.used_threshold || 0) * 100,
-        )}% · ${prediction.model_version}`}
+        title={
+          finalText
+            ? `Expected final grade ${finalText} · ${percent}% chance of finishing below 75 · ` +
+              `flags at ${Math.round((prediction.used_threshold || 0) * 100)}% · ` +
+              `${prediction.model_version}`
+            : `Model probability ${percent}% · flags at ${Math.round(
+                (prediction.used_threshold || 0) * 100,
+              )}% · ${prediction.model_version}`
+        }
       >
         <Brain size={12} />
-        {isHigh ? 'AI: at risk' : 'AI: on track'} · {percent}%
+        {isHigh ? 'AI: likely to fail' : 'AI: on track'}
+        {compact && finalText ? ` · ${Math.round(prediction.predicted_final)}` : ` · ${detail}`}
       </span>
       {prediction.used_baseline_defaults && (
         <span
@@ -90,7 +118,8 @@ export function AiReason({ prediction }) {
         {prediction.suggested_action && <div className="faint">{prediction.suggested_action}</div>}
         {prediction.source === 'fallback' && (
           <div className="faint">
-            Produced by the school rules, not the model — the AI service was unavailable.
+            Produced by the school rule (first-term grade plus the usual rise for the grade
+            level), not the model — the AI service was unavailable.
           </div>
         )}
       </div>
@@ -166,7 +195,8 @@ export function ModelCard({ card }) {
           <h2>About the model</h2>
           <div className="card-subtitle">
             {card.algorithm} · {card.features?.length ?? 0} inputs · flags at{' '}
-            {Math.round((card.threshold || 0) * 100)}% · version {card.model_version}
+            {Math.round((card.threshold || 0) * 100)}% chance of failing · version{' '}
+            {card.model_version}
           </div>
         </div>
       </div>
@@ -194,7 +224,9 @@ export function ModelCard({ card }) {
 
         {Object.keys(baseline).length > 0 && (
           <>
-            <h3 className="ai-h3">Compared with the simple attendance rule</h3>
+            <h3 className="ai-h3">
+              Compared with the school rule (first-term grade + usual rise for the grade level)
+            </h3>
             <div className="ai-metrics">
               {Object.entries(baseline).map(([name, value]) => (
                 <div key={name} className="ai-metric">
@@ -241,10 +273,19 @@ export function AiInputTable({ prediction }) {
   if (!prediction?.features) return null;
   const imputed = new Set(prediction.imputed_fields || []);
   // Keyed to the model's own feature names — see FEATURES in
-  // ml/train_risk_model.py and MODEL_FIELDS in app/services/ml_client.py.
+  // ml/train_year_model.py and MODEL_FIELDS in app/services/ml_client.py.
   // A name missing here shows the raw feature name rather than nothing, so a
   // model that gains an input is never silently hidden from the teacher.
+  // The second group belongs to the earlier per-term model, kept so its
+  // stored predictions still read properly in the history.
   const LABELS = {
+    q1_term_grade: 'First term: grade',
+    q1_initial_grade: 'First term: initial grade (before transmutation)',
+    q1_ww_pct: 'First term: written works (%)',
+    q1_pt_pct: 'First term: performance tasks (%)',
+    q1_exam_pct: 'First term: examinations (%)',
+    q1_composite: 'First term: overall (30/50/20 weights)',
+    q1_component_gap: 'First term: gap between components',
     ww_total: 'Written works (raw total)',
     ww_pct: 'Written works (%)',
     ww_weighted: 'Written works (weighted)',

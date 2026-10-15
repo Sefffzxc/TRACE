@@ -1,0 +1,1394 @@
+learner_key,school,subject,school_year,grade_level,q1_term_grade,q1_initial_grade,q1_ww_pct,q1_pt_pct,q1_exam_pct,q1_component_gap,terms_recorded,final_grade,failed,change
+0d39390e2c44e432,Looc National High School,Filipino,2023-2024,8.0,83.0,72.98,54.29,87.78,64.0,33.49,2,85.0,0,2.0
+db2efd02f07ffcc4,Looc National High School,Filipino,2023-2024,8.0,86.0,78.04,78.57,83.33,64.0,19.33,2,86.0,0,0.0
+c3627214f218fb8c,Looc National High School,Filipino,2023-2024,8.0,82.0,72.07,64.29,85.56,50.0,35.56,2,83.0,0,1.0
+46538eaf66c08405,Looc National High School,Filipino,2023-2024,8.0,83.0,73.58,75.71,83.33,46.0,37.33,2,83.0,0,0.0
+a0134d75c994d323,Looc National High School,Filipino,2023-2024,8.0,81.0,70.36,54.29,83.33,62.0,29.04,2,81.0,0,0.0
+b9796599d44e3c19,Looc National High School,Filipino,2023-2024,8.0,80.0,69.07,54.29,85.56,50.0,35.56,2,82.0,0,2.0
+5f7adc76280782dd,Looc National High School,Filipino,2023-2024,8.0,81.0,69.71,54.29,84.44,56.0,30.15,2,82.0,0,1.0
+3fc991bca10c958e,Looc National High School,Filipino,2023-2024,8.0,83.0,72.92,67.14,85.56,50.0,35.56,2,84.0,0,1.0
+208a5c2cbcc3acf6,Looc National High School,Filipino,2023-2024,8.0,87.0,80.32,81.43,87.78,60.0,27.78,2,87.0,0,0.0
+075a78723c8825c2,Looc National High School,Filipino,2023-2024,8.0,88.0,81.71,74.29,84.44,86.0,11.71,2,90.0,0,2.0
+96afc8f250078dd0,Looc National High School,Filipino,2023-2024,8.0,81.0,70.68,62.86,84.44,48.0,36.44,2,82.0,0,1.0
+af82a7f055a58785,Looc National High School,Filipino,2023-2024,8.0,71.0,45.56,40.0,51.11,40.0,11.11,2,74.0,1,3.0
+0ca25712012548cc,Looc National High School,Filipino,2023-2024,8.0,88.0,81.11,70.0,92.22,70.0,22.22,2,89.0,0,1.0
+402ff28825f237ab,Looc National High School,Filipino,2023-2024,8.0,89.0,83.68,81.43,88.89,74.0,14.89,2,88.0,0,-1.0
+13cc1fa847fd8639,Looc National High School,Filipino,2023-2024,8.0,82.0,72.71,48.57,86.67,74.0,38.1,2,83.0,0,1.0
+016bd6d98ca5e879,Looc National High School,Filipino,2023-2024,8.0,89.0,82.57,81.43,86.67,74.0,12.67,2,89.0,0,0.0
+a97559db5066ab7e,Looc National High School,Filipino,2023-2024,8.0,81.0,70.89,45.71,85.56,72.0,39.85,2,81.0,0,0.0
+608ba187097ee5c2,Looc National High School,Filipino,2023-2024,8.0,91.0,86.5,87.14,91.11,74.0,17.11,2,92.0,0,1.0
+e5f6d8e3576cdfe8,Looc National High School,Filipino,2023-2024,8.0,82.0,71.76,75.71,78.89,48.0,30.89,2,82.0,0,0.0
+eb17b4e454cd636a,Looc National High School,Filipino,2023-2024,8.0,91.0,85.66,72.86,90.0,94.0,21.14,2,92.0,0,1.0
+9ef288af9597f9ad,Looc National High School,Filipino,2023-2024,8.0,96.0,95.11,94.29,94.44,98.0,3.71,2,97.0,0,1.0
+9085410e09c846a3,Looc National High School,Filipino,2023-2024,8.0,73.0,52.59,48.57,54.44,54.0,5.87,2,77.0,0,4.0
+0aa2727d6b590c07,Looc National High School,Filipino,2023-2024,8.0,86.0,78.07,75.71,81.11,74.0,7.11,2,83.0,0,-3.0
+5f546c8406565243,Looc National High School,Filipino,2023-2024,8.0,88.0,81.55,82.86,87.78,64.0,23.78,2,89.0,0,1.0
+6ee35b2a84289fa9,Looc National High School,Filipino,2023-2024,8.0,92.0,88.59,91.43,91.11,78.0,13.43,2,92.0,0,0.0
+67e63b147c9b0883,Looc National High School,Filipino,2023-2024,8.0,81.0,70.08,57.14,86.67,48.0,38.67,2,82.0,0,1.0
+196bdf2cc638071f,Looc National High School,Filipino,2023-2024,8.0,87.0,80.72,77.14,85.56,74.0,11.56,2,87.0,0,0.0
+78ce41d78d4bba38,Looc National High School,Filipino,2023-2024,8.0,67.0,31.27,24.29,25.56,56.0,31.71,1,67.0,1,0.0
+3649ca8f42ae77c6,Looc National High School,Filipino,2023-2024,8.0,91.0,86.1,87.14,91.11,72.0,19.11,2,89.0,0,-2.0
+f29990e2b42eec0e,Looc National High School,Filipino,2023-2024,8.0,88.0,81.55,82.86,87.78,64.0,23.78,2,89.0,0,1.0
+2b58bf57369eea8a,Looc National High School,Filipino,2023-2024,8.0,84.0,75.0,57.5,87.5,70.0,30.0,2,82.0,0,-2.0
+0522a991e898288c,Looc National High School,Filipino,2023-2024,8.0,75.0,60.88,45.0,78.75,40.0,38.75,2,78.0,0,3.0
+e99c60552f67f552,Looc National High School,Filipino,2023-2024,8.0,74.0,58.0,35.0,75.0,50.0,40.0,1,74.0,1,0.0
+aac85753bde35cc8,Looc National High School,Filipino,2023-2024,8.0,85.0,76.86,71.25,83.75,68.0,15.75,2,85.0,0,0.0
+157359aad759c6ca,Looc National High School,Filipino,2023-2024,8.0,77.0,63.76,41.25,78.75,60.0,37.5,2,78.0,0,1.0
+880178a8dfb9c803,Looc National High School,Filipino,2023-2024,8.0,89.0,82.93,81.25,87.5,74.0,13.5,2,89.0,0,0.0
+b326db974360b1ab,Looc National High School,Filipino,2023-2024,8.0,87.0,80.18,76.25,85.0,74.0,11.0,2,88.0,0,1.0
+84193a8533226729,Looc National High School,Filipino,2023-2024,8.0,83.0,73.13,71.25,87.5,40.0,47.5,2,83.0,0,0.0
+f57fb6b52ce1b982,Looc National High School,Filipino,2023-2024,8.0,80.0,69.03,48.75,80.0,72.0,31.25,2,81.0,0,1.0
+55a5bd0f31827375,Looc National High School,Filipino,2023-2024,8.0,78.0,65.91,61.25,66.25,72.0,10.75,2,79.0,0,1.0
+fdf121fee4542b10,Looc National High School,Filipino,2023-2024,8.0,76.0,62.13,45.0,81.25,40.0,41.25,2,77.0,0,1.0
+85321468f5c17c98,Looc National High School,Filipino,2023-2024,8.0,71.0,44.13,16.25,62.5,40.0,46.25,2,74.0,1,3.0
+a28675c8878bb2fa,Looc National High School,Filipino,2023-2024,8.0,88.0,80.93,72.5,88.75,74.0,16.25,2,88.0,0,0.0
+203761635a8deec6,Looc National High School,Filipino,2023-2024,8.0,82.0,71.55,60.0,77.5,74.0,17.5,2,82.0,0,0.0
+5cf40c96998a09e1,Looc National High School,Filipino,2023-2024,8.0,87.0,79.63,77.5,88.75,60.0,28.75,2,87.0,0,0.0
+83128d844d9703c7,Looc National High School,Filipino,2023-2024,8.0,89.0,83.86,83.75,86.25,78.0,8.25,2,90.0,0,1.0
+3ef5e4a52506c9a9,Looc National High School,Filipino,2023-2024,8.0,78.0,65.13,37.5,83.75,60.0,46.25,1,78.0,0,0.0
+37e8009c37cdee22,Looc National High School,Filipino,2023-2024,8.0,81.0,70.76,53.75,81.25,70.0,27.5,2,81.0,0,0.0
+6bd723f12d2459ee,Looc National High School,Filipino,2023-2024,8.0,88.0,81.06,68.75,91.25,74.0,22.5,2,89.0,0,1.0
+17ef46b35aa95e33,Looc National High School,Filipino,2023-2024,8.0,73.0,52.63,23.75,75.0,40.0,51.25,2,76.0,0,3.0
+ce0826ccd6431dc3,Looc National High School,Filipino,2023-2024,8.0,74.0,57.88,32.5,76.25,50.0,43.75,2,79.0,0,5.0
+c5f7ee3b1427a243,Looc National High School,Filipino,2023-2024,8.0,82.0,72.63,65.0,86.25,50.0,36.25,2,83.0,0,1.0
+43498414999ec8bb,Looc National High School,Filipino,2023-2024,8.0,80.0,68.5,60.0,85.0,40.0,45.0,2,81.0,0,1.0
+f9994c1387f4ff15,Looc National High School,Filipino,2023-2024,8.0,88.0,81.06,81.25,83.75,74.0,9.75,2,89.0,0,1.0
+6f6aa915280011f5,Looc National High School,Filipino,2023-2024,8.0,90.0,84.45,85.0,87.5,76.0,11.5,2,90.0,0,0.0
+390769896229553d,Looc National High School,Filipino,2023-2024,8.0,89.0,82.8,85.0,85.0,74.0,11.0,2,90.0,0,1.0
+c5d1181299cf6611,Looc National High School,Filipino,2023-2024,8.0,91.0,86.76,83.75,91.25,80.0,11.25,2,92.0,0,1.0
+57066db6458d0c46,Looc National High School,Filipino,2023-2024,8.0,87.0,80.18,76.25,85.0,74.0,11.0,2,87.0,0,0.0
+e5a7dae7d41d6005,Looc National High School,Filipino,2023-2024,8.0,74.0,57.15,17.5,75.0,72.0,57.5,2,76.0,0,2.0
+065dee0eed4d339f,Looc National High School,Filipino,2023-2024,8.0,75.0,60.13,48.75,75.0,40.0,35.0,2,76.0,0,1.0
+1eec543456ffc434,Looc National High School,Filipino,2023-2024,8.0,87.0,80.33,71.25,87.5,76.0,16.25,2,87.0,0,0.0
+19cc0bebc2ec2c81,Looc National High School,Filipino,2023-2024,8.0,85.0,77.01,66.25,86.25,70.0,20.0,2,85.0,0,0.0
+fa4fcdabf9cfad43,Looc National High School,Filipino,2023-2024,8.0,85.0,77.0,57.5,87.5,80.0,30.0,2,85.0,0,0.0
+7465ea476ce385ef,Looc National High School,Filipino,2023-2024,8.0,82.0,72.51,68.75,83.75,50.0,33.75,2,83.0,0,1.0
+444645179441a07e,Looc National High School,Filipino,2023-2024,8.0,84.0,74.63,67.5,88.75,50.0,38.75,2,84.0,0,0.0
+9e0e2df9bf08da3e,Looc National High School,Filipino,2023-2024,8.0,89.0,83.81,86.25,86.25,74.0,12.25,2,89.0,0,0.0
+379f3e33d22cc3ec,Looc National High School,Filipino,2023-2024,8.0,91.0,86.13,75.0,91.25,90.0,16.25,2,92.0,0,1.0
+b9bbc34c1b0574e4,Looc National High School,Filipino,2023-2024,8.0,83.0,73.24,70.77,83.33,58.0,25.33,2,88.0,0,5.0
+1c98001378373331,Looc National High School,Filipino,2023-2024,8.0,88.0,80.95,75.38,90.0,74.0,16.0,2,88.0,0,0.0
+7c7ad234f4920f98,Looc National High School,Filipino,2023-2024,8.0,85.0,76.34,73.85,80.0,74.0,6.15,2,89.0,0,4.0
+afd2928afa3032c4,Looc National High School,Filipino,2023-2024,8.0,72.0,49.38,30.77,61.67,62.0,31.23,2,74.0,1,2.0
+e43ce348138a8da3,Looc National High School,Filipino,2023-2024,8.0,76.0,62.05,58.46,76.67,40.0,36.67,2,78.0,0,2.0
+9713f2d1c6ca77a6,Looc National High School,Filipino,2023-2024,8.0,82.0,71.94,73.85,85.0,42.0,43.0,2,82.0,0,0.0
+a63213760f9a650f,Looc National High School,Filipino,2023-2024,8.0,88.0,81.69,81.54,86.67,72.0,14.67,2,88.0,0,0.0
+f1e26e5cda95b226,Looc National High School,Filipino,2023-2024,8.0,80.0,69.1,63.08,81.67,56.0,25.67,2,81.0,0,1.0
+bbf56d17ea6dd174,Looc National High School,Filipino,2023-2024,8.0,91.0,85.69,89.23,85.0,80.0,9.23,2,92.0,0,1.0
+be8d45d62ab9d237,Looc National High School,Filipino,2023-2024,8.0,80.0,69.2,60.0,85.0,56.0,29.0,2,81.0,0,1.0
+19b903b112e0ee17,Looc National High School,Filipino,2023-2024,8.0,76.0,62.81,47.69,83.33,52.0,35.64,2,77.0,0,1.0
+48a854a58f5d4dc0,Looc National High School,Filipino,2023-2024,8.0,84.0,75.78,70.77,81.67,74.0,10.9,2,83.0,0,-1.0
+485bb92ed1ea348d,Looc National High School,Filipino,2023-2024,8.0,76.0,62.25,44.62,85.0,52.0,40.38,2,77.0,0,1.0
+93d109099998f1a0,Looc National High School,Filipino,2023-2024,8.0,88.0,81.35,75.38,90.0,76.0,14.62,2,88.0,0,0.0
+7ff0ea55f5977b99,Looc National High School,Filipino,2023-2024,8.0,72.0,49.04,16.92,76.67,58.0,59.75,1,72.0,1,0.0
+fc83c134fc6fb64f,Looc National High School,Filipino,2023-2024,8.0,88.0,81.02,81.54,85.0,72.0,13.0,2,86.0,0,-2.0
+aa456d91fe5072f6,Looc National High School,Filipino,2023-2024,8.0,75.0,60.75,41.54,78.33,64.0,36.79,2,78.0,0,3.0
+5c03bbb0de944037,Looc National High School,Filipino,2023-2024,8.0,76.0,61.64,50.77,83.33,40.0,43.33,1,76.0,0,0.0
+0e71484f6c29c6d4,Looc National High School,Filipino,2023-2024,8.0,78.0,65.19,52.31,81.67,58.0,29.36,2,78.0,0,0.0
+fd3e9de547d4c741,Looc National High School,Filipino,2023-2024,8.0,77.0,64.5,56.92,78.33,52.0,26.33,2,77.0,0,0.0
+8128cb22da36e110,Looc National High School,Filipino,2023-2024,8.0,80.0,68.45,58.46,81.67,62.0,23.21,1,80.0,0,0.0
+13de2e4d4ebd9c08,Looc National High School,Filipino,2023-2024,8.0,76.0,62.42,55.38,76.67,48.0,28.67,1,76.0,0,0.0
+21c1fd7cfb9a7231,Looc National High School,Filipino,2023-2024,8.0,80.0,68.28,67.69,85.0,36.0,49.0,2,81.0,0,1.0
+7b186df2f89def42,Looc National High School,Filipino,2023-2024,8.0,82.0,71.39,66.15,83.33,58.0,25.33,2,82.0,0,0.0
+52d395f70bb90910,Looc National High School,Filipino,2023-2024,8.0,76.0,63.02,49.23,83.33,50.0,34.1,2,77.0,0,1.0
+13a2884e17fa25e9,Looc National High School,Filipino,2023-2024,8.0,85.0,76.61,73.85,86.67,62.0,24.67,2,84.0,0,-1.0
+197a2e90fbf3116d,Looc National High School,Filipino,2023-2024,8.0,80.0,69.29,61.54,76.67,70.0,15.13,1,80.0,0,0.0
+3cc97fdc9935cf41,Looc National High School,Filipino,2023-2024,8.0,92.0,88.38,84.62,98.33,76.0,22.33,2,91.0,0,-1.0
+8908c87f1ebdaa98,Looc National High School,Filipino,2023-2024,8.0,75.0,60.03,43.08,85.0,44.0,41.92,2,76.0,0,1.0
+3e80260d8a40a013,Looc National High School,Filipino,2023-2024,8.0,81.0,69.63,63.08,85.0,52.0,33.0,2,86.0,0,5.0
+0c6026fb2a21e188,Looc National High School,Filipino,2023-2024,8.0,75.0,60.35,41.54,83.33,52.0,41.79,2,79.0,0,4.0
+d3b616b5878b6a36,Looc National High School,Filipino,2023-2024,8.0,77.0,63.75,47.69,81.67,60.0,33.98,2,77.0,0,0.0
+7adaf215471b9004,Looc National High School,Filipino,2023-2024,8.0,81.0,70.71,70.77,85.0,42.0,43.0,1,81.0,0,0.0
+36be56b186efe737,Looc National High School,Filipino,2023-2024,8.0,90.0,84.44,90.77,83.33,74.0,16.77,2,91.0,0,1.0
+e057ca6c9d98ece5,Looc National High School,Filipino,2023-2024,8.0,86.0,78.24,76.92,81.67,74.0,7.67,2,88.0,0,2.0
+d1ab7cce289b1f30,Looc National High School,Filipino,2023-2024,8.0,85.0,76.38,64.62,88.33,76.0,23.71,2,87.0,0,2.0
+409b9a107dd5fde4,Looc National High School,Filipino,2023-2024,8.0,84.0,74.86,66.15,85.0,72.0,18.85,2,89.0,0,5.0
+62b0639c2f1d2603,Looc National High School,Filipino,2023-2024,8.0,84.0,74.65,64.62,85.0,74.0,20.38,2,87.0,0,3.0
+150bdd3e7afb3ac1,Looc National High School,Filipino,2023-2024,8.0,89.0,82.8,80.0,90.0,74.0,16.0,2,89.0,0,0.0
+98e5f7b0b0851dce,Looc National High School,Filipino,2023-2024,8.0,83.0,72.96,63.08,83.33,72.0,20.25,2,87.0,0,4.0
+481488e576315982,Looc National High School,Filipino,2023-2024,8.0,80.0,68.4,60.0,80.0,62.0,20.0,2,81.0,0,1.0
+7cbdc5a5a2da7aa3,Looc National High School,Filipino,2023-2024,8.0,86.0,78.47,68.33,87.14,72.0,18.81,2,86.0,0,0.0
+c01b58ca38ad219d,Looc National High School,Filipino,2023-2024,8.0,87.0,79.27,75.0,87.14,66.0,21.14,2,87.0,0,0.0
+217c52dd6e77590d,Looc National High School,Filipino,2023-2024,8.0,87.0,80.0,86.67,80.0,70.0,16.67,2,88.0,0,1.0
+58d4021326af57ec,Looc National High School,Filipino,2023-2024,8.0,88.0,81.15,90.0,84.29,60.0,30.0,2,88.0,0,0.0
+2cf9a6ea213bb4a3,Looc National High School,Filipino,2023-2024,8.0,86.0,78.72,80.0,81.43,70.0,11.43,2,86.0,0,0.0
+ed76bc8602a499ca,Looc National High School,Filipino,2023-2024,8.0,88.0,81.12,86.67,81.43,72.0,14.67,2,89.0,0,1.0
+e05997bf2470f154,Looc National High School,Filipino,2023-2024,8.0,86.0,77.95,83.33,84.29,54.0,30.29,2,86.0,0,0.0
+efd063d6ff258f95,Looc National High School,Filipino,2023-2024,8.0,88.0,81.09,73.33,88.57,74.0,15.24,2,89.0,0,1.0
+65f7da97c1bdf1e5,Looc National High School,Filipino,2023-2024,8.0,86.0,78.22,78.33,81.43,70.0,11.43,2,86.0,0,0.0
+d5aa43da95677b6a,Looc National High School,Filipino,2023-2024,8.0,85.0,76.56,75.0,85.71,56.0,29.71,2,85.0,0,0.0
+6b5a8a53b0c76f0b,Looc National High School,Filipino,2023-2024,8.0,90.0,84.97,90.0,87.14,72.0,18.0,2,91.0,0,1.0
+aa4b9dc52fe56086,Looc National High School,Filipino,2023-2024,8.0,95.0,93.3,98.33,90.0,94.0,8.33,2,96.0,0,1.0
+b51f1f44b4114c2c,Looc National High School,Filipino,2023-2024,8.0,90.0,84.35,90.0,84.29,76.0,14.0,2,92.0,0,2.0
+374675788a92790e,Looc National High School,Filipino,2023-2024,8.0,89.0,82.95,86.67,84.29,74.0,12.67,2,90.0,0,1.0
+5d07f740e5d1d463,Looc National High School,Filipino,2023-2024,8.0,89.0,82.59,78.33,88.57,74.0,14.57,2,90.0,0,1.0
+42e0a772d6d20c06,Looc National High School,Filipino,2023-2024,8.0,90.0,84.77,86.67,87.14,76.0,11.14,2,91.0,0,1.0
+684b49920c083dec,Looc National High School,Filipino,2023-2024,8.0,90.0,85.06,90.0,85.71,76.0,14.0,2,91.0,0,1.0
+06f79d38bd3199c1,Looc National High School,Filipino,2023-2024,8.0,91.0,86.12,93.33,91.43,62.0,31.33,2,91.0,0,0.0
+8656daa2747cacc9,Looc National High School,Filipino,2023-2024,8.0,90.0,85.37,90.0,87.14,74.0,16.0,2,91.0,0,1.0
+1998509f92fefe0b,Looc National High School,Filipino,2023-2024,8.0,89.0,83.87,100.0,86.67,46.0,54.0,2,86.0,0,-3.0
+689e3ba11da9fdd4,Looc National High School,Filipino,2023-2024,8.0,91.0,86.14,91.67,90.67,66.0,25.67,2,89.0,0,-2.0
+338c3c6ffe8791f1,Looc National High School,Filipino,2023-2024,8.0,88.0,81.2,80.0,92.0,62.0,30.0,2,86.0,0,-2.0
+c6e88ddf59a17c5b,Looc National High School,Filipino,2023-2024,8.0,77.0,64.26,53.33,85.33,44.0,41.33,2,78.0,0,1.0
+d6d16c580373345b,Looc National High School,Filipino,2023-2024,8.0,75.0,61.07,46.67,84.0,44.0,40.0,1,75.0,0,0.0
+42014b7bda66dfbf,Looc National High School,Filipino,2023-2024,8.0,90.0,85.34,86.67,90.67,72.0,18.67,2,87.0,0,-3.0
+d703e33644f1becb,Looc National High School,Filipino,2023-2024,8.0,85.0,76.0,68.33,90.67,62.0,28.67,2,84.0,0,-1.0
+6b92733b556adf57,Looc National High School,Filipino,2023-2024,8.0,92.0,87.87,86.67,92.0,82.0,10.0,2,90.0,0,-2.0
+796547d34e8a1428,Looc National High School,Filipino,2023-2024,8.0,89.0,82.8,83.33,90.67,66.0,24.67,2,85.0,0,-4.0
+8635ac40e1aab424,Looc National High School,Filipino,2023-2024,8.0,88.0,81.33,88.33,88.0,54.0,34.33,2,85.0,0,-3.0
+f561a926215b8efe,Looc National High School,Filipino,2023-2024,8.0,91.0,86.8,86.67,93.33,74.0,19.33,2,88.0,0,-3.0
+eb4ca97533c6f822,Looc National High School,Filipino,2023-2024,8.0,92.0,88.0,96.67,89.33,68.0,28.67,2,93.0,0,1.0
+6b71d22d3c506433,Looc National High School,Filipino,2023-2024,8.0,86.0,77.73,78.33,88.0,56.0,32.0,2,85.0,0,-1.0
+4a5c29e123ddded3,Looc National High School,Filipino,2023-2024,8.0,88.0,80.8,80.0,88.0,68.0,20.0,2,85.0,0,-3.0
+c5561334ed0fee18,Looc National High School,Filipino,2023-2024,8.0,85.0,77.33,83.33,88.0,44.0,44.0,2,83.0,0,-2.0
+fdb4daee5d5e6e8e,Looc National High School,Filipino,2023-2024,8.0,89.0,83.87,91.67,92.0,52.0,40.0,2,88.0,0,-1.0
+4cc8c4a7290545cb,Looc National High School,Filipino,2023-2024,8.0,84.0,74.8,66.67,93.33,54.0,39.33,2,85.0,0,1.0
+68a8275c902441b6,Looc National High School,Filipino,2023-2024,8.0,93.0,89.47,86.67,96.0,82.0,14.0,2,94.0,0,1.0
+7db4346f5ac64ad3,Looc National High School,Filipino,2023-2024,8.0,91.0,86.53,88.33,88.0,80.0,8.33,2,90.0,0,-1.0
+302cb040500bbde3,Looc National High School,Filipino,2023-2024,8.0,80.0,68.53,53.33,80.0,76.0,26.67,2,78.0,0,-2.0
+e234335ae4fb0648,Looc National High School,Filipino,2023-2024,8.0,96.0,93.73,93.33,96.0,90.0,6.0,2,97.0,0,1.0
+75edc7a1367c5830,Looc National High School,Filipino,2023-2024,8.0,84.0,74.93,73.33,88.0,52.0,36.0,2,84.0,0,0.0
+8c29ed9bbf25b07a,Looc National High School,Filipino,2023-2024,8.0,81.0,70.53,58.33,84.0,68.0,25.67,2,80.0,0,-1.0
+1d09d9be347b883b,Looc National High School,Filipino,2023-2024,8.0,90.0,84.8,85.0,92.0,70.0,22.0,2,91.0,0,1.0
+c5e216626d7b1ddc,Looc National High School,Filipino,2023-2024,8.0,87.0,79.34,76.67,94.67,54.0,40.67,2,87.0,0,0.0
+08899e84399a87d6,Looc National High School,Filipino,2023-2024,8.0,93.0,89.2,91.67,93.33,76.0,17.33,2,92.0,0,-1.0
+8184b9ac0a37d982,Looc National High School,Filipino,2023-2024,8.0,93.0,89.07,95.0,94.67,66.0,29.0,2,91.0,0,-2.0
+49482dcb0da62519,Looc National High School,Filipino,2023-2024,8.0,87.0,79.2,83.33,90.67,48.0,42.67,2,88.0,0,1.0
+276f11a9d8724a29,Looc National High School,Filipino,2023-2024,8.0,76.0,62.27,50.0,82.67,46.0,36.67,2,76.0,0,0.0
+e928c89b90df3aa7,Looc National High School,Filipino,2023-2024,8.0,91.0,86.0,86.67,93.33,70.0,23.33,2,92.0,0,1.0
+e9be8da41e0caf96,Looc National High School,Filipino,2023-2024,8.0,85.0,76.0,71.67,93.33,50.0,43.33,2,85.0,0,0.0
+e22354b55b3f2cbe,Looc National High School,Filipino,2023-2024,8.0,77.0,63.34,41.67,86.67,60.0,45.0,2,79.0,0,2.0
+b4d2e619343b94a1,Looc National High School,Filipino,2023-2024,8.0,93.0,89.33,95.0,93.33,70.0,25.0,2,90.0,0,-3.0
+0c2a940f4edf87e8,Looc National High School,Filipino,2023-2024,8.0,89.0,83.07,81.67,88.0,76.0,12.0,2,89.0,0,0.0
+fae768f3a14d063a,Looc National High School,Filipino,2023-2024,8.0,92.0,87.74,91.67,90.67,74.0,17.67,2,92.0,0,0.0
+66fd07767f53dc15,Looc National High School,Filipino,2025-2026,8.0,93.0,89.33,91.11,88.0,90.0,3.11,3,93.0,0,0.0
+14a796f3bab2f810,Looc National High School,Filipino,2025-2026,8.0,88.0,81.8,67.78,93.33,74.0,25.55,2,89.0,0,1.0
+59bad5dc92b1d84d,Looc National High School,Filipino,2025-2026,8.0,85.0,77.07,68.89,88.0,62.0,26.0,3,83.0,0,-2.0
+d440d7b3ce291dd4,Looc National High School,Filipino,2025-2026,8.0,81.0,70.0,71.11,81.33,40.0,41.33,2,82.0,0,1.0
+b2b6266e4b2e7bd8,Looc National High School,Filipino,2025-2026,8.0,89.0,82.87,83.33,93.33,56.0,37.33,3,92.0,0,3.0
+5b273af63f0c7026,Looc National High School,Filipino,2025-2026,8.0,80.0,68.14,60.0,82.67,44.0,38.67,2,85.0,0,5.0
+ac4814f35142a186,Looc National High School,Filipino,2025-2026,8.0,78.0,65.14,45.56,85.33,44.0,41.33,2,79.0,0,1.0
+99fa2fba4e393851,Looc National High School,Filipino,2025-2026,8.0,75.0,60.21,58.89,66.67,46.0,20.67,3,77.0,0,2.0
+4104eb4f13f4938e,Looc National High School,Filipino,2025-2026,8.0,90.0,84.74,72.22,97.33,72.0,25.33,2,88.0,0,-2.0
+1be47b0102d09af9,Looc National High School,Filipino,2025-2026,8.0,95.0,92.54,95.56,97.33,76.0,21.33,3,95.0,0,0.0
+a280cdecc79868db,Looc National High School,Filipino,2025-2026,8.0,75.0,60.2,50.0,76.0,36.0,40.0,3,79.0,0,4.0
+425128da696646ec,Looc National High School,Filipino,2025-2026,8.0,90.0,85.0,81.11,93.33,70.0,23.33,1,90.0,0,0.0
+3eca7b4e7c6fe32f,Looc National High School,Filipino,2025-2026,8.0,88.0,81.01,78.89,94.67,50.0,44.67,3,82.0,0,-6.0
+0087178380096cf4,Looc National High School,Filipino,2025-2026,8.0,76.0,62.67,51.11,78.67,40.0,38.67,2,78.0,0,2.0
+efe3acf6ef76de2f,Looc National High School,Filipino,2025-2026,8.0,90.0,85.21,88.89,90.67,66.0,24.67,3,90.0,0,0.0
+26f2abcf4cce221e,Looc National High School,Filipino,2025-2026,8.0,87.0,80.27,68.89,92.0,68.0,24.0,3,88.0,0,1.0
+1f80027587c838bc,Looc National High School,Filipino,2025-2026,8.0,82.0,72.07,67.78,78.67,62.0,16.67,3,86.0,0,4.0
+abb474ef6ce4a9aa,Looc National High School,Filipino,2025-2026,8.0,86.0,78.33,74.44,92.0,50.0,42.0,3,82.0,0,-4.0
+caefc9ffcc1b0e7e,Looc National High School,Filipino,2025-2026,8.0,86.0,78.8,71.11,93.33,54.0,39.33,3,83.0,0,-3.0
+0c5f72c726309a6a,Looc National High School,Filipino,2025-2026,8.0,86.0,78.47,76.67,81.33,74.0,7.33,3,87.0,0,1.0
+4505f8157b3577f4,Looc National High School,Filipino,2025-2026,8.0,85.0,77.01,65.56,94.67,50.0,44.67,3,82.0,0,-3.0
+6cc3c0f86bbd197f,Looc National High School,Filipino,2025-2026,8.0,97.0,95.27,94.44,98.67,88.0,10.67,3,97.0,0,0.0
+f6c86d374bc56972,Looc National High School,Filipino,2025-2026,8.0,84.0,74.87,78.89,88.0,36.0,52.0,3,87.0,0,3.0
+11ed1741092aca1a,Looc National High School,Filipino,2025-2026,8.0,83.0,72.8,71.11,85.33,44.0,41.33,2,85.0,0,2.0
+aa02629a9df11869,Looc National High School,Filipino,2025-2026,8.0,95.0,93.0,96.67,92.0,90.0,6.67,2,93.0,0,-2.0
+7bb359b4ae019730,Looc National High School,Filipino,2025-2026,8.0,88.0,82.34,78.89,97.33,50.0,47.33,3,88.0,0,0.0
+64d219a20ce90920,Looc National High School,Filipino,2025-2026,8.0,83.0,74.2,56.67,96.0,46.0,50.0,2,84.0,0,1.0
+9574f4c0febdb6b8,Looc National High School,Filipino,2025-2026,8.0,83.0,73.73,57.78,96.0,42.0,54.0,2,83.0,0,0.0
+f253d6181e3017be,Looc National High School,Filipino,2025-2026,8.0,86.0,78.73,74.44,92.0,52.0,40.0,2,85.0,0,-1.0
+ab29a3178b278cc5,Looc National High School,Filipino,2025-2026,8.0,89.0,83.67,87.78,86.67,70.0,17.78,3,92.0,0,3.0
+e105a2900996355c,Looc National High School,Filipino,2025-2026,8.0,95.0,92.01,82.22,98.67,90.0,16.45,3,93.0,0,-2.0
+d3ce6503031c9251,Looc National High School,Filipino,2025-2026,8.0,90.0,84.6,87.78,81.33,88.0,6.67,3,93.0,0,3.0
+16566a83f277de49,Looc National High School,Filipino,2025-2026,8.0,93.0,89.07,91.11,98.67,62.0,36.67,3,93.0,0,0.0
+2fb2bc1c331980d4,Looc National High School,Filipino,2025-2026,8.0,89.0,82.81,82.22,94.67,54.0,40.67,3,90.0,0,1.0
+2a34396e70a6f641,Looc National High School,Filipino,2025-2026,8.0,91.0,87.0,87.78,85.33,90.0,4.67,2,91.0,0,0.0
+33568e89cd897fc8,Looc National High School,Filipino,2025-2026,8.0,83.0,73.0,67.78,81.33,60.0,21.33,2,86.0,0,3.0
+1792783c364b96f5,Looc National High School,Filipino,2025-2026,8.0,85.0,77.54,65.56,93.33,56.0,37.33,2,89.0,0,4.0
+7033e0e9471e7222,Looc National High School,Filipino,2025-2026,8.0,91.0,87.01,73.04,95.0,88.0,21.96,3,94.0,0,3.0
+5c79bc7439358542,Looc National High School,Filipino,2025-2026,8.0,84.0,75.47,70.43,96.67,30.0,66.67,3,89.0,0,5.0
+6b0057f03581548a,Looc National High School,Filipino,2025-2026,8.0,86.0,77.97,74.78,76.67,86.0,11.22,3,89.0,0,3.0
+8e7be617182dd6b1,Looc National High School,Filipino,2025-2026,8.0,89.0,82.41,89.57,96.67,36.0,60.67,3,92.0,0,3.0
+c27b29c63bb7f546,Looc National High School,Filipino,2025-2026,8.0,92.0,88.53,80.87,93.33,88.0,12.46,3,93.0,0,1.0
+a26b6b13b67cbce7,Looc National High School,Filipino,2025-2026,8.0,91.0,86.75,84.35,91.67,78.0,13.67,3,91.0,0,0.0
+dc1140ea39036372,Looc National High School,Filipino,2025-2026,8.0,94.0,90.56,76.52,100.0,88.0,23.48,3,92.0,0,-2.0
+4ae5315d5a5d753f,Looc National High School,Filipino,2025-2026,8.0,81.0,69.74,60.0,86.67,42.0,44.67,3,83.0,0,2.0
+65524ac7383a6080,Looc National High School,Filipino,2025-2026,8.0,94.0,91.81,83.48,98.33,88.0,14.85,3,95.0,0,1.0
+09e25c380ace6b70,Looc National High School,Filipino,2025-2026,8.0,84.0,75.71,63.48,93.33,50.0,43.33,3,84.0,0,0.0
+422cfe6408f7175c,Looc National High School,Filipino,2025-2026,8.0,86.0,78.93,70.43,90.0,64.0,26.0,3,88.0,0,2.0
+ae0562bca0c4fb65,Looc National High School,Filipino,2025-2026,8.0,84.0,74.72,61.74,90.0,56.0,34.0,3,87.0,0,3.0
+54c42b7834b2ce8b,Looc National High School,Filipino,2025-2026,8.0,87.0,79.26,76.52,95.0,44.0,51.0,3,89.0,0,2.0
+93c2b6d06df0313b,Looc National High School,Filipino,2025-2026,8.0,96.0,94.9,96.52,96.67,88.0,8.67,3,97.0,0,1.0
+8cb93f252ff6afb3,Looc National High School,Filipino,2025-2026,8.0,97.0,95.73,96.52,98.33,88.0,10.33,3,96.0,0,-1.0
+cac38445aacd5779,Looc National High School,Filipino,2025-2026,8.0,85.0,76.5,75.65,90.0,44.0,46.0,3,88.0,0,3.0
+fd5364d0bf16b33f,Looc National High School,Filipino,2025-2026,8.0,95.0,93.33,91.3,96.67,88.0,8.67,3,96.0,0,1.0
+776a626bbab73fb5,Looc National High School,Filipino,2025-2026,8.0,95.0,92.86,86.96,98.33,88.0,11.37,3,93.0,0,-2.0
+1afdca725169dac0,Looc National High School,Filipino,2025-2026,8.0,90.0,84.77,74.78,96.67,70.0,26.67,3,90.0,0,0.0
+caff060977689024,Looc National High School,Filipino,2025-2026,8.0,93.0,89.31,84.35,100.0,70.0,30.0,3,94.0,0,1.0
+0194f9edb1093362,Looc National High School,Filipino,2025-2026,8.0,95.0,92.25,93.04,96.67,80.0,16.67,3,95.0,0,0.0
+92af8c8ca3961819,Looc National High School,Filipino,2025-2026,8.0,91.0,86.05,84.35,96.67,62.0,34.67,3,92.0,0,1.0
+ca8282602ce637cc,Looc National High School,Filipino,2025-2026,8.0,96.0,94.06,96.52,95.0,88.0,8.52,3,96.0,0,0.0
+baddf03f98ad5f57,Looc National High School,Filipino,2025-2026,8.0,90.0,84.79,86.96,95.0,56.0,39.0,3,91.0,0,1.0
+7a9c50a251e97443,Looc National High School,Filipino,2025-2026,8.0,96.0,93.9,90.43,98.33,88.0,10.33,3,96.0,0,0.0
+cf5b76502a4af425,Looc National High School,Filipino,2025-2026,8.0,91.0,85.68,79.13,96.67,68.0,28.67,3,92.0,0,1.0
+4e42f17306854e4a,Looc National High School,Filipino,2025-2026,8.0,93.0,88.9,76.52,96.67,88.0,20.15,3,92.0,0,-1.0
+ab4c492d681141e6,Looc National High School,Filipino,2025-2026,8.0,90.0,84.87,73.91,95.0,76.0,21.09,3,91.0,0,1.0
+f102ae62676fe669,Looc National High School,Filipino,2025-2026,8.0,94.0,91.18,82.61,100.0,82.0,18.0,3,95.0,0,1.0
+3bb1b39c7c97324d,Looc National High School,Filipino,2025-2026,8.0,93.0,90.36,86.96,93.33,88.0,6.37,3,93.0,0,0.0
+2ca807e5754b6b34,Looc National High School,Filipino,2025-2026,8.0,89.0,82.55,78.26,93.33,62.0,31.33,3,91.0,0,2.0
+5297932201754f89,Looc National High School,Filipino,2025-2026,8.0,81.0,70.35,47.5,85.0,68.0,37.5,3,86.0,0,5.0
+2929621190d0da0a,Looc National High School,Filipino,2025-2026,8.0,92.0,87.56,81.25,88.75,94.0,12.75,3,85.0,0,-7.0
+0f17649be45514ad,Looc National High School,Filipino,2025-2026,8.0,77.0,63.53,48.75,85.0,32.0,53.0,3,80.0,0,3.0
+a38340b75f0b8df5,Looc National High School,Filipino,2025-2026,8.0,84.0,75.23,61.25,82.5,78.0,21.25,3,83.0,0,-1.0
+54ffbfc494771725,Looc National High School,Filipino,2025-2026,8.0,93.0,89.6,75.0,95.0,98.0,23.0,3,92.0,0,-1.0
+87e7b7a88060b807,Looc National High School,Filipino,2025-2026,8.0,84.0,75.13,77.5,83.75,50.0,33.75,3,83.0,0,-1.0
+3ae428d30db27b7b,Looc National High School,Filipino,2025-2026,8.0,86.0,77.8,62.5,92.5,64.0,30.0,3,88.0,0,2.0
+ebc563f59882e09f,Looc National High School,Filipino,2025-2026,8.0,91.0,86.86,76.25,88.75,98.0,21.75,3,85.0,0,-6.0
+44c2a198a14ce6e6,Looc National High School,Filipino,2025-2026,8.0,88.0,82.01,81.25,91.25,60.0,31.25,3,87.0,0,-1.0
+7bf3b5ff8d948c60,Looc National High School,Filipino,2025-2026,8.0,76.0,62.76,51.25,78.75,40.0,38.75,3,79.0,0,3.0
+53fffa087cd2d16f,Looc National High School,Filipino,2025-2026,8.0,81.0,69.61,56.25,86.25,48.0,38.25,3,83.0,0,2.0
+7c8eb0de9e23ca09,Looc National High School,Filipino,2025-2026,8.0,75.0,61.0,47.5,77.5,40.0,37.5,2,77.0,0,2.0
+4dffa34db4267f61,Looc National High School,Filipino,2025-2026,8.0,81.0,69.98,57.5,86.25,48.0,38.25,3,79.0,0,-2.0
+f6a2938e72926662,Looc National High School,Filipino,2025-2026,8.0,84.0,74.83,57.5,88.75,66.0,31.25,3,84.0,0,0.0
+fda0a58c5ae1b592,Looc National High School,Filipino,2025-2026,8.0,83.0,73.1,52.5,87.5,68.0,35.0,3,81.0,0,-2.0
+4cae3ef234d51f91,Looc National High School,Filipino,2025-2026,8.0,77.0,63.8,50.0,80.0,44.0,36.0,3,78.0,0,1.0
+326fc519d48f918d,Looc National High School,Filipino,2025-2026,8.0,91.0,86.25,82.5,95.0,70.0,25.0,3,91.0,0,0.0
+82e7b716b185cc69,Looc National High School,Filipino,2025-2026,8.0,92.0,87.86,71.25,93.75,98.0,26.75,3,91.0,0,-1.0
+010af26a070ec214,Looc National High School,Filipino,2025-2026,8.0,83.0,74.08,70.0,83.75,56.0,27.75,3,86.0,0,3.0
+30afaca74cb05ad8,Looc National High School,Filipino,2025-2026,8.0,77.0,64.15,52.5,80.0,42.0,38.0,3,79.0,0,2.0
+d0a56755f9c2bd6c,Looc National High School,Filipino,2025-2026,8.0,93.0,89.73,77.5,93.75,98.0,20.5,3,95.0,0,2.0
+d39e12efbc23c22d,Looc National High School,Filipino,2025-2026,8.0,90.0,84.61,68.75,88.75,98.0,29.25,3,88.0,0,-2.0
+d50be72f385472ff,Looc National High School,Filipino,2025-2026,8.0,95.0,92.6,85.0,95.0,98.0,13.0,3,96.0,0,1.0
+dc0297c534530f35,Looc National High School,Filipino,2025-2026,8.0,80.0,68.48,65.0,78.75,48.0,30.75,3,78.0,0,-2.0
+d24b86054d0880ec,Looc National High School,Filipino,2025-2026,8.0,90.0,84.98,70.0,88.75,98.0,28.0,3,92.0,0,2.0
+6589cd59daf22222,Looc National High School,Filipino,2025-2026,8.0,96.0,94.11,83.75,98.75,98.0,15.0,3,97.0,0,1.0
+c78238f7aa46b319,Looc National High School,Filipino,2025-2026,8.0,90.0,85.0,80.0,90.0,80.0,10.0,3,93.0,0,3.0
+e3c9cbbb753fb45f,Looc National High School,Filipino,2025-2026,8.0,93.0,89.23,80.0,91.25,98.0,18.0,3,92.0,0,-1.0
+62995c3d47e0cc82,Looc National High School,Filipino,2025-2026,8.0,95.0,92.11,81.25,96.25,98.0,16.75,3,96.0,0,1.0
+969c5451c4100796,Looc National High School,Filipino,2025-2026,8.0,82.0,72.13,58.75,85.0,60.0,26.25,3,84.0,0,2.0
+adfc0e3a382c8f32,Looc National High School,Filipino,2025-2026,8.0,83.0,73.95,90.59,81.54,30.0,60.59,2,87.0,0,4.0
+989bf5e429274700,Looc National High School,Filipino,2025-2026,8.0,84.0,75.47,91.76,83.08,32.0,59.76,2,88.0,0,4.0
+c954c8287726ff69,Looc National High School,Filipino,2025-2026,8.0,90.0,85.38,87.06,96.92,54.0,42.92,2,92.0,0,2.0
+04eb56e5dabf0bc4,Looc National High School,Filipino,2025-2026,8.0,85.0,76.81,75.29,89.23,48.0,41.23,2,89.0,0,4.0
+df47c0aaddfa6ccd,Looc National High School,Filipino,2025-2026,8.0,84.0,75.62,89.41,80.0,44.0,45.41,2,88.0,0,4.0
+d4e3a4704ef7c1ec,Looc National High School,Filipino,2025-2026,8.0,78.0,65.1,76.47,72.31,30.0,46.47,2,78.0,0,0.0
+e1f7b5074e2f38fa,Looc National High School,Filipino,2025-2026,8.0,93.0,89.85,95.29,96.92,64.0,32.92,2,95.0,0,2.0
+0493020d31b8fb40,Looc National High School,Filipino,2025-2026,8.0,82.0,72.0,80.0,80.0,40.0,40.0,2,82.0,0,0.0
+e181f53c70ba5958,Looc National High School,Filipino,2025-2026,8.0,82.0,71.6,80.0,80.0,38.0,42.0,2,86.0,0,4.0
+9570725437469baf,Looc National High School,Filipino,2025-2026,8.0,83.0,73.34,76.47,80.0,52.0,28.0,2,81.0,0,-2.0
+5852b3689c0b6090,Looc National High School,Filipino,2025-2026,8.0,94.0,91.43,96.47,95.38,74.0,22.47,2,96.0,0,2.0
+5cd76b1548bbeaf5,Looc National High School,Filipino,2025-2026,8.0,78.0,65.47,76.47,73.85,28.0,48.47,2,78.0,0,0.0
+b23b4e8d0caf0067,Looc National High School,Filipino,2025-2026,8.0,82.0,71.92,75.29,73.85,62.0,13.29,2,87.0,0,5.0
+3a5c0a7c871d443f,Looc National High School,Filipino,2025-2026,8.0,85.0,77.54,82.35,78.46,68.0,14.35,2,90.0,0,5.0
+0a0e5f8428303b9e,Looc National High School,Filipino,2025-2026,8.0,82.0,71.73,85.88,81.54,26.0,59.88,2,79.0,0,-3.0
+25216fb3fa6ef0ae,Looc National High School,Filipino,2025-2026,8.0,78.0,65.43,77.65,73.85,26.0,51.65,2,77.0,0,-1.0
+053aa1262cd4400c,Looc National High School,Filipino,2025-2026,8.0,82.0,72.37,80.0,81.54,38.0,43.54,2,84.0,0,2.0
+90ffa4877dd74b64,Looc National High School,Filipino,2025-2026,8.0,79.0,66.96,77.65,76.92,26.0,51.65,2,78.0,0,-1.0
+789453e5ab26d62e,Looc National High School,Filipino,2025-2026,8.0,88.0,81.8,90.59,89.23,50.0,40.59,2,92.0,0,4.0
+a59906f43a937be0,Looc National High School,Filipino,2025-2026,8.0,84.0,75.4,83.53,83.08,44.0,39.53,2,85.0,0,1.0
+7580b559e148c55f,Looc National High School,Filipino,2025-2026,8.0,91.0,86.81,92.94,93.85,60.0,33.85,2,89.0,0,-2.0
+2685167230ae5efd,Looc National High School,Filipino,2025-2026,8.0,89.0,83.83,90.59,87.69,64.0,26.59,2,90.0,0,1.0
+8aa07948b49a4074,Looc National High School,Filipino,2025-2026,8.0,91.0,86.55,91.76,89.23,72.0,19.76,2,94.0,0,3.0
+db6620541a804e3f,Looc National High School,Filipino,2025-2026,8.0,80.0,68.41,81.18,76.92,28.0,53.18,2,76.0,0,-4.0
+6456be4b85fec8d3,Looc National High School,Filipino,2025-2026,8.0,97.0,95.34,96.47,100.0,82.0,18.0,2,98.0,0,1.0
+d6534f1233c4d81e,Looc National High School,Filipino,2025-2026,8.0,86.0,78.19,92.94,84.62,40.0,52.94,2,81.0,0,-5.0
+3c0c99676bc15b5c,Looc National High School,Filipino,2025-2026,8.0,93.0,89.47,96.47,93.85,68.0,28.47,2,95.0,0,2.0
+8027b83ea634e51a,Looc National High School,Filipino,2025-2026,8.0,83.0,73.12,83.53,76.92,48.0,35.53,2,82.0,0,-1.0
+813ce74a326a8d37,Looc National High School,Filipino,2025-2026,8.0,91.0,86.53,92.94,87.69,74.0,18.94,2,94.0,0,3.0
+73dadf89fd863baa,Looc National High School,Filipino,2025-2026,8.0,91.0,86.09,91.76,92.31,62.0,30.31,2,92.0,0,1.0
+0cea61aad636d631,Looc National High School,Filipino,2025-2026,8.0,95.0,92.45,89.41,98.46,82.0,16.46,2,95.0,0,0.0
+8730ebcd971fb940,Looc National High School,Filipino,2025-2026,8.0,91.0,86.23,90.59,87.69,76.0,14.59,2,91.0,0,0.0
+99da42ecf8700973,Looc National High School,Filipino,2025-2026,8.0,90.0,85.41,89.41,90.77,66.0,24.77,2,94.0,0,4.0
+6f7e143410068da4,Looc National High School,Filipino,2025-2026,8.0,88.0,81.76,82.35,87.69,66.0,21.69,2,90.0,0,2.0
+737e2d68e1ef822a,Looc National High School,Filipino,2025-2026,8.0,92.0,88.76,91.76,98.46,60.0,38.46,2,95.0,0,3.0
+f8ce52863713ab21,Looc National High School,Filipino,2025-2026,8.0,78.0,65.69,80.0,75.38,20.0,60.0,2,77.0,0,-1.0
+8ddf45f974671255,Looc National High School,Filipino,2025-2026,8.0,87.0,80.18,91.76,87.69,44.0,47.76,2,90.0,0,3.0
+24ab93ffa0567489,Gumagamot Elementary School,ESP,2024-2025,5.0,92.0,88.0,95.0,85.0,85.0,10.0,4,93.0,0,1.0
+2b55cae2d97d2d3b,Gumagamot Elementary School,ESP,2024-2025,5.0,92.0,88.0,80.0,95.0,82.5,15.0,4,91.0,0,-1.0
+830293841a613162,Gumagamot Elementary School,ESP,2024-2025,5.0,87.0,80.25,87.5,80.0,70.0,17.5,4,88.0,0,1.0
+f267e5c31b6791fa,Gumagamot Elementary School,ESP,2024-2025,5.0,92.0,87.75,92.5,85.0,87.5,7.5,4,93.0,0,1.0
+f20a3d072d962104,Gumagamot Elementary School,ESP,2024-2025,5.0,89.0,83.0,90.0,80.0,80.0,10.0,4,90.0,0,1.0
+54b9922ca6216cf7,Gumagamot Elementary School,ESP,2024-2025,5.0,87.0,80.25,87.5,80.0,70.0,17.5,4,88.0,0,1.0
+ab3f2784cf945830,Gumagamot Elementary School,ESP,2024-2025,5.0,90.0,84.0,85.0,85.0,80.0,5.0,4,91.0,0,1.0
+67eae0356428dcc9,Gumagamot Elementary School,ESP,2024-2025,5.0,90.0,85.25,87.5,85.0,82.5,5.0,4,93.0,0,3.0
+11e53995a373e8e0,Gumagamot Elementary School,ESP,2024-2025,5.0,86.0,79.0,90.0,70.0,85.0,20.0,4,91.0,0,5.0
+1ca470a08529ed9c,Gumagamot Elementary School,ESP,2024-2025,5.0,89.0,83.5,90.0,95.0,45.0,50.0,4,90.0,0,1.0
+09fafcc1ba87ed6a,Gumagamot Elementary School,ESP,2024-2025,5.0,82.0,72.25,87.5,70.0,55.0,32.5,4,85.0,0,3.0
+411d34dd9d7277d0,Gumagamot Elementary School,ESP,2024-2025,5.0,91.0,85.75,82.5,85.0,92.5,10.0,4,91.0,0,0.0
+c7c943b230ac6455,Gumagamot Elementary School,ESP,2024-2025,5.0,87.0,79.5,75.0,80.0,85.0,10.0,4,87.0,0,0.0
+ac973c01f2531d37,Gumagamot Elementary School,ESP,2024-2025,5.0,93.0,89.25,87.5,95.0,77.5,17.5,4,94.0,0,1.0
+6b3eacaaf76eda7b,Gumagamot Elementary School,ESP,2024-2025,5.0,89.0,83.5,90.0,80.0,82.5,10.0,4,90.0,0,1.0
+5316c011358d280c,Gumagamot Elementary School,ESP,2024-2025,5.0,86.0,77.75,92.5,70.0,75.0,22.5,4,90.0,0,4.0
+2d83758aa869e0e8,Gumagamot Elementary School,ESP,2024-2025,5.0,93.0,89.25,97.5,85.0,87.5,12.5,4,93.0,0,0.0
+7df4093274957f0a,Gumagamot Elementary School,ESP,2024-2025,5.0,94.0,91.25,92.5,90.0,92.5,2.5,4,95.0,0,1.0
+afa41a3b6663bc59,Gumagamot Elementary School,Mathematics,2025-2026,3.0,91.0,87.0,87.5,86.67,86.67,0.83,4,92.0,0,1.0
+9dd6a55f9b29a143,Gumagamot Elementary School,Mathematics,2025-2026,3.0,80.0,69.34,80.0,76.67,33.33,46.67,4,82.0,0,2.0
+69c781bf6469003d,Gumagamot Elementary School,Mathematics,2025-2026,3.0,80.0,68.0,80.0,76.67,26.67,53.33,4,82.0,0,2.0
+6952bba9bc05c0ac,Gumagamot Elementary School,Mathematics,2025-2026,3.0,83.0,74.0,80.0,76.67,56.67,23.33,4,84.0,0,1.0
+ad42437f99b967d2,Gumagamot Elementary School,Mathematics,2025-2026,3.0,87.0,80.67,80.0,76.67,90.0,13.33,4,88.0,0,1.0
+3c464584a4e64c66,Gumagamot Elementary School,Mathematics,2025-2026,3.0,92.0,88.34,92.5,86.67,83.33,9.17,4,93.0,0,1.0
+b08fa2dfea8ac3ee,Gumagamot Elementary School,Mathematics,2025-2026,3.0,88.0,82.33,87.5,83.33,70.0,17.5,4,89.0,0,1.0
+700da42492355c66,Gumagamot Elementary School,Mathematics,2025-2026,3.0,81.0,70.67,80.0,76.67,40.0,40.0,4,83.0,0,2.0
+1312f44b00501da5,Gumagamot Elementary School,Mathematics,2025-2026,3.0,91.0,85.67,87.5,86.67,80.0,7.5,4,92.0,0,1.0
+0b17959a0b26eb51,Gumagamot Elementary School,Mathematics,2025-2026,3.0,87.0,79.67,87.5,86.67,50.0,37.5,4,89.0,0,2.0
+94f0bc64786b4f26,Gumagamot Elementary School,Mathematics,2025-2026,3.0,88.0,82.34,82.5,86.67,73.33,13.34,4,89.0,0,1.0
+99cfe26af0f57381,Gumagamot Elementary School,Mathematics,2025-2026,3.0,85.0,76.0,80.0,76.67,66.67,13.33,4,89.0,0,4.0
+df74a14b8a800ac9,Gumagamot Elementary School,Mathematics,2025-2026,3.0,85.0,77.0,77.5,76.67,76.67,0.83,4,86.0,0,1.0
+faca87e3ba89e00b,Gumagamot Elementary School,Mathematics,2025-2026,3.0,89.0,82.66,85.0,83.33,76.67,8.33,4,89.0,0,0.0
+9e54942aba2cbee2,Gumagamot Elementary School,Mathematics,2025-2026,3.0,92.0,88.34,87.5,86.67,93.33,6.66,4,93.0,0,1.0
+4dc1c1111859bf8e,Gumagamot Elementary School,Mathematics,2025-2026,3.0,85.0,76.0,75.0,76.67,76.67,1.67,4,86.0,0,1.0
+7fab49d272c08650,Gumagamot Elementary School,Mathematics,2025-2026,3.0,89.0,83.0,87.5,83.33,73.33,14.17,4,91.0,0,2.0
+aa73c7f02597ce73,Gumagamot Elementary School,Mathematics,2025-2026,3.0,81.0,70.0,75.0,73.33,53.33,21.67,4,83.0,0,2.0
+a00e8846d0302752,Gumagamot Elementary School,Mathematics,2025-2026,3.0,81.0,70.66,75.0,73.33,56.67,18.33,4,82.0,0,1.0
+b7eec9fc77db404b,Gumagamot Elementary School,Mathematics,2025-2026,3.0,91.0,86.0,90.0,86.67,76.67,13.33,4,91.0,0,0.0
+d61f301d7bf90552,Gumagamot Elementary School,Mathematics,2025-2026,3.0,80.0,69.33,75.0,73.33,50.0,25.0,4,81.0,0,1.0
+ed1a1c9637742132,Gumagamot Elementary School,Mathematics,2025-2026,3.0,90.0,85.0,87.5,83.33,83.33,4.17,4,90.0,0,0.0
+d02a62faf46304d4,Gumagamot Elementary School,Mathematics,2025-2026,4.0,90.0,84.33,87.5,83.33,80.0,7.5,4,91.0,0,1.0
+77c1fad9e3043518,Gumagamot Elementary School,Mathematics,2025-2026,4.0,89.0,82.83,87.5,83.33,72.5,15.0,4,90.0,0,1.0
+1395985311c974f8,Gumagamot Elementary School,Mathematics,2025-2026,4.0,82.0,72.67,80.0,76.67,50.0,30.0,4,83.0,0,1.0
+3094532fcbb7589b,Gumagamot Elementary School,Mathematics,2025-2026,4.0,87.0,79.67,80.0,76.67,85.0,8.33,4,87.0,0,0.0
+9ca94428ad9a7498,Gumagamot Elementary School,Mathematics,2025-2026,4.0,88.0,81.5,87.5,80.0,72.5,15.0,4,89.0,0,1.0
+beaec97645fc0e7b,Gumagamot Elementary School,Mathematics,2025-2026,4.0,86.0,78.17,80.0,76.67,77.5,3.33,4,86.0,0,0.0
+46705a400b3f220e,Gumagamot Elementary School,Mathematics,2025-2026,4.0,84.0,75.17,80.0,76.67,62.5,17.5,4,84.0,0,0.0
+b08c40b544e4326f,Gumagamot Elementary School,Mathematics,2025-2026,4.0,86.0,78.67,85.0,76.67,70.0,15.0,4,88.0,0,2.0
+f25208b9002bcf84,Gumagamot Elementary School,Mathematics,2025-2026,4.0,90.0,84.5,87.5,80.0,87.5,7.5,4,90.0,0,0.0
+4e4af6e631406810,Gumagamot Elementary School,Mathematics,2025-2026,4.0,86.0,77.67,80.0,76.67,75.0,5.0,4,86.0,0,0.0
+be726fa93c926024,Gumagamot Elementary School,Mathematics,2025-2026,4.0,87.0,80.67,85.0,76.67,80.0,8.33,4,88.0,0,1.0
+eeabefad31a770d9,Gumagamot Elementary School,Mathematics,2025-2026,4.0,85.0,76.67,80.0,76.67,70.0,10.0,4,86.0,0,1.0
+d27401deacb79e58,Gumagamot Elementary School,Mathematics,2025-2026,4.0,79.0,67.67,80.0,76.67,25.0,55.0,4,80.0,0,1.0
+0086d39eb461802b,Gumagamot Elementary School,Mathematics,2025-2026,4.0,90.0,85.33,90.0,83.33,80.0,10.0,4,91.0,0,1.0
+366fac050c5c8667,Gumagamot Elementary School,Mathematics,2025-2026,4.0,80.0,68.67,80.0,76.67,30.0,50.0,4,82.0,0,2.0
+87cdb2f9c64a4737,Gumagamot Elementary School,Mathematics,2025-2026,4.0,84.0,74.83,80.0,73.33,67.5,12.5,4,84.0,0,0.0
+aa94d822934c3379,Gumagamot Elementary School,Mathematics,2025-2026,4.0,83.0,74.33,80.0,73.33,65.0,15.0,4,84.0,0,1.0
+08051e2d220e159a,Gumagamot Elementary School,Mathematics,2025-2026,4.0,84.0,75.33,80.0,73.33,70.0,10.0,4,88.0,0,4.0
+a4d62a93b4b812a5,Gumagamot Elementary School,Mathematics,2025-2026,4.0,86.0,77.83,80.0,73.33,82.5,9.17,4,89.0,0,3.0
+0c9b96d9602c9a05,Gumagamot Elementary School,Mathematics,2025-2026,4.0,92.0,87.83,92.5,83.33,87.5,9.17,4,93.0,0,1.0
+40260b3a27399687,Gumagamot Elementary School,Mathematics,2025-2026,4.0,88.0,81.17,87.5,76.67,77.5,10.83,4,89.0,0,1.0
+edb4c26cf62ff6ef,Gumagamot Elementary School,Mathematics,2025-2026,4.0,83.0,73.33,80.0,73.33,60.0,20.0,4,85.0,0,2.0
+0c86239f4368c2e8,Gumagamot Elementary School,Mathematics,2025-2026,4.0,86.0,78.17,87.5,76.67,62.5,25.0,4,88.0,0,2.0
+2658d808dccf80e8,Gumagamot Elementary School,Mathematics,2025-2026,4.0,84.0,75.33,80.0,73.33,70.0,10.0,4,86.0,0,2.0
+3eda44267803a549,Gumagamot Elementary School,Mathematics,2025-2026,4.0,90.0,85.0,95.0,80.0,75.0,20.0,4,92.0,0,2.0
+dad00d49d6fcfe37,Gumagamot Elementary School,Mathematics,2025-2026,4.0,80.0,69.33,80.0,73.33,40.0,40.0,4,82.0,0,2.0
+8841e40d6b806014,Gumagamot Elementary School,Mathematics,2025-2026,4.0,89.0,83.0,92.5,80.0,70.0,22.5,4,91.0,0,2.0
+5f539f6f1808296a,Gumagamot Elementary School,Mathematics,2025-2026,4.0,91.0,86.5,90.0,80.0,92.5,12.5,4,92.0,0,1.0
+244658a55f27dccd,Gumagamot Elementary School,Mathematics,2025-2026,4.0,84.0,75.83,80.0,73.33,72.5,7.5,4,86.0,0,2.0
+d54ff9b47f0d37b7,Gumagamot Elementary School,Mathematics,2025-2026,4.0,91.0,85.83,92.5,83.33,77.5,15.0,4,93.0,0,2.0
+59abbfcc077504ff,Gumagamot Elementary School,Mathematics,2025-2026,4.0,83.0,73.17,80.0,76.67,52.5,27.5,4,85.0,0,2.0
+d02a62faf46304d4,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,88.0,81.72,85.0,82.86,75.0,10.0,4,90.0,0,2.0
+77c1fad9e3043518,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,87.0,80.5,82.5,80.0,80.0,2.5,4,89.0,0,2.0
+1395985311c974f8,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,84.0,74.78,80.0,77.14,62.5,17.5,4,85.0,0,1.0
+3094532fcbb7589b,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,85.0,76.78,80.0,77.14,72.5,7.5,4,87.0,0,2.0
+9ca94428ad9a7498,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,86.0,78.72,85.0,82.86,60.0,25.0,4,88.0,0,2.0
+beaec97645fc0e7b,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,85.0,76.0,82.5,80.0,57.5,25.0,4,86.0,0,1.0
+46705a400b3f220e,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,83.0,73.28,80.0,77.14,55.0,25.0,4,85.0,0,2.0
+b08c40b544e4326f,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,87.0,79.5,82.5,80.0,75.0,7.5,4,88.0,0,1.0
+f25208b9002bcf84,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,87.0,79.22,85.0,82.86,62.5,22.5,4,88.0,0,1.0
+4e4af6e631406810,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,83.0,73.78,80.0,77.14,57.5,22.5,4,85.0,0,2.0
+be726fa93c926024,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,85.0,76.5,82.5,80.0,60.0,22.5,4,86.0,0,1.0
+eeabefad31a770d9,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,85.0,77.5,82.5,80.0,65.0,17.5,4,88.0,0,3.0
+d27401deacb79e58,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,83.0,74.28,80.0,77.14,60.0,20.0,4,84.0,0,1.0
+0086d39eb461802b,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,90.0,84.22,85.0,82.86,87.5,4.64,4,91.0,0,1.0
+366fac050c5c8667,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,82.0,71.57,77.5,74.29,57.5,20.0,4,83.0,0,1.0
+87cdb2f9c64a4737,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,85.0,76.28,80.0,77.14,70.0,10.0,4,86.0,0,1.0
+aa94d822934c3379,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,86.0,78.28,82.5,77.14,77.5,5.36,4,87.0,0,1.0
+08051e2d220e159a,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,87.0,79.28,82.5,77.14,82.5,5.36,4,89.0,0,2.0
+a4d62a93b4b812a5,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,86.0,77.78,80.0,77.14,77.5,2.86,4,88.0,0,2.0
+0c9b96d9602c9a05,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,92.0,88.43,87.5,85.71,97.5,11.79,4,93.0,0,1.0
+40260b3a27399687,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,89.0,82.72,85.0,82.86,80.0,5.0,4,90.0,0,1.0
+edb4c26cf62ff6ef,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,84.0,74.78,80.0,77.14,62.5,17.5,4,86.0,0,2.0
+0c86239f4368c2e8,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,88.0,82.22,87.5,82.86,75.0,12.5,4,91.0,0,3.0
+2658d808dccf80e8,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,84.0,75.78,82.5,77.14,65.0,17.5,4,86.0,0,2.0
+3eda44267803a549,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,92.0,87.36,92.5,91.43,70.0,22.5,4,93.0,0,1.0
+dad00d49d6fcfe37,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,85.0,76.28,80.0,77.14,70.0,10.0,4,86.0,0,1.0
+8841e40d6b806014,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,91.0,87.14,90.0,88.57,80.0,10.0,4,93.0,0,2.0
+5f539f6f1808296a,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,90.0,85.43,87.5,85.71,82.5,5.0,4,91.0,0,1.0
+244658a55f27dccd,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,85.0,77.28,80.0,77.14,75.0,5.0,4,87.0,0,2.0
+d54ff9b47f0d37b7,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,92.0,88.14,90.0,88.57,85.0,5.0,4,93.0,0,1.0
+59abbfcc077504ff,Gumagamot Elementary School,Music and Arts,2025-2026,4.0,85.0,76.78,80.0,77.14,72.5,7.5,4,87.0,0,2.0
+d02a62faf46304d4,Gumagamot Elementary School,PE and Health,2025-2026,4.0,88.0,82.0,85.0,83.33,75.0,10.0,4,90.0,0,2.0
+77c1fad9e3043518,Gumagamot Elementary School,PE and Health,2025-2026,4.0,87.0,80.0,80.0,80.0,80.0,0.0,4,89.0,0,2.0
+1395985311c974f8,Gumagamot Elementary School,PE and Health,2025-2026,4.0,84.0,74.5,80.0,76.67,62.5,17.5,4,86.0,0,2.0
+3094532fcbb7589b,Gumagamot Elementary School,PE and Health,2025-2026,4.0,85.0,76.5,80.0,76.67,72.5,7.5,4,87.0,0,2.0
+9ca94428ad9a7498,Gumagamot Elementary School,PE and Health,2025-2026,4.0,86.0,79.0,85.0,83.33,60.0,25.0,4,89.0,0,3.0
+beaec97645fc0e7b,Gumagamot Elementary School,PE and Health,2025-2026,4.0,85.0,76.5,85.0,80.0,57.5,27.5,4,88.0,0,3.0
+46705a400b3f220e,Gumagamot Elementary School,PE and Health,2025-2026,4.0,83.0,73.0,80.0,76.67,55.0,25.0,4,86.0,0,3.0
+b08c40b544e4326f,Gumagamot Elementary School,PE and Health,2025-2026,4.0,87.0,79.5,82.5,80.0,75.0,7.5,4,89.0,0,2.0
+f25208b9002bcf84,Gumagamot Elementary School,PE and Health,2025-2026,4.0,87.0,79.5,85.0,83.33,62.5,22.5,4,89.0,0,2.0
+4e4af6e631406810,Gumagamot Elementary School,PE and Health,2025-2026,4.0,83.0,73.5,80.0,76.67,57.5,22.5,4,86.0,0,3.0
+be726fa93c926024,Gumagamot Elementary School,PE and Health,2025-2026,4.0,85.0,76.5,82.5,80.0,60.0,22.5,4,88.0,0,3.0
+eeabefad31a770d9,Gumagamot Elementary School,PE and Health,2025-2026,4.0,86.0,78.0,85.0,80.0,65.0,20.0,4,89.0,0,3.0
+d27401deacb79e58,Gumagamot Elementary School,PE and Health,2025-2026,4.0,82.0,72.0,80.0,73.33,60.0,20.0,4,84.0,0,2.0
+0086d39eb461802b,Gumagamot Elementary School,PE and Health,2025-2026,4.0,90.0,84.5,85.0,83.33,87.5,4.17,4,91.0,0,1.0
+366fac050c5c8667,Gumagamot Elementary School,PE and Health,2025-2026,4.0,80.0,68.5,75.0,70.0,57.5,17.5,4,82.0,0,2.0
+87cdb2f9c64a4737,Gumagamot Elementary School,PE and Health,2025-2026,4.0,83.0,74.0,80.0,73.33,70.0,10.0,4,85.0,0,2.0
+aa94d822934c3379,Gumagamot Elementary School,PE and Health,2025-2026,4.0,86.0,78.0,82.5,76.67,77.5,5.83,4,87.0,0,1.0
+08051e2d220e159a,Gumagamot Elementary School,PE and Health,2025-2026,4.0,86.0,79.0,82.5,76.67,82.5,5.83,4,88.0,0,2.0
+a4d62a93b4b812a5,Gumagamot Elementary School,PE and Health,2025-2026,4.0,84.0,75.5,80.0,73.33,77.5,6.67,4,88.0,0,4.0
+0c9b96d9602c9a05,Gumagamot Elementary School,PE and Health,2025-2026,4.0,93.0,89.5,90.0,86.67,97.5,10.83,4,94.0,0,1.0
+40260b3a27399687,Gumagamot Elementary School,PE and Health,2025-2026,4.0,89.0,83.5,87.5,83.33,80.0,7.5,4,89.0,0,0.0
+edb4c26cf62ff6ef,Gumagamot Elementary School,PE and Health,2025-2026,4.0,82.0,72.5,80.0,73.33,62.5,17.5,4,85.0,0,3.0
+0c86239f4368c2e8,Gumagamot Elementary School,PE and Health,2025-2026,4.0,89.0,82.5,87.5,83.33,75.0,12.5,4,91.0,0,2.0
+2658d808dccf80e8,Gumagamot Elementary School,PE and Health,2025-2026,4.0,84.0,75.5,82.5,76.67,65.0,17.5,4,87.0,0,3.0
+3eda44267803a549,Gumagamot Elementary School,PE and Health,2025-2026,4.0,90.0,84.5,92.5,86.67,70.0,22.5,4,92.0,0,2.0
+dad00d49d6fcfe37,Gumagamot Elementary School,PE and Health,2025-2026,4.0,83.0,74.0,80.0,73.33,70.0,10.0,4,85.0,0,2.0
+8841e40d6b806014,Gumagamot Elementary School,PE and Health,2025-2026,4.0,91.0,86.0,90.0,86.67,80.0,10.0,4,93.0,0,2.0
+5f539f6f1808296a,Gumagamot Elementary School,PE and Health,2025-2026,4.0,90.0,84.5,90.0,83.33,82.5,7.5,4,92.0,0,2.0
+244658a55f27dccd,Gumagamot Elementary School,PE and Health,2025-2026,4.0,84.0,75.0,80.0,73.33,75.0,6.67,4,86.0,0,2.0
+d54ff9b47f0d37b7,Gumagamot Elementary School,PE and Health,2025-2026,4.0,92.0,87.5,92.5,86.67,85.0,7.5,4,94.0,0,2.0
+59abbfcc077504ff,Gumagamot Elementary School,PE and Health,2025-2026,4.0,85.0,76.5,80.0,76.67,72.5,7.5,4,87.0,0,2.0
+7ca6756d6cc39139,Gumagamot Elementary School,Mathematics,2025-2026,5.0,89.0,83.1,85.0,84.0,77.5,7.5,4,90.0,0,1.0
+521dee55fded42a1,Gumagamot Elementary School,Mathematics,2025-2026,5.0,79.0,67.7,70.0,68.0,62.5,7.5,4,82.0,0,3.0
+ee3f0a7514206a33,Gumagamot Elementary School,Mathematics,2025-2026,5.0,84.0,74.9,82.5,76.0,57.5,25.0,4,86.0,0,2.0
+e258ef76f3763348,Gumagamot Elementary School,Mathematics,2025-2026,5.0,91.0,86.6,87.5,84.0,90.0,6.0,4,91.0,0,0.0
+23fce4c826793a1b,Gumagamot Elementary School,Mathematics,2025-2026,5.0,90.0,84.5,87.5,80.0,87.5,7.5,4,90.0,0,0.0
+28d2271d77a7b637,Gumagamot Elementary School,Mathematics,2025-2026,5.0,91.0,86.6,90.0,84.0,85.0,6.0,4,93.0,0,2.0
+de429f4b4f864d74,Gumagamot Elementary School,Mathematics,2025-2026,5.0,77.0,63.8,67.5,72.0,40.0,32.0,4,81.0,0,4.0
+cff8b0165cf75418,Gumagamot Elementary School,Mathematics,2025-2026,5.0,86.0,78.0,82.5,80.0,65.0,17.5,4,89.0,0,3.0
+00890e8862b60073,Gumagamot Elementary School,Mathematics,2025-2026,5.0,86.0,77.8,77.5,72.0,90.0,18.0,4,86.0,0,0.0
+9ad0c49226fed63c,Gumagamot Elementary School,Mathematics,2025-2026,5.0,87.0,79.9,82.5,76.0,82.5,6.5,4,87.0,0,0.0
+04aa678de1155f6e,Gumagamot Elementary School,Mathematics,2025-2026,5.0,84.0,74.5,77.5,80.0,57.5,22.5,4,85.0,0,1.0
+b950ffa4bbcb6244,Gumagamot Elementary School,Mathematics,2025-2026,5.0,91.0,85.6,85.0,84.0,90.0,6.0,4,91.0,0,0.0
+cf9675cb8b487d4e,Gumagamot Elementary School,Mathematics,2025-2026,5.0,85.0,76.5,82.5,80.0,57.5,25.0,4,86.0,0,1.0
+96ca6e5fb0078f94,Gumagamot Elementary School,Mathematics,2025-2026,5.0,89.0,83.5,82.5,80.0,92.5,12.5,4,90.0,0,1.0
+6e5534c3d95cbe1d,Gumagamot Elementary School,Mathematics,2025-2026,5.0,80.0,68.0,75.0,80.0,30.0,50.0,4,81.0,0,1.0
+5c84405b23a47820,Gumagamot Elementary School,Mathematics,2025-2026,5.0,88.0,81.2,87.5,88.0,55.0,33.0,4,91.0,0,3.0
+d04552152daa2a7e,Gumagamot Elementary School,Mathematics,2025-2026,5.0,87.0,80.0,82.5,80.0,75.0,7.5,4,90.0,0,3.0
+e580e9df65e8d155,Gumagamot Elementary School,Mathematics,2025-2026,5.0,89.0,82.5,82.5,80.0,87.5,7.5,4,91.0,0,2.0
+d09d4feea375c896,Gumagamot Elementary School,Mathematics,2025-2026,5.0,87.0,79.5,82.5,80.0,72.5,10.0,4,89.0,0,2.0
+43bcb875f4c1db20,Gumagamot Elementary School,Mathematics,2025-2026,5.0,88.0,81.2,87.5,88.0,55.0,33.0,4,90.0,0,2.0
+cdc3771ce780f867,Gumagamot Elementary School,Mathematics,2025-2026,5.0,83.0,72.9,75.0,76.0,62.5,13.5,4,86.0,0,3.0
+212bea38c02748d0,Gumagamot Elementary School,Mathematics,2025-2026,5.0,92.0,88.1,92.5,84.0,87.5,8.5,4,93.0,0,1.0
+1804142407540558,Gumagamot Elementary School,Mathematics,2025-2026,5.0,88.0,81.1,85.0,84.0,67.5,17.5,4,90.0,0,2.0
+10b764cb4a7fa38b,Gumagamot Elementary School,Mathematics,2025-2026,5.0,92.0,88.6,92.5,84.0,90.0,8.5,4,94.0,0,2.0
+d8e202ab89dc43f4,Gumagamot Elementary School,Mathematics,2025-2026,5.0,89.0,83.7,92.5,88.0,57.5,35.0,4,91.0,0,2.0
+6aa89dfd8d75f87e,Gumagamot Elementary School,Mathematics,2025-2026,5.0,86.0,77.6,87.5,84.0,45.0,42.5,4,88.0,0,2.0
+8dcab53278a5ef32,Gumagamot Elementary School,Mathematics,2025-2026,5.0,83.0,72.8,80.0,72.0,60.0,20.0,4,87.0,0,4.0
+7ca6756d6cc39139,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,88.0,81.0,87.5,80.0,77.5,10.0,4,89.0,0,1.0
+521dee55fded42a1,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,86.0,79.0,77.5,80.0,77.5,2.5,4,87.0,0,1.0
+ee3f0a7514206a33,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,87.0,79.5,87.5,80.0,70.0,17.5,4,88.0,0,1.0
+e258ef76f3763348,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,89.0,83.5,87.5,80.0,90.0,10.0,4,90.0,0,1.0
+23fce4c826793a1b,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,89.0,82.5,87.5,80.0,85.0,7.5,4,90.0,0,1.0
+28d2271d77a7b637,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,91.0,86.0,90.0,85.0,85.0,5.0,4,92.0,0,1.0
+de429f4b4f864d74,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,79.0,67.5,75.0,65.0,67.5,10.0,4,85.0,0,6.0
+cff8b0165cf75418,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,87.0,80.0,82.5,80.0,77.5,5.0,4,89.0,0,2.0
+00890e8862b60073,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,88.0,82.0,87.5,80.0,82.5,7.5,4,89.0,0,1.0
+9ad0c49226fed63c,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,87.0,80.5,87.5,80.0,75.0,12.5,4,88.0,0,1.0
+04aa678de1155f6e,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,86.0,78.0,87.5,80.0,62.5,25.0,4,88.0,0,2.0
+b950ffa4bbcb6244,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,91.0,86.5,90.0,85.0,87.5,5.0,4,92.0,0,1.0
+cf9675cb8b487d4e,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,88.0,82.0,87.5,80.0,82.5,7.5,4,89.0,0,1.0
+96ca6e5fb0078f94,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,89.0,83.5,87.5,80.0,90.0,10.0,4,91.0,0,2.0
+6e5534c3d95cbe1d,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,83.0,74.0,80.0,70.0,80.0,10.0,4,84.0,0,1.0
+5c84405b23a47820,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,91.0,86.5,90.0,85.0,87.5,5.0,4,92.0,0,1.0
+d04552152daa2a7e,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,90.0,85.0,87.5,85.0,82.5,5.0,4,92.0,0,2.0
+e580e9df65e8d155,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,88.0,81.5,85.0,80.0,82.5,5.0,4,90.0,0,2.0
+d09d4feea375c896,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,89.0,82.5,87.5,80.0,85.0,7.5,4,89.0,0,0.0
+43bcb875f4c1db20,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,89.0,82.5,87.5,80.0,85.0,7.5,4,91.0,0,2.0
+cdc3771ce780f867,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,88.0,81.5,85.0,80.0,82.5,5.0,4,92.0,0,4.0
+212bea38c02748d0,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,89.0,83.5,90.0,80.0,87.5,10.0,4,93.0,0,4.0
+1804142407540558,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,89.0,82.5,85.0,80.0,87.5,7.5,4,93.0,0,4.0
+10b764cb4a7fa38b,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,90.0,85.5,87.5,85.0,85.0,2.5,4,93.0,0,3.0
+d8e202ab89dc43f4,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,90.0,85.5,87.5,85.0,85.0,2.5,4,92.0,0,2.0
+6aa89dfd8d75f87e,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,89.0,83.0,80.0,85.0,80.0,5.0,4,90.0,0,1.0
+8dcab53278a5ef32,Gumagamot Elementary School,Music and Arts,2025-2026,5.0,86.0,79.0,77.5,80.0,77.5,2.5,4,86.0,0,0.0
+7ca6756d6cc39139,Gumagamot Elementary School,PE and Health,2025-2026,5.0,88.0,81.0,87.5,80.0,77.5,10.0,4,90.0,0,2.0
+521dee55fded42a1,Gumagamot Elementary School,PE and Health,2025-2026,5.0,86.0,79.0,77.5,80.0,77.5,2.5,4,88.0,0,2.0
+ee3f0a7514206a33,Gumagamot Elementary School,PE and Health,2025-2026,5.0,87.0,79.5,87.5,80.0,70.0,17.5,4,89.0,0,2.0
+e258ef76f3763348,Gumagamot Elementary School,PE and Health,2025-2026,5.0,89.0,83.5,87.5,80.0,90.0,10.0,4,91.0,0,2.0
+23fce4c826793a1b,Gumagamot Elementary School,PE and Health,2025-2026,5.0,89.0,82.5,87.5,80.0,85.0,7.5,4,90.0,0,1.0
+28d2271d77a7b637,Gumagamot Elementary School,PE and Health,2025-2026,5.0,89.0,83.0,90.0,80.0,85.0,10.0,4,92.0,0,3.0
+de429f4b4f864d74,Gumagamot Elementary School,PE and Health,2025-2026,5.0,79.0,67.0,72.5,65.0,67.5,7.5,4,85.0,0,6.0
+cff8b0165cf75418,Gumagamot Elementary School,PE and Health,2025-2026,5.0,88.0,81.0,87.5,80.0,77.5,10.0,4,90.0,0,2.0
+00890e8862b60073,Gumagamot Elementary School,PE and Health,2025-2026,5.0,88.0,82.0,87.5,80.0,82.5,7.5,4,89.0,0,1.0
+9ad0c49226fed63c,Gumagamot Elementary School,PE and Health,2025-2026,5.0,87.0,80.5,87.5,80.0,75.0,12.5,4,88.0,0,1.0
+04aa678de1155f6e,Gumagamot Elementary School,PE and Health,2025-2026,5.0,86.0,78.0,87.5,80.0,62.5,25.0,4,88.0,0,2.0
+b950ffa4bbcb6244,Gumagamot Elementary School,PE and Health,2025-2026,5.0,89.0,83.5,90.0,80.0,87.5,10.0,4,91.0,0,2.0
+cf9675cb8b487d4e,Gumagamot Elementary School,PE and Health,2025-2026,5.0,88.0,82.0,87.5,80.0,82.5,7.5,4,89.0,0,1.0
+96ca6e5fb0078f94,Gumagamot Elementary School,PE and Health,2025-2026,5.0,89.0,83.5,87.5,80.0,90.0,10.0,4,91.0,0,2.0
+6e5534c3d95cbe1d,Gumagamot Elementary School,PE and Health,2025-2026,5.0,85.0,77.0,80.0,75.0,80.0,5.0,4,84.0,0,-1.0
+5c84405b23a47820,Gumagamot Elementary School,PE and Health,2025-2026,5.0,89.0,82.5,85.0,80.0,87.5,7.5,4,91.0,0,2.0
+d04552152daa2a7e,Gumagamot Elementary School,PE and Health,2025-2026,5.0,91.0,86.0,92.5,85.0,82.5,10.0,4,93.0,0,2.0
+e580e9df65e8d155,Gumagamot Elementary School,PE and Health,2025-2026,5.0,90.0,84.5,85.0,85.0,82.5,2.5,4,91.0,0,1.0
+d09d4feea375c896,Gumagamot Elementary School,PE and Health,2025-2026,5.0,88.0,82.0,85.0,80.0,85.0,5.0,4,89.0,0,1.0
+43bcb875f4c1db20,Gumagamot Elementary School,PE and Health,2025-2026,5.0,90.0,85.5,87.5,85.0,85.0,2.5,4,92.0,0,2.0
+cdc3771ce780f867,Gumagamot Elementary School,PE and Health,2025-2026,5.0,88.0,81.5,85.0,80.0,82.5,5.0,4,92.0,0,4.0
+212bea38c02748d0,Gumagamot Elementary School,PE and Health,2025-2026,5.0,91.0,86.5,90.0,85.0,87.5,5.0,4,94.0,0,3.0
+1804142407540558,Gumagamot Elementary School,PE and Health,2025-2026,5.0,89.0,83.0,87.5,80.0,87.5,7.5,4,93.0,0,4.0
+10b764cb4a7fa38b,Gumagamot Elementary School,PE and Health,2025-2026,5.0,90.0,85.5,87.5,85.0,85.0,2.5,4,93.0,0,3.0
+d8e202ab89dc43f4,Gumagamot Elementary School,PE and Health,2025-2026,5.0,90.0,85.5,87.5,85.0,85.0,2.5,4,92.0,0,2.0
+6aa89dfd8d75f87e,Gumagamot Elementary School,PE and Health,2025-2026,5.0,89.0,83.0,80.0,85.0,80.0,5.0,4,89.0,0,0.0
+8dcab53278a5ef32,Gumagamot Elementary School,PE and Health,2025-2026,5.0,88.0,81.0,77.5,85.0,72.5,12.5,4,87.0,0,-1.0
+24ab93ffa0567489,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,90.0,85.0,80.0,85.0,90.0,10.0,4,91.0,0,1.0
+2b55cae2d97d2d3b,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,89.0,83.5,75.0,85.0,87.5,12.5,4,89.0,0,0.0
+830293841a613162,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,86.0,78.5,75.0,80.0,77.5,5.0,4,87.0,0,1.0
+f267e5c31b6791fa,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,91.0,86.0,80.0,85.0,95.0,15.0,4,92.0,0,1.0
+f20a3d072d962104,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,90.0,84.0,75.0,85.0,90.0,15.0,4,90.0,0,0.0
+54b9922ca6216cf7,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,85.0,76.0,75.0,80.0,65.0,15.0,4,86.0,0,1.0
+67eae0356428dcc9,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,90.0,85.0,75.0,85.0,95.0,20.0,4,91.0,0,1.0
+11e53995a373e8e0,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,91.0,86.0,80.0,85.0,95.0,15.0,4,92.0,0,1.0
+ff37e10e48236bd8,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,88.0,82.0,75.0,85.0,80.0,10.0,4,89.0,0,1.0
+1ca470a08529ed9c,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,84.0,75.5,75.0,80.0,62.5,17.5,4,85.0,0,1.0
+09fafcc1ba87ed6a,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,82.0,71.5,75.0,80.0,42.5,37.5,4,85.0,0,3.0
+411d34dd9d7277d0,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,87.0,80.5,75.0,80.0,87.5,12.5,4,90.0,0,3.0
+c7c943b230ac6455,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,81.0,70.0,75.0,80.0,35.0,45.0,4,85.0,0,4.0
+ac973c01f2531d37,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,91.0,86.5,80.0,90.0,82.5,10.0,4,91.0,0,0.0
+6b3eacaaf76eda7b,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,90.0,84.5,75.0,85.0,92.5,17.5,4,91.0,0,1.0
+ff3c020980dc777b,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,80.0,68.5,75.0,80.0,27.5,52.5,4,84.0,0,4.0
+7df4093274957f0a,Gumagamot Elementary School,MAPEH - Arts,2025-2026,6.0,91.0,86.5,80.0,85.0,97.5,17.5,4,92.0,0,1.0
+24ab93ffa0567489,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,92.0,88.0,95.0,85.0,90.0,10.0,4,91.0,0,-1.0
+2b55cae2d97d2d3b,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,89.0,83.5,90.0,80.0,87.5,10.0,4,89.0,0,0.0
+830293841a613162,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,87.0,80.5,85.0,80.0,77.5,7.5,4,88.0,0,1.0
+f267e5c31b6791fa,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,90.0,85.0,90.0,80.0,95.0,15.0,4,92.0,0,2.0
+f20a3d072d962104,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,90.0,84.0,90.0,80.0,90.0,10.0,4,91.0,0,1.0
+54b9922ca6216cf7,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,86.0,78.0,85.0,80.0,65.0,20.0,4,87.0,0,1.0
+67eae0356428dcc9,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,90.0,85.0,90.0,80.0,95.0,15.0,4,91.0,0,1.0
+11e53995a373e8e0,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,91.0,86.0,95.0,80.0,95.0,15.0,4,92.0,0,1.0
+ff37e10e48236bd8,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,88.0,82.0,90.0,80.0,80.0,10.0,4,89.0,0,1.0
+1ca470a08529ed9c,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,85.0,77.5,85.0,80.0,62.5,22.5,4,86.0,0,1.0
+09fafcc1ba87ed6a,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,83.0,73.5,85.0,80.0,42.5,42.5,4,86.0,0,3.0
+411d34dd9d7277d0,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,89.0,82.5,85.0,80.0,87.5,7.5,4,90.0,0,1.0
+c7c943b230ac6455,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,82.0,72.0,85.0,80.0,35.0,50.0,4,86.0,0,4.0
+ac973c01f2531d37,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,91.0,86.5,95.0,85.0,82.5,12.5,4,92.0,0,1.0
+6b3eacaaf76eda7b,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,90.0,84.5,90.0,80.0,92.5,12.5,4,92.0,0,2.0
+ff3c020980dc777b,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,81.0,70.5,85.0,80.0,27.5,57.5,4,85.0,0,4.0
+7df4093274957f0a,Gumagamot Elementary School,MAPEH - Health,2025-2026,6.0,91.0,86.5,95.0,80.0,97.5,17.5,4,93.0,0,2.0
+24ab93ffa0567489,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,91.0,87.0,90.0,85.0,90.0,5.0,4,91.0,0,0.0
+2b55cae2d97d2d3b,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,89.0,82.5,85.0,80.0,87.5,7.5,4,90.0,0,1.0
+830293841a613162,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,87.0,79.5,80.0,80.0,77.5,2.5,4,87.0,0,0.0
+f267e5c31b6791fa,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,91.0,87.0,85.0,85.0,95.0,10.0,4,92.0,0,1.0
+f20a3d072d962104,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,89.0,83.0,85.0,80.0,90.0,10.0,4,90.0,0,1.0
+54b9922ca6216cf7,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,85.0,77.0,80.0,80.0,65.0,15.0,4,86.0,0,1.0
+67eae0356428dcc9,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,90.0,84.0,85.0,80.0,95.0,15.0,4,91.0,0,1.0
+11e53995a373e8e0,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,92.0,88.0,90.0,85.0,95.0,10.0,4,92.0,0,0.0
+ff37e10e48236bd8,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,88.0,81.0,85.0,80.0,80.0,5.0,4,88.0,0,0.0
+1ca470a08529ed9c,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,85.0,76.5,80.0,80.0,62.5,17.5,4,85.0,0,0.0
+09fafcc1ba87ed6a,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,82.0,72.5,80.0,80.0,42.5,37.5,4,85.0,0,3.0
+411d34dd9d7277d0,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,88.0,81.5,80.0,80.0,87.5,7.5,4,90.0,0,2.0
+c7c943b230ac6455,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,81.0,71.0,80.0,80.0,35.0,45.0,4,84.0,0,3.0
+ac973c01f2531d37,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,91.0,86.5,95.0,85.0,82.5,12.5,4,91.0,0,0.0
+6b3eacaaf76eda7b,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,89.0,83.5,85.0,80.0,92.5,12.5,4,91.0,0,2.0
+ff3c020980dc777b,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,80.0,69.5,80.0,80.0,27.5,52.5,4,84.0,0,4.0
+7df4093274957f0a,Gumagamot Elementary School,MAPEH - Music,2025-2026,6.0,92.0,88.5,90.0,85.0,97.5,12.5,4,92.0,0,0.0
+24ab93ffa0567489,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,91.0,87.0,90.0,85.0,90.0,5.0,4,91.0,0,0.0
+2b55cae2d97d2d3b,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,89.0,82.5,85.0,80.0,87.5,7.5,4,89.0,0,0.0
+830293841a613162,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,87.0,79.5,80.0,80.0,77.5,2.5,4,88.0,0,1.0
+f267e5c31b6791fa,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,90.0,84.0,85.0,80.0,95.0,15.0,4,91.0,0,1.0
+f20a3d072d962104,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,89.0,83.0,85.0,80.0,90.0,10.0,4,90.0,0,1.0
+54b9922ca6216cf7,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,85.0,77.0,80.0,80.0,65.0,15.0,4,87.0,0,2.0
+67eae0356428dcc9,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,90.0,84.0,85.0,80.0,95.0,15.0,4,91.0,0,1.0
+11e53995a373e8e0,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,90.0,84.0,85.0,80.0,95.0,15.0,4,91.0,0,1.0
+ff37e10e48236bd8,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,88.0,81.0,85.0,80.0,80.0,5.0,4,88.0,0,0.0
+1ca470a08529ed9c,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,85.0,76.5,80.0,80.0,62.5,17.5,4,86.0,0,1.0
+09fafcc1ba87ed6a,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,82.0,72.5,80.0,80.0,42.5,37.5,4,85.0,0,3.0
+411d34dd9d7277d0,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,88.0,81.5,80.0,80.0,87.5,7.5,4,90.0,0,2.0
+c7c943b230ac6455,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,81.0,71.0,80.0,80.0,35.0,45.0,4,85.0,0,4.0
+ac973c01f2531d37,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,90.0,85.5,90.0,85.0,82.5,7.5,4,91.0,0,1.0
+6b3eacaaf76eda7b,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,89.0,83.5,85.0,80.0,92.5,12.5,4,91.0,0,2.0
+ff3c020980dc777b,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,80.0,69.5,80.0,80.0,27.5,52.5,4,85.0,0,5.0
+7df4093274957f0a,Gumagamot Elementary School,MAPEH - PE,2025-2026,6.0,90.0,84.5,85.0,80.0,97.5,17.5,4,92.0,0,2.0
+24ab93ffa0567489,Gumagamot Elementary School,Mathematics,2025-2026,6.0,91.0,87.0,92.5,85.0,80.0,12.5,4,91.0,0,0.0
+2b55cae2d97d2d3b,Gumagamot Elementary School,Mathematics,2025-2026,6.0,87.0,80.5,87.5,75.0,77.5,12.5,4,88.0,0,1.0
+830293841a613162,Gumagamot Elementary School,Mathematics,2025-2026,6.0,85.0,76.5,85.0,75.0,62.5,22.5,4,85.0,0,0.0
+f267e5c31b6791fa,Gumagamot Elementary School,Mathematics,2025-2026,6.0,90.0,85.0,90.0,85.0,75.0,15.0,4,92.0,0,2.0
+f20a3d072d962104,Gumagamot Elementary School,Mathematics,2025-2026,6.0,89.0,82.5,87.5,80.0,77.5,10.0,4,90.0,0,1.0
+54b9922ca6216cf7,Gumagamot Elementary School,Mathematics,2025-2026,6.0,84.0,74.5,85.0,75.0,52.5,32.5,4,85.0,0,1.0
+67eae0356428dcc9,Gumagamot Elementary School,Mathematics,2025-2026,6.0,91.0,86.0,90.0,85.0,80.0,10.0,4,93.0,0,2.0
+11e53995a373e8e0,Gumagamot Elementary School,Mathematics,2025-2026,6.0,91.0,87.0,90.0,85.0,85.0,5.0,4,92.0,0,1.0
+ff37e10e48236bd8,Gumagamot Elementary School,Mathematics,2025-2026,6.0,85.0,76.5,85.0,75.0,62.5,22.5,4,87.0,0,2.0
+1ca470a08529ed9c,Gumagamot Elementary School,Mathematics,2025-2026,6.0,85.0,76.0,85.0,75.0,60.0,25.0,4,85.0,0,0.0
+09fafcc1ba87ed6a,Gumagamot Elementary School,Mathematics,2025-2026,6.0,84.0,75.5,85.0,75.0,57.5,27.5,4,85.0,0,1.0
+411d34dd9d7277d0,Gumagamot Elementary School,Mathematics,2025-2026,6.0,89.0,82.5,87.5,80.0,77.5,10.0,4,90.0,0,1.0
+c7c943b230ac6455,Gumagamot Elementary School,Mathematics,2025-2026,6.0,84.0,75.5,85.0,75.0,57.5,27.5,4,86.0,0,2.0
+ac973c01f2531d37,Gumagamot Elementary School,Mathematics,2025-2026,6.0,90.0,84.5,90.0,85.0,72.5,17.5,4,91.0,0,1.0
+6b3eacaaf76eda7b,Gumagamot Elementary School,Mathematics,2025-2026,6.0,89.0,83.5,87.5,80.0,82.5,7.5,4,91.0,0,2.0
+ff3c020980dc777b,Gumagamot Elementary School,Mathematics,2025-2026,6.0,83.0,73.0,85.0,75.0,45.0,40.0,4,85.0,0,2.0
+7df4093274957f0a,Gumagamot Elementary School,Mathematics,2025-2026,6.0,90.0,85.0,90.0,85.0,75.0,15.0,4,92.0,0,2.0
+05dc4116621953d4,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,83.0,73.55,55.0,88.75,63.33,33.75,2,84.0,0,1.0
+75d5e47e0796687b,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,85.0,77.33,65.0,85.0,76.67,20.0,4,87.0,0,2.0
+8f446eea8bea2b9f,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,90.0,84.92,90.0,82.5,83.33,7.5,4,90.0,0,0.0
+7dc49501a6011ee9,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,85.0,76.96,60.0,91.25,66.67,31.25,4,85.0,0,0.0
+1db08a75690263f5,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,83.0,73.55,55.0,88.75,63.33,33.75,4,85.0,0,2.0
+d2ce016c91c98192,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,84.0,75.63,57.5,88.75,70.0,31.25,4,84.0,0,0.0
+4f8fce721ae3272b,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,85.0,76.38,70.0,78.75,80.0,10.0,4,84.0,0,-1.0
+358901e076cee5a7,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,85.0,76.5,62.5,87.5,70.0,25.0,4,87.0,0,2.0
+6f9da190f7298122,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,84.0,75.75,60.0,87.5,70.0,27.5,2,84.0,0,0.0
+87ebc79f5c56c452,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,83.0,74.33,45.0,95.0,66.67,50.0,4,83.0,0,0.0
+6354e0b494c6243b,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,91.0,85.63,80.0,91.25,80.0,11.25,4,92.0,0,1.0
+54001184b3a47a06,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,83.0,73.3,50.0,91.25,63.33,41.25,4,84.0,0,1.0
+ab477d24e3b2a877,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,84.0,75.13,60.0,86.25,70.0,26.25,4,90.0,0,6.0
+5836d083cc63cb14,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,90.0,84.75,87.5,85.0,80.0,7.5,4,91.0,0,1.0
+17f464d0aac6aa8a,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,84.0,74.55,62.5,86.25,63.33,23.75,4,88.0,0,4.0
+7658275ab08819a2,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,80.0,69.42,47.5,85.0,63.33,37.5,4,80.0,0,0.0
+0b3e76fffece9fda,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,85.0,77.55,70.0,83.75,73.33,13.75,4,89.0,0,4.0
+55425bc961ed5f9c,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,84.0,75.0,70.0,80.0,70.0,10.0,4,89.0,0,5.0
+1745d2dc08a1267e,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,1.0,83.0,73.83,60.0,85.0,66.67,25.0,4,84.0,0,1.0
+05dc4116621953d4,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,81.0,70.0,70.0,70.0,70.0,0.0,2,82.0,0,1.0
+75d5e47e0796687b,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,84.0,75.5,77.5,72.5,80.0,7.5,4,87.0,0,3.0
+8f446eea8bea2b9f,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,89.0,83.83,95.0,80.0,76.67,18.33,4,89.0,0,0.0
+7dc49501a6011ee9,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,84.0,75.21,62.5,86.25,66.67,23.75,4,81.0,0,-3.0
+1db08a75690263f5,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,82.0,71.8,57.5,83.75,63.33,26.25,4,83.0,0,1.0
+d2ce016c91c98192,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,83.0,74.25,55.0,87.5,70.0,32.5,4,83.0,0,0.0
+4f8fce721ae3272b,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,84.0,75.08,70.0,77.5,76.67,7.5,4,83.0,0,-1.0
+358901e076cee5a7,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,83.0,73.92,60.0,82.5,73.33,22.5,4,85.0,0,2.0
+6f9da190f7298122,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,83.0,73.67,55.0,85.0,73.33,30.0,2,82.0,0,-1.0
+87ebc79f5c56c452,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,82.0,72.3,55.0,86.25,63.33,31.25,4,83.0,0,1.0
+6354e0b494c6243b,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,88.0,82.25,87.5,80.0,80.0,7.5,4,91.0,0,3.0
+54001184b3a47a06,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,80.0,69.55,65.0,78.75,53.33,25.42,4,80.0,0,0.0
+ab477d24e3b2a877,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,84.0,74.8,70.0,86.25,53.33,32.92,4,88.0,0,4.0
+5836d083cc63cb14,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,88.0,82.21,87.5,81.25,76.67,10.83,4,91.0,0,3.0
+17f464d0aac6aa8a,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,84.0,75.3,65.0,86.25,63.33,22.92,4,87.0,0,3.0
+7658275ab08819a2,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,83.0,73.17,60.0,85.0,63.33,25.0,4,80.0,0,-3.0
+0b3e76fffece9fda,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,84.0,74.88,70.0,83.75,60.0,23.75,4,88.0,0,4.0
+55425bc961ed5f9c,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,84.0,75.58,67.5,80.0,76.67,12.5,4,87.0,0,3.0
+1745d2dc08a1267e,Deogracias U. Tenazas Memorial Elementary School,Language,2025-2026,1.0,83.0,73.5,50.0,85.0,80.0,35.0,4,83.0,0,0.0
+05dc4116621953d4,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,82.0,72.08,75.0,72.5,66.67,8.33,2,82.0,0,0.0
+75d5e47e0796687b,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,85.0,77.46,82.5,78.75,66.67,15.83,4,85.0,0,0.0
+8f446eea8bea2b9f,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,89.0,83.0,90.0,80.0,80.0,10.0,4,90.0,0,1.0
+7dc49501a6011ee9,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,83.0,72.96,55.0,86.25,66.67,31.25,4,81.0,0,-2.0
+1db08a75690263f5,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,81.0,71.05,55.0,83.75,63.33,28.75,4,83.0,0,2.0
+d2ce016c91c98192,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,82.0,71.58,55.0,87.5,56.67,32.5,4,83.0,0,1.0
+4f8fce721ae3272b,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,84.0,75.75,70.0,77.5,80.0,10.0,4,83.0,0,-1.0
+358901e076cee5a7,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,84.0,74.67,62.5,82.5,73.33,20.0,4,84.0,0,0.0
+6f9da190f7298122,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,84.0,75.17,60.0,85.0,73.33,25.0,2,83.0,0,-1.0
+87ebc79f5c56c452,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,81.0,70.71,47.5,86.25,66.67,38.75,4,82.0,0,1.0
+6354e0b494c6243b,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,90.0,84.3,92.5,83.75,73.33,19.17,4,92.0,0,2.0
+54001184b3a47a06,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,81.0,70.0,60.0,80.0,60.0,20.0,4,82.0,0,1.0
+ab477d24e3b2a877,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,85.0,76.05,67.5,86.25,63.33,22.92,4,88.0,0,3.0
+5836d083cc63cb14,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,88.0,82.33,90.0,80.0,76.67,13.33,4,89.0,0,1.0
+17f464d0aac6aa8a,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,84.0,74.46,60.0,86.25,66.67,26.25,4,87.0,0,3.0
+7658275ab08819a2,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,81.0,70.08,47.5,85.0,66.67,37.5,4,78.0,0,-3.0
+0b3e76fffece9fda,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,85.0,76.3,72.5,83.75,63.33,20.42,4,86.0,0,1.0
+55425bc961ed5f9c,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,84.0,75.58,67.5,80.0,76.67,12.5,4,86.0,0,2.0
+1745d2dc08a1267e,Deogracias U. Tenazas Memorial Elementary School,Makabansa,2025-2026,1.0,83.0,73.33,65.0,85.0,56.67,28.33,4,84.0,0,1.0
+05dc4116621953d4,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,82.0,72.5,57.5,88.75,70.0,31.25,2,82.0,0,0.0
+75d5e47e0796687b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,85.0,76.0,65.0,85.0,80.0,20.0,4,85.0,0,0.0
+8f446eea8bea2b9f,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,89.0,83.67,95.0,82.5,63.33,31.67,4,90.0,0,1.0
+7dc49501a6011ee9,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,84.0,75.17,65.0,91.25,63.33,27.92,4,80.0,0,-4.0
+1db08a75690263f5,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,80.0,69.5,55.0,88.75,60.0,33.75,4,83.0,0,3.0
+d2ce016c91c98192,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,83.0,72.83,60.0,88.75,66.67,28.75,4,83.0,0,0.0
+4f8fce721ae3272b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,84.0,74.83,70.0,78.75,76.67,8.75,4,83.0,0,-1.0
+358901e076cee5a7,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,85.0,76.33,70.0,87.5,66.67,20.83,4,84.0,0,-1.0
+6f9da190f7298122,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,83.0,74.33,60.0,87.5,76.67,27.5,2,83.0,0,0.0
+87ebc79f5c56c452,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,80.0,69.33,45.0,95.0,66.67,50.0,4,81.0,0,1.0
+6354e0b494c6243b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,89.0,83.17,80.0,91.25,73.33,17.92,4,90.0,0,1.0
+54001184b3a47a06,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,80.0,69.17,50.0,91.25,63.33,41.25,4,80.0,0,0.0
+ab477d24e3b2a877,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,85.0,77.5,75.0,88.75,60.0,28.75,4,87.0,0,2.0
+5836d083cc63cb14,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,88.0,82.33,85.0,82.5,76.67,8.33,4,89.0,0,1.0
+17f464d0aac6aa8a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,85.0,76.33,75.0,82.5,66.67,15.83,4,86.0,0,1.0
+7658275ab08819a2,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,80.0,68.83,47.5,91.25,66.67,43.75,4,79.0,0,-1.0
+0b3e76fffece9fda,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,84.0,74.83,65.0,88.75,66.67,23.75,4,86.0,0,2.0
+55425bc961ed5f9c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,85.0,77.17,72.5,88.75,63.33,25.42,4,88.0,0,3.0
+1745d2dc08a1267e,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,1.0,81.0,70.83,67.5,81.25,56.67,24.58,4,82.0,0,1.0
+05dc4116621953d4,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,82.0,72.05,50.0,88.75,63.33,38.75,2,82.0,0,0.0
+75d5e47e0796687b,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,83.0,73.83,60.0,85.0,66.67,25.0,4,86.0,0,3.0
+8f446eea8bea2b9f,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,89.0,82.75,85.0,82.5,80.0,5.0,4,92.0,0,3.0
+7dc49501a6011ee9,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,84.0,74.71,52.5,91.25,66.67,38.75,4,81.0,0,-3.0
+1db08a75690263f5,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,83.0,73.55,55.0,88.75,63.33,33.75,4,83.0,0,0.0
+d2ce016c91c98192,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,84.0,75.05,60.0,88.75,63.33,28.75,4,83.0,0,-1.0
+4f8fce721ae3272b,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,84.0,75.71,70.0,78.75,76.67,8.75,4,83.0,0,-1.0
+358901e076cee5a7,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,84.0,75.75,60.0,87.5,70.0,27.5,4,85.0,0,1.0
+6f9da190f7298122,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,83.0,72.92,55.0,87.5,63.33,32.5,2,82.0,0,-1.0
+87ebc79f5c56c452,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,83.0,74.33,45.0,95.0,66.67,50.0,4,84.0,0,1.0
+6354e0b494c6243b,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,89.0,83.42,72.5,90.0,83.33,17.5,4,92.0,0,3.0
+54001184b3a47a06,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,82.0,71.83,72.5,77.5,56.67,20.83,4,81.0,0,-1.0
+ab477d24e3b2a877,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,83.0,72.88,55.0,88.75,60.0,33.75,4,88.0,0,5.0
+5836d083cc63cb14,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,88.0,81.83,80.0,85.0,76.67,8.33,4,90.0,0,2.0
+17f464d0aac6aa8a,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,84.0,74.92,70.0,82.5,63.33,19.17,4,86.0,0,2.0
+7658275ab08819a2,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,82.0,72.55,47.5,91.25,63.33,43.75,4,79.0,0,-3.0
+0b3e76fffece9fda,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,84.0,74.96,57.5,88.75,66.67,31.25,4,85.0,0,1.0
+55425bc961ed5f9c,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,83.0,73.55,55.0,88.75,63.33,33.75,4,85.0,0,2.0
+1745d2dc08a1267e,Deogracias U. Tenazas Memorial Elementary School,Reading,2025-2026,1.0,82.0,72.21,67.5,81.25,56.67,24.58,4,83.0,0,1.0
+aa9326b91a880997,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,91.0,86.0,80.0,90.0,90.0,10.0,4,92.0,0,1.0
+daa144be2f7959f7,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,90.0,84.53,82.0,86.0,86.67,4.67,4,91.0,0,1.0
+2c8ad2be319b4756,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,87.0,79.87,78.0,80.0,83.33,5.33,4,86.0,0,-1.0
+a9f115aa19b1c271,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,85.0,77.33,76.0,74.0,86.67,12.67,4,86.0,0,1.0
+b7b2981764db206c,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,84.0,74.4,62.0,84.0,80.0,22.0,4,82.0,0,-2.0
+760133333a2193f4,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,80.0,68.0,62.0,68.0,80.0,18.0,4,81.0,0,1.0
+fd0afa68348be411,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,65.0,21.2,10.0,18.0,50.0,40.0,4,65.0,1,0.0
+6aeda7377094900d,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,92.0,88.4,86.0,90.0,90.0,4.0,4,93.0,0,1.0
+fd4df602e5afb967,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,85.0,77.47,76.0,76.0,83.33,7.33,4,86.0,0,1.0
+10b850660109cab1,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,89.0,82.93,78.0,86.0,86.67,8.67,4,90.0,0,1.0
+0572c21876a97bc0,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,84.0,75.87,80.0,68.0,83.33,15.33,4,85.0,0,1.0
+7af8321b551ab1fc,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,90.0,85.33,86.0,84.0,86.67,2.67,3,91.0,0,1.0
+e9c22a9fcf47634b,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,90.0,84.67,80.0,90.0,83.33,10.0,3,90.0,0,0.0
+927e726e1981132a,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,85.0,76.13,80.0,72.0,76.67,8.0,3,85.0,0,0.0
+c63b9e2884ea5275,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,83.0,73.73,72.0,74.0,76.67,4.67,3,82.0,0,-1.0
+81e022f4b988f3f8,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,90.0,84.67,84.0,86.0,83.33,2.67,3,90.0,0,0.0
+e67ff58e5e125873,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,90.0,84.67,88.0,82.0,83.33,6.0,3,89.0,0,-1.0
+43a193287730e89f,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,90.0,84.67,80.0,90.0,83.33,10.0,3,90.0,0,0.0
+4a697841d7490ff7,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,90.0,85.33,80.0,90.0,86.67,10.0,3,90.0,0,0.0
+6c21e063fdc87018,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,85.0,76.8,76.0,76.0,80.0,4.0,3,85.0,0,0.0
+be83e2e6f2dd1df1,Deogracias U. Tenazas Memorial Elementary School,Araling Panlipunan,2025-2026,3.0,83.0,72.8,66.0,76.0,80.0,14.0,3,84.0,0,1.0
+aa9326b91a880997,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,90.0,85.47,88.0,84.0,83.33,4.67,4,92.0,0,2.0
+daa144be2f7959f7,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,90.0,85.33,86.0,84.0,86.67,2.67,4,91.0,0,1.0
+2c8ad2be319b4756,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,83.0,73.47,68.0,74.0,83.33,15.33,4,86.0,0,3.0
+a9f115aa19b1c271,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,85.0,77.33,76.0,74.0,86.67,12.67,4,87.0,0,2.0
+b7b2981764db206c,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,82.0,72.0,62.0,78.0,80.0,18.0,4,82.0,0,0.0
+760133333a2193f4,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,80.0,68.0,62.0,68.0,80.0,18.0,4,81.0,0,1.0
+fd0afa68348be411,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,66.0,26.8,20.0,22.0,50.0,30.0,4,66.0,1,0.0
+6aeda7377094900d,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,90.0,85.2,84.0,84.0,90.0,6.0,4,93.0,0,3.0
+fd4df602e5afb967,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,85.0,77.47,76.0,76.0,83.33,7.33,4,86.0,0,1.0
+10b850660109cab1,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,88.0,82.13,78.0,84.0,86.67,8.67,4,89.0,0,1.0
+0572c21876a97bc0,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,82.0,71.87,70.0,68.0,83.33,15.33,4,85.0,0,3.0
+7af8321b551ab1fc,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,89.0,83.73,82.0,84.0,86.67,4.67,4,91.0,0,2.0
+e9c22a9fcf47634b,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,88.0,81.47,72.0,90.0,83.33,18.0,4,90.0,0,2.0
+927e726e1981132a,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,82.0,72.13,70.0,72.0,76.67,6.67,4,84.0,0,2.0
+c63b9e2884ea5275,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,81.0,69.73,62.0,74.0,76.67,14.67,4,82.0,0,1.0
+81e022f4b988f3f8,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,89.0,83.87,82.0,86.0,83.33,4.0,4,91.0,0,2.0
+e67ff58e5e125873,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,85.0,76.67,78.0,72.0,83.33,11.33,4,88.0,0,3.0
+43a193287730e89f,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,87.0,80.67,80.0,80.0,83.33,3.33,4,90.0,0,3.0
+4a697841d7490ff7,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,88.0,81.33,80.0,80.0,86.67,6.67,4,90.0,0,2.0
+6c21e063fdc87018,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,85.0,76.8,76.0,76.0,80.0,4.0,4,86.0,0,1.0
+be83e2e6f2dd1df1,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,3.0,83.0,72.8,66.0,76.0,80.0,14.0,4,84.0,0,1.0
+aa9326b91a880997,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,92.0,88.4,80.0,96.0,90.0,16.0,4,92.0,0,0.0
+daa144be2f7959f7,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,86.0,78.93,76.0,78.0,86.67,10.67,4,90.0,0,4.0
+2c8ad2be319b4756,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,83.0,73.47,68.0,74.0,83.33,15.33,4,85.0,0,2.0
+a9f115aa19b1c271,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,85.0,77.33,76.0,74.0,86.67,12.67,4,86.0,0,1.0
+b7b2981764db206c,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,82.0,72.0,62.0,78.0,80.0,18.0,4,82.0,0,0.0
+760133333a2193f4,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,80.0,68.0,62.0,68.0,80.0,18.0,4,81.0,0,1.0
+fd0afa68348be411,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,66.0,27.6,22.0,22.0,50.0,28.0,4,65.0,1,-1.0
+6aeda7377094900d,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,93.0,90.0,86.0,94.0,90.0,8.0,4,93.0,0,0.0
+fd4df602e5afb967,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,85.0,77.47,76.0,76.0,83.33,7.33,4,86.0,0,1.0
+10b850660109cab1,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,89.0,83.73,78.0,88.0,86.67,10.0,4,90.0,0,1.0
+0572c21876a97bc0,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,82.0,71.87,70.0,68.0,83.33,15.33,3,84.0,0,2.0
+7af8321b551ab1fc,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,89.0,83.73,82.0,84.0,86.67,4.67,3,91.0,0,2.0
+e9c22a9fcf47634b,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,88.0,81.47,72.0,90.0,83.33,18.0,3,89.0,0,1.0
+927e726e1981132a,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,82.0,72.13,70.0,72.0,76.67,6.67,3,84.0,0,2.0
+c63b9e2884ea5275,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,81.0,69.73,62.0,74.0,76.67,14.67,3,82.0,0,1.0
+81e022f4b988f3f8,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,89.0,83.87,82.0,86.0,83.33,4.0,3,90.0,0,1.0
+e67ff58e5e125873,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,85.0,76.67,78.0,72.0,83.33,11.33,3,88.0,0,3.0
+43a193287730e89f,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,87.0,80.67,80.0,80.0,83.33,3.33,3,89.0,0,2.0
+4a697841d7490ff7,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,88.0,81.33,80.0,80.0,86.67,6.67,3,90.0,0,2.0
+6c21e063fdc87018,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,85.0,76.8,76.0,76.0,80.0,4.0,3,86.0,0,1.0
+be83e2e6f2dd1df1,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,3.0,83.0,72.8,66.0,76.0,80.0,14.0,3,84.0,0,1.0
+aa9326b91a880997,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,93.0,89.33,96.0,84.0,86.67,12.0,4,93.0,0,0.0
+daa144be2f7959f7,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,93.0,89.33,94.0,86.0,86.67,8.0,4,92.0,0,-1.0
+2c8ad2be319b4756,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,89.0,83.07,82.0,84.0,83.33,2.0,4,87.0,0,-2.0
+a9f115aa19b1c271,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,88.0,82.13,76.0,86.0,86.67,10.67,4,87.0,0,-1.0
+b7b2981764db206c,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,87.0,80.0,76.0,84.0,80.0,8.0,4,83.0,0,-4.0
+760133333a2193f4,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,87.0,79.2,74.0,84.0,80.0,10.0,4,82.0,0,-5.0
+fd0afa68348be411,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,65.0,23.6,22.0,22.0,30.0,8.0,4,66.0,1,1.0
+6aeda7377094900d,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,94.0,90.8,92.0,90.0,90.0,2.0,4,94.0,0,0.0
+fd4df602e5afb967,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,92.0,87.87,84.0,94.0,83.33,10.67,4,88.0,0,-4.0
+10b850660109cab1,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,92.0,87.73,82.0,94.0,86.67,12.0,4,90.0,0,-2.0
+0572c21876a97bc0,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,87.0,80.67,82.0,78.0,83.33,5.33,4,86.0,0,-1.0
+7af8321b551ab1fc,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,93.0,89.33,96.0,84.0,86.67,12.0,4,92.0,0,-1.0
+e9c22a9fcf47634b,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,88.0,81.47,72.0,90.0,83.33,18.0,4,90.0,0,2.0
+927e726e1981132a,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,89.0,82.53,82.0,86.0,76.67,9.33,4,86.0,0,-3.0
+c63b9e2884ea5275,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,87.0,79.33,70.0,90.0,76.67,20.0,4,85.0,0,-2.0
+81e022f4b988f3f8,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,93.0,89.47,90.0,92.0,83.33,8.67,4,92.0,0,-1.0
+e67ff58e5e125873,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,90.0,85.47,84.0,88.0,83.33,4.67,4,90.0,0,0.0
+43a193287730e89f,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,92.0,88.67,88.0,92.0,83.33,8.67,4,91.0,0,-1.0
+4a697841d7490ff7,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,93.0,89.33,90.0,90.0,86.67,3.33,4,92.0,0,-1.0
+6c21e063fdc87018,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,91.0,85.6,86.0,88.0,80.0,8.0,4,87.0,0,-4.0
+be83e2e6f2dd1df1,Deogracias U. Tenazas Memorial Elementary School,Filipino,2025-2026,3.0,90.0,84.0,80.0,90.0,80.0,10.0,4,86.0,0,-4.0
+aa9326b91a880997,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,91.0,86.0,84.0,86.0,90.0,6.0,4,93.0,0,2.0
+daa144be2f7959f7,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,86.0,78.93,76.0,78.0,86.67,10.67,4,90.0,0,4.0
+2c8ad2be319b4756,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,83.0,73.47,68.0,74.0,83.33,15.33,4,85.0,0,2.0
+a9f115aa19b1c271,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,85.0,77.33,76.0,74.0,86.67,12.67,4,86.0,0,1.0
+b7b2981764db206c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,82.0,72.0,62.0,78.0,80.0,18.0,4,82.0,0,0.0
+760133333a2193f4,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,80.0,68.0,62.0,68.0,80.0,18.0,4,81.0,0,1.0
+fd0afa68348be411,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,66.0,27.6,22.0,22.0,50.0,28.0,4,66.0,1,0.0
+6aeda7377094900d,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,92.0,88.4,82.0,94.0,90.0,12.0,4,94.0,0,2.0
+fd4df602e5afb967,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,85.0,77.47,76.0,76.0,83.33,7.33,4,86.0,0,1.0
+10b850660109cab1,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,89.0,82.93,82.0,82.0,86.67,4.67,4,90.0,0,1.0
+0572c21876a97bc0,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,82.0,71.87,70.0,68.0,83.33,15.33,3,84.0,0,2.0
+7af8321b551ab1fc,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,89.0,83.73,82.0,84.0,86.67,4.67,3,90.0,0,1.0
+e9c22a9fcf47634b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,88.0,81.47,72.0,90.0,83.33,18.0,3,89.0,0,1.0
+927e726e1981132a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,82.0,72.13,70.0,72.0,76.67,6.67,3,84.0,0,2.0
+c63b9e2884ea5275,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,81.0,69.73,62.0,74.0,76.67,14.67,3,82.0,0,1.0
+81e022f4b988f3f8,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,89.0,83.87,82.0,86.0,83.33,4.0,3,90.0,0,1.0
+e67ff58e5e125873,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,85.0,76.67,78.0,72.0,83.33,11.33,3,87.0,0,2.0
+43a193287730e89f,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,87.0,80.67,80.0,80.0,83.33,3.33,3,89.0,0,2.0
+4a697841d7490ff7,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,88.0,81.33,80.0,80.0,86.67,6.67,3,89.0,0,1.0
+6c21e063fdc87018,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,85.0,76.8,76.0,76.0,80.0,4.0,3,85.0,0,0.0
+be83e2e6f2dd1df1,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,3.0,83.0,72.8,66.0,76.0,80.0,14.0,3,83.0,0,0.0
+aa9326b91a880997,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,91.0,86.8,96.0,76.0,90.0,20.0,4,93.0,0,2.0
+daa144be2f7959f7,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,86.0,78.93,76.0,78.0,86.67,10.67,4,90.0,0,4.0
+2c8ad2be319b4756,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,83.0,73.47,68.0,74.0,83.33,15.33,4,85.0,0,2.0
+a9f115aa19b1c271,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,85.0,77.33,76.0,74.0,86.67,12.67,4,86.0,0,1.0
+b7b2981764db206c,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,82.0,72.0,62.0,78.0,80.0,18.0,4,82.0,0,0.0
+760133333a2193f4,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,80.0,68.0,62.0,68.0,80.0,18.0,4,81.0,0,1.0
+fd0afa68348be411,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,66.0,27.6,22.0,22.0,50.0,28.0,4,66.0,1,0.0
+6aeda7377094900d,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,92.0,88.4,90.0,86.0,90.0,4.0,4,94.0,0,2.0
+fd4df602e5afb967,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,85.0,77.47,76.0,76.0,83.33,7.33,4,86.0,0,1.0
+10b850660109cab1,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,89.0,83.73,82.0,84.0,86.67,4.67,4,90.0,0,1.0
+0572c21876a97bc0,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,82.0,71.87,70.0,68.0,83.33,15.33,3,84.0,0,2.0
+7af8321b551ab1fc,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,90.0,85.33,82.0,88.0,86.67,6.0,3,91.0,0,1.0
+e9c22a9fcf47634b,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,88.0,81.47,72.0,90.0,83.33,18.0,3,89.0,0,1.0
+927e726e1981132a,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,82.0,72.13,70.0,72.0,76.67,6.67,3,84.0,0,2.0
+c63b9e2884ea5275,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,81.0,69.73,62.0,74.0,76.67,14.67,3,82.0,0,1.0
+81e022f4b988f3f8,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,90.0,84.67,82.0,88.0,83.33,6.0,3,91.0,0,1.0
+e67ff58e5e125873,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,85.0,76.67,78.0,72.0,83.33,11.33,3,87.0,0,2.0
+43a193287730e89f,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,87.0,80.67,80.0,80.0,83.33,3.33,3,89.0,0,2.0
+4a697841d7490ff7,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,90.0,84.53,80.0,88.0,86.67,8.0,3,91.0,0,1.0
+6c21e063fdc87018,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,85.0,76.8,76.0,76.0,80.0,4.0,3,85.0,0,0.0
+be83e2e6f2dd1df1,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,3.0,83.0,72.8,66.0,76.0,80.0,14.0,3,83.0,0,0.0
+646856acdf449e06,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,80.0,68.77,78.18,65.0,57.5,20.68,4,81.0,0,1.0
+fe877328f99be027,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,81.0,70.37,76.36,63.33,72.5,13.03,4,83.0,0,2.0
+69835ce89dd01706,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,79.0,66.87,76.36,58.33,65.0,18.03,4,84.0,0,5.0
+6b0db146a1fbb673,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,84.0,74.83,80.0,68.33,77.5,11.67,4,85.0,0,1.0
+77aa890821dc1b56,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,83.0,73.18,85.45,60.0,75.0,25.45,3,85.0,0,2.0
+95a478b92dfa53d1,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,84.0,75.56,81.82,68.33,77.5,13.49,4,81.0,0,-3.0
+4640dd3a62355fc1,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,86.0,78.86,70.91,85.0,82.5,14.09,4,89.0,0,3.0
+a9ce15d6aef77312,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,86.0,78.56,81.82,73.33,82.5,9.17,4,86.0,0,0.0
+de6202ce2bea4d21,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,76.0,62.65,74.55,43.33,77.5,34.17,4,78.0,0,2.0
+f0e5d085e0642bc2,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,80.0,69.46,83.64,60.0,60.0,23.64,4,82.0,0,2.0
+47571ece99d32ed7,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,83.0,73.77,78.18,70.0,72.5,8.18,4,85.0,0,2.0
+c679366bdaa55385,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,87.0,79.79,83.64,78.33,75.0,8.64,4,89.0,0,2.0
+8979c14fc9d7233b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,84.0,75.13,83.64,66.67,75.0,16.97,4,88.0,0,4.0
+341f82766490335c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,81.0,70.09,72.73,70.0,65.0,7.73,4,82.0,0,1.0
+6e0616addcc98e89,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,77.0,63.69,70.91,63.33,50.0,20.91,4,78.0,0,1.0
+12625d5aaf7afad5,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,91.0,85.85,85.45,86.67,85.0,1.67,4,94.0,0,3.0
+3e8d6078822cc296,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,82.0,72.53,70.91,71.67,77.5,6.59,4,85.0,0,3.0
+eabe4d490b614c2f,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,82.0,72.31,69.09,71.67,80.0,10.91,4,84.0,0,2.0
+74ad6071146df4ee,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,85.0,77.44,78.18,81.67,67.5,14.17,4,88.0,0,3.0
+691fc368fa6d7801,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,82.0,71.76,72.73,66.67,80.0,13.33,4,86.0,0,4.0
+6a8121d7eb3356b2,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,88.0,81.0,80.0,85.0,75.0,10.0,4,91.0,0,3.0
+446ad48629543252,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,84.0,75.65,74.55,83.33,62.5,20.83,4,87.0,0,3.0
+3ad4c8fcc268f61a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,81.0,69.94,78.18,71.67,50.0,28.18,4,82.0,0,1.0
+646856acdf449e06,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,83.0,74.27,74.67,76.0,70.0,6.0,4,84.0,0,1.0
+fe877328f99be027,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,88.0,81.73,73.33,96.0,70.0,26.0,4,88.0,0,0.0
+cc3899bf8c4dc957,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,85.0,77.07,86.67,76.0,60.0,26.67,4,86.0,0,1.0
+69835ce89dd01706,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,84.6,96.0,88.0,55.0,41.0,4,90.0,0,0.0
+6b0db146a1fbb673,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,85.0,76.37,74.67,80.0,72.5,7.5,4,88.0,0,3.0
+77aa890821dc1b56,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,84.0,74.73,73.33,86.0,55.0,31.0,4,86.0,0,2.0
+95a478b92dfa53d1,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,87.0,80.57,86.67,76.0,77.5,10.67,4,89.0,0,2.0
+4640dd3a62355fc1,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,83.77,74.67,96.0,77.5,21.33,4,89.0,0,0.0
+a9ce15d6aef77312,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,83.73,73.33,96.0,80.0,22.67,4,88.0,0,-1.0
+de6202ce2bea4d21,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,83.17,86.67,80.0,82.5,6.67,4,88.0,0,-1.0
+f0e5d085e0642bc2,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,87.0,80.53,85.33,86.0,60.0,26.0,4,89.0,0,2.0
+47571ece99d32ed7,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,82.0,71.27,74.67,76.0,55.0,21.0,4,87.0,0,5.0
+c679366bdaa55385,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,88.0,82.23,73.33,96.0,72.5,23.5,4,89.0,0,1.0
+8979c14fc9d7233b,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,88.0,81.93,81.33,96.0,55.0,41.0,4,87.0,0,-1.0
+341f82766490335c,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,87.0,79.73,73.33,91.0,70.0,21.0,4,90.0,0,3.0
+6e0616addcc98e89,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,83.93,81.33,91.0,75.0,16.0,4,88.0,0,-1.0
+12625d5aaf7afad5,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,92.0,87.53,85.33,91.0,85.0,6.0,4,89.0,0,-3.0
+3e8d6078822cc296,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,84.03,81.33,90.0,77.5,12.5,4,90.0,0,0.0
+eabe4d490b614c2f,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,91.0,86.03,85.33,91.0,77.5,13.5,4,91.0,0,0.0
+74ad6071146df4ee,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,82.53,73.33,93.0,80.0,19.67,4,91.0,0,2.0
+691fc368fa6d7801,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,82.93,81.33,91.0,70.0,21.0,4,89.0,0,0.0
+6a8121d7eb3356b2,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,85.53,85.33,91.0,75.0,16.0,4,90.0,0,0.0
+446ad48629543252,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,84.07,74.67,93.0,85.0,18.33,4,91.0,0,1.0
+3ad4c8fcc268f61a,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,92.0,87.63,89.33,91.0,77.5,13.5,4,90.0,0,-2.0
+04f013fe23bddb2a,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,80.0,69.21,78.46,63.33,70.0,15.13,4,82.0,0,2.0
+1e7a53793e542031,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,88.0,81.71,78.46,83.33,82.5,4.87,4,90.0,0,2.0
+bc517c9a7d4d3bb3,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,76.0,62.63,81.54,58.33,45.0,36.54,4,78.0,0,2.0
+4addb75b29863cbe,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,82.0,72.19,72.31,75.0,65.0,10.0,4,84.0,0,2.0
+b17270ed2ae2873a,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,85.0,77.42,76.92,76.67,80.0,3.33,4,87.0,0,2.0
+955f123774434833,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,82.0,72.78,75.38,73.33,67.5,7.88,4,84.0,0,2.0
+3776743a5f2c9ee1,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,80.0,68.84,80.0,61.67,70.0,18.33,4,81.0,0,1.0
+09048e735909c3a8,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,80.0,68.5,80.0,60.0,72.5,20.0,4,81.0,0,1.0
+df14f0b5a0419f29,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,85.0,76.11,75.38,75.0,80.0,5.0,4,87.0,0,2.0
+57da5a9acce49a33,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,90.0,84.56,84.62,83.33,87.5,4.17,4,92.0,0,2.0
+2e4c6f08e2844f87,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,77.0,63.92,76.92,61.67,50.0,26.92,4,79.0,0,2.0
+9e40a5065a66301a,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,85.0,76.69,72.31,80.0,75.0,7.69,4,87.0,0,2.0
+f2af4aa8b6d1c018,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,84.0,75.36,72.31,78.33,72.5,6.02,4,86.0,0,2.0
+5c2e48a6b928050c,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,84.0,74.75,76.92,73.33,75.0,3.59,3,86.0,0,2.0
+7dfb1758ba63611d,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,88.0,81.39,84.62,80.0,80.0,4.62,4,90.0,0,2.0
+d35e53c4bac21838,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,85.0,77.0,73.85,76.67,82.5,8.65,4,87.0,0,2.0
+f7e35c59e45483f8,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,87.0,80.54,78.46,80.0,85.0,6.54,4,89.0,0,2.0
+04e0ce3f1c1e9863,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,88.0,80.92,83.08,80.0,80.0,3.08,4,90.0,0,2.0
+9b7f754297b1c928,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,84.0,75.5,80.0,70.0,82.5,12.5,4,86.0,0,2.0
+7ac928d2f84bd135,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,89.0,83.85,86.15,85.0,77.5,8.65,4,91.0,0,2.0
+613ccaf861b0a763,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,90.0,84.96,81.54,85.0,90.0,8.46,4,92.0,0,2.0
+9b495dc5393dba94,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,87.0,79.69,86.15,76.67,77.5,9.48,4,89.0,0,2.0
+c358b879a002d9c8,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,87.0,79.46,81.54,80.0,75.0,6.54,4,89.0,0,2.0
+e0e16a5927cd091e,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,4.0,84.0,75.46,81.54,70.0,80.0,11.54,4,86.0,0,2.0
+04f013fe23bddb2a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,82.0,72.05,78.46,66.67,70.0,11.79,4,81.0,0,-1.0
+1e7a53793e542031,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,88.0,81.21,78.46,83.33,82.5,4.87,4,90.0,0,2.0
+bc517c9a7d4d3bb3,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,78.0,64.95,81.54,58.33,45.0,36.54,4,79.0,0,1.0
+4addb75b29863cbe,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,83.0,73.75,72.31,73.33,77.5,5.19,4,85.0,0,2.0
+b17270ed2ae2873a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,84.0,75.44,76.92,71.67,80.0,8.33,4,88.0,0,4.0
+955f123774434833,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,82.0,71.65,75.38,70.0,67.5,7.88,4,85.0,0,3.0
+3776743a5f2c9ee1,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,79.0,66.77,76.92,55.0,70.0,21.92,4,80.0,0,1.0
+09048e735909c3a8,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,80.0,69.27,76.92,60.0,72.5,16.92,4,81.0,0,1.0
+df14f0b5a0419f29,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,84.0,74.82,75.38,71.67,80.0,8.33,4,86.0,0,2.0
+57da5a9acce49a33,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,90.0,84.68,84.62,83.33,87.5,4.17,4,93.0,0,3.0
+2e4c6f08e2844f87,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,78.0,65.44,76.92,61.67,50.0,26.92,4,80.0,0,2.0
+9e40a5065a66301a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,84.0,75.92,72.31,80.0,75.0,7.69,4,86.0,0,2.0
+f2af4aa8b6d1c018,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,84.0,75.75,72.31,78.33,77.5,6.02,4,88.0,0,4.0
+5c2e48a6b928050c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,88.0,81.67,80.0,86.67,75.0,11.67,3,89.0,0,1.0
+7dfb1758ba63611d,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,85.0,76.62,81.54,70.0,80.0,11.54,4,87.0,0,2.0
+d35e53c4bac21838,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,83.0,73.83,80.0,63.33,82.5,19.17,4,85.0,0,2.0
+f7e35c59e45483f8,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,86.0,78.18,84.62,73.33,75.0,11.29,4,88.0,0,2.0
+04e0ce3f1c1e9863,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,88.0,81.9,83.08,81.67,80.0,3.08,4,90.0,0,2.0
+9b7f754297b1c928,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,85.0,76.5,80.0,70.0,82.5,12.5,4,86.0,0,1.0
+7ac928d2f84bd135,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,89.0,83.58,87.69,80.0,82.5,7.69,4,92.0,0,3.0
+613ccaf861b0a763,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,90.0,84.35,84.62,85.0,82.5,2.5,4,92.0,0,2.0
+9b495dc5393dba94,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,86.0,78.73,83.08,75.0,77.5,8.08,4,90.0,0,4.0
+c358b879a002d9c8,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,87.0,79.56,83.08,78.33,75.0,8.08,4,89.0,0,2.0
+e0e16a5927cd091e,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,4.0,83.0,74.05,78.46,66.67,80.0,13.33,4,86.0,0,3.0
+04f013fe23bddb2a,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,85.0,76.93,81.33,76.0,70.0,11.33,4,88.0,0,3.0
+1e7a53793e542031,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,82.8,76.0,96.0,70.0,26.0,4,90.0,0,1.0
+bc517c9a7d4d3bb3,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,78.0,65.87,58.67,76.0,60.0,17.33,4,84.0,0,6.0
+4addb75b29863cbe,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,84.6,96.0,88.0,55.0,41.0,4,91.0,0,1.0
+b17270ed2ae2873a,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,84.37,94.67,80.0,72.5,22.17,4,89.0,0,-1.0
+955f123774434833,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,87.0,80.07,86.67,86.0,55.0,31.67,4,88.0,0,1.0
+3776743a5f2c9ee1,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,87.0,80.03,85.33,76.0,77.5,9.33,4,88.0,0,1.0
+09048e735909c3a8,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,83.77,74.67,96.0,77.5,21.33,4,88.0,0,-1.0
+df14f0b5a0419f29,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,83.73,73.33,96.0,80.0,22.67,4,89.0,0,0.0
+57da5a9acce49a33,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,88.0,81.03,81.33,80.0,82.5,2.5,4,87.0,0,-1.0
+2e4c6f08e2844f87,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,83.03,85.33,86.0,72.5,13.5,4,89.0,0,0.0
+9e40a5065a66301a,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,87.0,79.27,74.67,96.0,55.0,41.0,4,88.0,0,1.0
+f2af4aa8b6d1c018,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,86.0,79.0,72.0,98.0,55.0,43.0,4,88.0,0,2.0
+5c2e48a6b928050c,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,87.0,79.97,82.67,81.0,72.5,10.17,4,89.0,0,2.0
+7dfb1758ba63611d,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,91.0,86.07,86.67,91.0,75.0,16.0,4,91.0,0,0.0
+d35e53c4bac21838,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,85.23,81.33,93.0,77.5,15.5,4,92.0,0,2.0
+f7e35c59e45483f8,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,88.0,81.9,76.0,90.0,77.5,14.0,4,90.0,0,2.0
+04e0ce3f1c1e9863,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,82.0,72.67,58.67,83.0,80.0,24.33,4,88.0,0,6.0
+9b7f754297b1c928,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,84.3,96.0,81.0,67.5,28.5,4,90.0,0,0.0
+7ac928d2f84bd135,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,93.0,89.27,94.67,91.0,75.0,19.67,4,91.0,0,-2.0
+613ccaf861b0a763,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,91.0,86.37,86.67,93.0,72.5,20.5,4,92.0,0,1.0
+9b495dc5393dba94,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,92.0,87.63,89.33,91.0,77.5,13.5,4,91.0,0,-1.0
+c358b879a002d9c8,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,89.0,82.4,80.0,91.0,70.0,21.0,4,90.0,0,1.0
+e0e16a5927cd091e,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,4.0,90.0,84.2,80.0,93.0,75.0,18.0,4,90.0,0,0.0
+2e8656a71e1030f2,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,81.0,69.6,78.67,68.0,60.0,18.67,4,83.0,0,2.0
+fb56b831fdd7637b,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,83.0,74.34,73.33,74.67,75.0,1.67,4,84.0,0,1.0
+60e32c9906d0000a,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,90.0,84.2,77.33,88.0,85.0,10.67,4,92.0,0,2.0
+32b833c4dd9e5cb5,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,81.0,70.77,78.67,65.33,72.5,13.34,4,83.0,0,2.0
+f0b0535b07fd41d5,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,80.0,68.8,82.67,60.0,70.0,22.67,4,82.0,0,2.0
+627af12664402d70,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,89.0,82.57,81.33,85.33,77.5,7.83,4,91.0,0,2.0
+1aadd38fb23814c2,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,90.0,84.37,77.33,89.33,82.5,12.0,4,92.0,0,2.0
+9d2e7a3e36af1e10,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,86.0,79.07,74.67,81.33,80.0,6.66,4,88.0,0,2.0
+4f059e6a5fa54b20,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,83.0,72.84,73.33,70.67,77.5,6.83,4,84.0,0,1.0
+7c3706afa87d5d2e,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,83.0,73.7,77.33,72.0,72.5,5.33,4,85.0,0,2.0
+f382c71d4424e5cb,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,84.0,75.87,77.33,77.33,70.0,7.33,4,85.0,0,1.0
+468a38df0fb48e7b,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,83.0,73.84,80.0,70.67,72.5,9.33,4,84.0,0,1.0
+0e241b0f1f58cc28,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,80.0,68.0,73.33,64.0,70.0,9.33,4,82.0,0,2.0
+1c3ed469c8d8983e,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,84.0,75.7,77.33,76.0,72.5,4.83,4,86.0,0,2.0
+c02d97ec33a2d1ea,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,85.0,76.07,74.67,77.33,75.0,2.66,4,87.0,0,2.0
+9cbf89cff58633dd,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,86.0,77.84,80.0,78.67,72.5,7.5,4,88.0,0,2.0
+fb568a98f3677e4d,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,88.0,80.8,76.0,84.0,80.0,8.0,4,90.0,0,2.0
+45772ad4c85771d4,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,88.0,81.84,66.67,90.67,82.5,24.0,4,90.0,0,2.0
+50f5ab8906df07ce,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,85.0,76.14,69.33,78.67,80.0,10.67,4,87.0,0,2.0
+f77a57f04a4e6ec1,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,80.0,68.1,65.33,72.0,62.5,9.5,4,82.0,0,2.0
+bb1db64284989e87,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,87.0,80.34,73.33,86.67,75.0,13.34,4,89.0,0,2.0
+4043cd8919cc3a31,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,91.0,85.8,76.0,92.0,85.0,16.0,4,93.0,0,2.0
+2e8656a71e1030f2,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,83.0,74.2,78.18,72.5,72.5,5.68,4,86.0,0,3.0
+fb56b831fdd7637b,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,83.0,73.02,70.91,72.5,77.5,6.59,4,87.0,0,4.0
+60e32c9906d0000a,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,84.98,89.09,82.5,85.0,6.59,4,93.0,0,3.0
+32b833c4dd9e5cb5,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,84.0,75.25,80.0,72.5,75.0,7.5,4,86.0,0,2.0
+f0b0535b07fd41d5,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,84.0,75.2,78.18,72.5,77.5,5.68,4,87.0,0,3.0
+627af12664402d70,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,85.18,87.27,85.0,82.5,4.77,4,93.0,0,3.0
+1aadd38fb23814c2,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,88.0,81.93,87.27,77.5,85.0,9.77,4,91.0,0,3.0
+9d2e7a3e36af1e10,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,85.0,76.8,81.82,72.5,80.0,9.32,4,88.0,0,3.0
+4f059e6a5fa54b20,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,85.0,77.37,74.55,80.0,75.0,5.45,4,87.0,0,2.0
+7c3706afa87d5d2e,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,88.0,81.84,83.64,82.5,77.5,6.14,4,91.0,0,3.0
+f382c71d4424e5cb,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,85.0,76.7,78.18,77.5,72.5,5.68,4,89.0,0,4.0
+468a38df0fb48e7b,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,83.0,73.59,83.64,70.0,67.5,16.14,4,87.0,0,4.0
+0e241b0f1f58cc28,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,85.0,76.82,72.73,80.0,75.0,7.27,4,88.0,0,3.0
+1c3ed469c8d8983e,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,85.0,76.62,74.55,77.5,77.5,2.95,4,88.0,0,3.0
+c02d97ec33a2d1ea,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,85.0,76.57,72.73,77.5,80.0,7.27,4,89.0,0,4.0
+9cbf89cff58633dd,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,86.0,78.87,74.55,80.0,82.5,7.95,4,91.0,0,5.0
+fb568a98f3677e4d,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,84.14,85.45,85.0,80.0,5.45,4,91.0,0,1.0
+45772ad4c85771d4,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,84.64,85.45,85.0,82.5,2.95,4,92.0,0,2.0
+50f5ab8906df07ce,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,84.84,83.64,87.5,80.0,7.5,4,92.0,0,2.0
+f77a57f04a4e6ec1,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,83.0,74.25,80.0,72.5,70.0,10.0,4,86.0,0,3.0
+bb1db64284989e87,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,88.0,80.8,81.82,82.5,75.0,7.5,4,91.0,0,3.0
+4043cd8919cc3a31,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,92.0,88.57,92.73,87.5,85.0,7.73,4,96.0,0,4.0
+2e8656a71e1030f2,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,83.0,73.74,78.67,70.67,70.0,8.67,4,84.0,0,1.0
+fb56b831fdd7637b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.9,77.33,78.67,72.5,6.17,4,87.0,0,2.0
+60e32c9906d0000a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,90.0,84.23,80.0,89.33,82.5,9.33,4,93.0,0,3.0
+32b833c4dd9e5cb5,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.4,78.67,77.33,70.0,8.67,4,85.0,0,0.0
+f0b0535b07fd41d5,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,84.0,75.34,82.67,70.67,70.0,12.67,4,84.0,0,0.0
+627af12664402d70,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,90.0,85.26,81.33,89.33,85.0,8.0,4,93.0,0,3.0
+1aadd38fb23814c2,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,90.0,84.73,77.33,92.0,85.0,14.67,4,92.0,0,2.0
+9d2e7a3e36af1e10,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,88.0,81.1,77.33,86.67,77.5,9.34,4,89.0,0,1.0
+4f059e6a5fa54b20,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,77.36,77.33,77.33,77.5,0.17,4,86.0,0,1.0
+7c3706afa87d5d2e,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,86.0,77.87,78.67,76.0,80.0,4.0,4,88.0,0,2.0
+f382c71d4424e5cb,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,82.0,72.1,77.33,66.67,72.5,10.66,4,84.0,0,2.0
+468a38df0fb48e7b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,82.0,72.63,80.0,65.33,72.5,14.67,4,82.0,0,0.0
+0e241b0f1f58cc28,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.33,73.33,80.0,75.0,6.67,4,86.0,0,1.0
+1c3ed469c8d8983e,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.83,77.33,76.0,77.5,1.5,4,86.0,0,1.0
+c02d97ec33a2d1ea,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.8,74.67,77.33,80.0,5.33,4,87.0,0,2.0
+9cbf89cff58633dd,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,86.0,77.87,80.0,74.67,80.0,5.33,4,88.0,0,2.0
+fb568a98f3677e4d,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,90.0,84.3,81.33,90.67,77.5,13.17,4,91.0,0,1.0
+45772ad4c85771d4,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,90.0,84.27,78.67,92.0,80.0,13.33,4,91.0,0,1.0
+50f5ab8906df07ce,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,89.0,83.23,80.0,89.33,77.5,11.83,4,90.0,0,1.0
+f77a57f04a4e6ec1,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,82.0,71.7,68.0,80.0,62.5,17.5,4,83.0,0,1.0
+bb1db64284989e87,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.86,73.33,81.33,75.0,8.0,4,87.0,0,2.0
+4043cd8919cc3a31,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,92.0,88.5,88.0,92.0,82.5,9.5,4,95.0,0,3.0
+5ecce6daa14f6d82,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,85.0,76.9,70.77,81.33,75.0,10.56,4,87.0,0,2.0
+584c6b910f2fa1bc,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,82.0,72.36,72.31,69.33,80.0,10.67,3,83.0,0,1.0
+fcc0fdaf5e4569e7,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,88.0,81.59,83.08,85.33,70.0,15.33,4,90.0,0,2.0
+6e2faff234990854,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,82.0,71.25,76.92,73.33,57.5,19.42,4,84.0,0,2.0
+3aa21b527b116f23,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,88.0,81.16,73.85,96.0,55.0,41.0,4,90.0,0,2.0
+71948348e5e58224,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,84.0,75.48,87.69,65.33,82.5,22.36,4,87.0,0,3.0
+1d3f3d8643663480,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,86.0,78.23,90.77,72.0,75.0,18.77,4,88.0,0,2.0
+f1e50681c9d66b7c,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,79.0,67.54,78.46,64.0,60.0,18.46,4,75.0,0,-4.0
+5ea1db2d1e861955,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,88.0,82.0,73.85,86.67,82.5,12.82,4,90.0,0,2.0
+3826fa9fa4cef941,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,81.0,71.0,80.0,64.0,75.0,16.0,4,83.0,0,2.0
+1ab73d7da3cc1011,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,84.0,75.36,72.31,77.33,75.0,5.02,4,86.0,0,2.0
+64ce64e7082d00b4,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,82.0,72.33,73.85,69.33,77.5,8.17,4,84.0,0,2.0
+2c19350639206b44,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,81.0,71.08,76.92,64.0,80.0,16.0,4,83.0,0,2.0
+23b9c8b614a4f04f,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,81.0,69.83,73.85,69.33,65.0,8.85,4,81.0,0,0.0
+8fd21024d634f2c7,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,89.0,83.45,75.38,90.67,77.5,15.29,4,91.0,0,2.0
+cd47b20c950eb455,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,86.0,78.5,73.85,82.67,75.0,8.82,4,88.0,0,2.0
+d58d3a0edd57f8ab,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,90.0,84.45,75.38,90.67,82.5,15.29,4,92.0,0,2.0
+73dbb073165b1096,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,87.0,79.69,72.31,84.0,80.0,11.69,4,89.0,0,2.0
+35a80f0987e53b4b,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,88.0,82.27,89.23,76.0,87.5,13.23,4,90.0,0,2.0
+dff5c999c5507504,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,88.0,81.61,89.23,78.67,77.5,11.73,4,90.0,0,2.0
+d8923171bb1bac12,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,90.0,84.42,83.08,84.0,87.5,4.42,4,92.0,0,2.0
+07b84b3f57229c4a,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,5.0,90.0,84.56,84.62,85.33,82.5,2.83,4,92.0,0,2.0
+5ecce6daa14f6d82,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,86.0,78.49,72.73,83.33,75.0,10.6,4,88.0,0,2.0
+584c6b910f2fa1bc,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,83.0,73.65,64.94,73.33,87.5,22.56,3,85.0,0,2.0
+fcc0fdaf5e4569e7,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,89.0,82.71,74.03,90.0,77.5,15.97,4,91.0,0,2.0
+6e2faff234990854,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,84.0,75.27,75.32,73.33,80.0,6.67,4,86.0,0,2.0
+3aa21b527b116f23,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,89.0,83.49,76.62,85.0,90.0,13.38,4,91.0,0,2.0
+71948348e5e58224,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,86.0,78.43,71.43,85.0,72.5,13.57,4,89.0,0,3.0
+1d3f3d8643663480,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,88.0,81.38,77.92,80.0,90.0,12.08,4,90.0,0,2.0
+f1e50681c9d66b7c,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,80.0,68.21,70.13,78.33,40.0,38.33,4,76.0,0,-4.0
+5ea1db2d1e861955,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,84.6,71.43,98.33,70.0,28.33,4,92.0,0,2.0
+3826fa9fa4cef941,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,83.0,72.82,64.94,76.67,75.0,11.73,4,85.0,0,2.0
+1ab73d7da3cc1011,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,86.0,77.71,66.23,81.67,85.0,18.77,4,88.0,0,2.0
+64ce64e7082d00b4,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,84.0,75.54,66.23,78.33,82.5,16.27,4,86.0,0,2.0
+2c19350639206b44,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,82.0,71.38,70.13,66.67,85.0,18.33,4,84.0,0,2.0
+23b9c8b614a4f04f,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,83.0,72.98,64.94,70.0,92.5,27.56,4,82.0,0,-1.0
+8fd21024d634f2c7,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,84.88,70.13,91.67,90.0,21.54,4,92.0,0,2.0
+cd47b20c950eb455,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,87.0,80.49,72.73,83.33,85.0,12.27,4,89.0,0,2.0
+d58d3a0edd57f8ab,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,91.0,86.33,84.42,85.0,92.5,8.08,4,93.0,0,2.0
+73dbb073165b1096,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,89.0,83.05,81.82,80.0,92.5,12.5,4,91.0,0,2.0
+35a80f0987e53b4b,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,89.0,82.49,68.83,91.67,80.0,22.84,4,91.0,0,2.0
+dff5c999c5507504,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,84.11,83.12,83.33,87.5,4.38,4,92.0,0,2.0
+d8923171bb1bac12,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,90.0,84.33,76.62,91.67,77.5,15.05,4,92.0,0,2.0
+07b84b3f57229c4a,Deogracias U. Tenazas Memorial Elementary School,GMRC,2025-2026,5.0,91.0,86.1,75.32,90.0,92.5,17.18,4,93.0,0,2.0
+5ecce6daa14f6d82,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,77.07,73.85,81.33,75.0,7.48,4,87.0,0,2.0
+584c6b910f2fa1bc,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,81.0,71.04,70.77,69.33,75.0,5.67,3,82.0,0,1.0
+fcc0fdaf5e4569e7,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.77,76.92,80.0,70.0,10.0,4,86.0,0,1.0
+6e2faff234990854,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,80.0,69.48,75.38,73.33,50.0,25.38,4,82.0,0,2.0
+3aa21b527b116f23,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,87.0,79.71,70.77,96.0,65.0,31.0,4,89.0,0,2.0
+71948348e5e58224,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.71,87.69,65.33,77.5,22.36,4,87.0,0,2.0
+1d3f3d8643663480,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.42,81.54,72.0,75.0,9.54,4,87.0,0,2.0
+f1e50681c9d66b7c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,78.0,65.52,72.31,64.0,55.0,17.31,4,79.0,0,1.0
+5ea1db2d1e861955,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,88.0,82.17,80.0,86.67,77.5,9.17,4,90.0,0,2.0
+3826fa9fa4cef941,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,80.0,69.24,70.77,77.33,50.0,27.33,4,82.0,0,2.0
+1ab73d7da3cc1011,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,83.0,74.11,78.46,69.33,75.0,9.13,4,85.0,0,2.0
+64ce64e7082d00b4,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,82.0,71.87,76.92,64.0,77.5,13.5,4,83.0,0,1.0
+2c19350639206b44,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,81.0,70.31,67.69,69.33,77.5,9.81,4,82.0,0,1.0
+23b9c8b614a4f04f,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,80.0,69.16,69.23,78.67,50.0,28.67,4,81.0,0,1.0
+8fd21024d634f2c7,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,89.0,82.73,80.0,89.33,75.0,14.33,4,91.0,0,2.0
+cd47b20c950eb455,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,85.0,76.01,73.85,78.67,75.0,4.82,4,87.0,0,2.0
+d58d3a0edd57f8ab,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,88.0,80.82,75.38,86.67,80.0,11.29,4,90.0,0,2.0
+73dbb073165b1096,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,86.0,78.05,72.31,85.33,75.0,13.02,4,88.0,0,2.0
+35a80f0987e53b4b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,87.0,80.52,89.23,73.33,77.5,15.9,4,89.0,0,2.0
+dff5c999c5507504,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,87.0,80.02,89.23,73.33,75.0,15.9,4,89.0,0,2.0
+d8923171bb1bac12,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,90.0,84.4,83.08,86.67,82.5,4.17,4,92.0,0,2.0
+07b84b3f57229c4a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,5.0,88.0,81.38,84.62,81.33,75.0,9.62,4,90.0,0,2.0
+5ecce6daa14f6d82,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,86.0,78.47,67.37,86.67,65.0,21.67,4,88.0,0,2.0
+584c6b910f2fa1bc,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,84.0,75.42,62.11,86.67,55.0,31.67,3,85.0,0,1.0
+fcc0fdaf5e4569e7,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,88.0,81.47,67.37,88.33,75.0,20.96,4,90.0,0,2.0
+6e2faff234990854,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,84.0,75.63,63.16,83.33,65.0,20.17,4,86.0,0,2.0
+3aa21b527b116f23,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,88.0,81.21,61.05,90.0,75.0,28.95,4,90.0,0,2.0
+71948348e5e58224,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,86.0,78.16,75.79,80.0,75.0,5.0,4,88.0,0,2.0
+1d3f3d8643663480,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,87.0,79.84,64.21,83.33,85.0,20.79,4,89.0,0,2.0
+f1e50681c9d66b7c,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,81.0,70.58,57.89,80.0,55.0,25.0,4,76.0,0,-5.0
+5ea1db2d1e861955,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,89.0,82.58,57.89,93.33,75.0,35.44,4,91.0,0,2.0
+3826fa9fa4cef941,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,83.0,74.16,55.79,80.0,75.0,24.21,4,85.0,0,2.0
+1ab73d7da3cc1011,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,87.0,79.47,67.37,88.33,65.0,23.33,4,89.0,0,2.0
+64ce64e7082d00b4,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,84.0,74.63,63.16,81.67,65.0,18.51,4,86.0,0,2.0
+2c19350639206b44,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,83.0,73.42,62.11,83.33,55.0,28.33,4,85.0,0,2.0
+23b9c8b614a4f04f,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,82.0,71.79,58.95,78.33,65.0,19.38,4,83.0,0,1.0
+8fd21024d634f2c7,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,89.0,82.47,67.37,90.0,75.0,22.63,4,91.0,0,2.0
+cd47b20c950eb455,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,87.0,80.63,63.16,91.67,65.0,28.51,4,89.0,0,2.0
+d58d3a0edd57f8ab,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,89.0,82.68,68.42,86.67,85.0,18.25,4,91.0,0,2.0
+73dbb073165b1096,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,87.0,79.58,57.89,88.33,75.0,30.44,4,89.0,0,2.0
+35a80f0987e53b4b,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,87.0,80.63,63.16,88.33,75.0,25.17,4,89.0,0,2.0
+dff5c999c5507504,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,88.0,81.37,56.84,91.67,75.0,34.83,4,90.0,0,2.0
+d8923171bb1bac12,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,89.0,83.84,64.21,90.0,85.0,25.79,4,91.0,0,2.0
+07b84b3f57229c4a,Deogracias U. Tenazas Memorial Elementary School,Music and Arts,2025-2026,5.0,89.0,82.95,54.74,91.67,85.0,36.93,4,91.0,0,2.0
+5ecce6daa14f6d82,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,87.0,80.0,92.0,86.0,50.0,42.0,4,89.0,0,2.0
+584c6b910f2fa1bc,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,86.0,77.8,88.0,82.0,55.0,33.0,3,87.0,0,1.0
+fcc0fdaf5e4569e7,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,89.0,83.4,92.0,90.0,55.0,37.0,4,91.0,0,2.0
+6e2faff234990854,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,85.0,76.4,80.0,84.0,50.0,34.0,4,87.0,0,2.0
+3aa21b527b116f23,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,89.0,82.8,78.0,92.0,60.0,32.0,4,91.0,0,2.0
+71948348e5e58224,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,87.0,79.8,96.0,86.0,45.0,51.0,4,89.0,0,2.0
+1d3f3d8643663480,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,88.0,80.8,78.0,92.0,50.0,42.0,4,90.0,0,2.0
+f1e50681c9d66b7c,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,81.0,69.8,80.0,78.0,35.0,45.0,4,76.0,0,-5.0
+5ea1db2d1e861955,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,90.0,84.6,86.0,94.0,55.0,39.0,4,92.0,0,2.0
+3826fa9fa4cef941,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,84.0,75.2,78.0,86.0,40.0,46.0,4,86.0,0,2.0
+1ab73d7da3cc1011,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,86.0,78.0,82.0,86.0,50.0,36.0,4,88.0,0,2.0
+64ce64e7082d00b4,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,85.0,77.4,84.0,86.0,45.0,41.0,4,87.0,0,2.0
+2c19350639206b44,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,84.0,75.6,80.0,86.0,40.0,46.0,4,86.0,0,2.0
+23b9c8b614a4f04f,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,83.0,73.6,78.0,80.0,50.0,30.0,4,84.0,0,1.0
+8fd21024d634f2c7,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,90.0,84.4,86.0,92.0,60.0,32.0,4,92.0,0,2.0
+cd47b20c950eb455,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,88.0,80.8,94.0,90.0,40.0,54.0,4,90.0,0,2.0
+d58d3a0edd57f8ab,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,90.0,84.2,84.0,94.0,55.0,39.0,4,92.0,0,2.0
+73dbb073165b1096,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,88.0,81.8,94.0,90.0,45.0,49.0,4,90.0,0,2.0
+35a80f0987e53b4b,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,88.0,80.8,78.0,92.0,50.0,42.0,4,90.0,0,2.0
+dff5c999c5507504,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,89.0,83.8,88.0,92.0,55.0,37.0,4,91.0,0,2.0
+d8923171bb1bac12,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,90.0,84.4,96.0,92.0,50.0,46.0,4,92.0,0,2.0
+07b84b3f57229c4a,Deogracias U. Tenazas Memorial Elementary School,PE and Health,2025-2026,5.0,90.0,85.0,88.0,94.0,55.0,39.0,4,92.0,0,2.0
+5ecce6daa14f6d82,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,88.0,81.63,85.33,80.0,77.5,7.83,4,91.0,0,3.0
+584c6b910f2fa1bc,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,87.0,80.27,74.67,86.0,80.0,11.33,4,89.0,0,2.0
+fcc0fdaf5e4569e7,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,85.0,76.73,73.33,76.0,85.0,11.67,4,88.0,0,3.0
+6e2faff234990854,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,89.0,82.63,69.33,96.0,82.5,26.67,4,87.0,0,-2.0
+3aa21b527b116f23,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,83.0,73.7,68.0,80.0,72.5,12.0,4,88.0,0,5.0
+71948348e5e58224,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,81.0,69.93,61.33,86.0,55.0,31.0,4,86.0,0,5.0
+1d3f3d8643663480,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,87.0,80.03,85.33,76.0,77.5,9.33,4,88.0,0,1.0
+f1e50681c9d66b7c,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,89.0,83.77,74.67,96.0,77.5,21.33,4,89.0,0,0.0
+5ea1db2d1e861955,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,85.0,77.33,73.33,80.0,80.0,6.67,4,87.0,0,2.0
+3826fa9fa4cef941,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,86.0,78.63,69.33,86.0,82.5,16.67,4,87.0,0,1.0
+1ab73d7da3cc1011,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,80.0,69.43,61.33,76.0,72.5,14.67,4,86.0,0,6.0
+64ce64e7082d00b4,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,89.0,83.53,85.33,96.0,55.0,41.0,4,88.0,0,-1.0
+2c19350639206b44,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,84.0,75.77,74.67,76.0,77.5,2.83,4,88.0,0,4.0
+23b9c8b614a4f04f,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,89.0,83.23,73.33,96.0,77.5,22.67,4,87.0,0,-2.0
+8fd21024d634f2c7,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,83.0,74.13,69.33,76.0,80.0,10.67,4,87.0,0,4.0
+cd47b20c950eb455,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,90.0,85.0,72.0,98.0,85.0,26.0,4,90.0,0,0.0
+d58d3a0edd57f8ab,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,88.0,81.97,82.67,81.0,82.5,1.67,4,89.0,0,1.0
+73dbb073165b1096,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,90.0,85.57,86.67,91.0,72.5,18.5,4,88.0,0,-2.0
+35a80f0987e53b4b,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,93.0,89.43,89.33,93.0,82.5,10.5,4,93.0,0,0.0
+dff5c999c5507504,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,89.0,83.5,80.0,90.0,77.5,12.5,4,88.0,0,-1.0
+d8923171bb1bac12,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,87.0,80.17,78.67,83.0,77.5,5.5,4,89.0,0,2.0
+07b84b3f57229c4a,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,5.0,90.0,84.53,81.33,90.0,80.0,10.0,4,88.0,0,-2.0
+eb79c33ccbc3d4d0,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,80.0,68.65,68.0,72.5,60.0,12.5,4,80.0,0,0.0
+12476d1f292f6ef2,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,85.0,77.1,72.0,80.0,77.5,8.0,4,85.0,0,0.0
+883e2fd7bed76a46,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,78.0,65.2,64.0,70.0,55.0,15.0,4,79.0,0,1.0
+b27ffd229215d72f,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,81.0,69.75,70.0,67.5,75.0,7.5,2,82.0,0,1.0
+5f687452fdcd3e83,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,80.0,68.8,66.0,70.0,70.0,4.0,4,82.0,0,2.0
+282a6a3d5733df9f,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,76.0,61.8,86.0,50.0,55.0,36.0,2,79.0,0,3.0
+90c5cf52ec549726,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,84.0,75.6,82.0,70.0,80.0,12.0,4,84.0,0,0.0
+0e2ed620c70e8963,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,83.0,73.45,74.0,72.5,75.0,2.5,4,84.0,0,1.0
+f5e7d2aaaaf4141d,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,83.0,73.2,74.0,70.0,80.0,10.0,4,84.0,0,1.0
+4a6b2f9f47cd724f,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,80.0,68.55,66.0,67.5,75.0,9.0,4,82.0,0,2.0
+b44af26056b17df8,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,78.0,65.55,76.0,57.5,70.0,18.5,4,80.0,0,2.0
+3d539b73c266ebac,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,80.0,68.85,82.0,57.5,77.5,24.5,4,81.0,0,1.0
+a031944af70aa0ac,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,81.0,70.75,80.0,62.5,77.5,17.5,4,82.0,0,1.0
+d6ba805357083dc3,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,86.0,78.15,68.0,82.5,82.5,14.5,4,87.0,0,1.0
+88d177f752176f51,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,86.0,78.2,74.0,80.0,80.0,6.0,4,87.0,0,1.0
+3d333b7ebb9427f4,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,83.0,72.9,78.0,70.0,72.5,8.0,4,85.0,0,2.0
+abb4af9bd4234078,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,87.0,80.0,80.0,80.0,80.0,0.0,4,88.0,0,1.0
+8627a67a40ef2a65,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,89.0,83.1,72.0,90.0,82.5,18.0,4,91.0,0,2.0
+578ebe7bc19a0181,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,78.0,65.5,90.0,50.0,67.5,40.0,4,80.0,0,2.0
+179b3398aee363ec,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,87.0,79.95,74.0,82.5,82.5,8.5,4,88.0,0,1.0
+1882534663f7759a,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,84.0,74.6,72.0,75.0,77.5,5.5,4,86.0,0,2.0
+4b77d586b04c469c,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,78.0,65.4,78.0,55.0,72.5,23.0,4,80.0,0,2.0
+ce04c95412ec6373,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,85.0,77.55,76.0,77.5,80.0,4.0,4,87.0,0,2.0
+a20edddee6d69489,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,86.0,78.0,80.0,75.0,82.5,7.5,4,88.0,0,2.0
+b8d36a61bf8ebcd6,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,90.0,84.7,74.0,90.0,87.5,16.0,4,91.0,0,1.0
+eb79c33ccbc3d4d0,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,79.0,67.4,66.0,72.5,60.0,12.5,4,81.0,0,2.0
+12476d1f292f6ef2,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,82.0,72.3,72.0,70.0,77.5,7.5,4,85.0,0,3.0
+883e2fd7bed76a46,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,77.0,64.6,64.0,70.0,55.0,15.0,4,82.0,0,5.0
+b27ffd229215d72f,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,84.0,75.0,70.0,77.5,80.0,10.0,3,85.0,0,1.0
+5f687452fdcd3e83,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,80.0,69.4,86.0,60.0,55.0,31.0,4,82.0,0,2.0
+282a6a3d5733df9f,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,76.0,62.4,66.0,62.5,55.0,11.0,3,83.0,0,7.0
+90c5cf52ec549726,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,80.0,68.8,72.0,65.0,70.0,7.0,4,84.0,0,4.0
+0e2ed620c70e8963,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,81.0,69.6,74.0,62.5,75.0,12.5,4,84.0,0,3.0
+f5e7d2aaaaf4141d,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,81.0,69.6,74.0,62.5,75.0,12.5,4,83.0,0,2.0
+b44af26056b17df8,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,78.0,65.4,76.0,52.5,70.0,23.5,4,81.0,0,3.0
+3d539b73c266ebac,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,80.0,68.9,76.0,57.5,77.5,20.0,4,83.0,0,3.0
+a031944af70aa0ac,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,81.0,70.0,80.0,57.5,75.0,22.5,4,83.0,0,2.0
+d6ba805357083dc3,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,80.0,68.8,62.0,72.5,75.0,13.0,4,83.0,0,3.0
+88d177f752176f51,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,83.0,73.7,68.0,77.5,77.5,9.5,4,84.0,0,1.0
+3d333b7ebb9427f4,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,85.0,77.2,78.0,75.0,80.0,5.0,4,86.0,0,1.0
+abb4af9bd4234078,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,86.0,79.0,80.0,80.0,75.0,5.0,4,88.0,0,2.0
+8627a67a40ef2a65,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,86.0,78.0,80.0,75.0,80.0,5.0,4,89.0,0,3.0
+578ebe7bc19a0181,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,78.0,66.0,60.0,70.0,70.0,10.0,4,78.0,0,0.0
+179b3398aee363ec,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,85.0,76.1,74.0,77.5,77.5,3.5,4,88.0,0,3.0
+1882534663f7759a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,81.0,71.0,70.0,70.0,75.0,5.0,4,86.0,0,5.0
+4b77d586b04c469c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,82.0,71.7,78.0,65.0,72.5,13.0,4,82.0,0,0.0
+ce04c95412ec6373,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,82.0,71.8,72.0,70.0,75.0,5.0,4,84.0,0,2.0
+a20edddee6d69489,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,84.0,75.8,82.0,70.0,75.0,12.0,4,86.0,0,2.0
+b8d36a61bf8ebcd6,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,88.0,81.2,78.0,82.5,85.0,7.0,4,90.0,0,2.0
+eb79c33ccbc3d4d0,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,88.0,81.63,85.33,80.0,77.5,7.83,4,91.0,0,3.0
+12476d1f292f6ef2,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,87.0,80.27,74.67,86.0,80.0,11.33,4,89.0,0,2.0
+883e2fd7bed76a46,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,85.0,76.73,73.33,76.0,85.0,11.67,4,88.0,0,3.0
+b27ffd229215d72f,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,89.0,82.63,69.33,96.0,82.5,26.67,4,87.0,0,-2.0
+5f687452fdcd3e83,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,83.0,73.7,68.0,80.0,72.5,12.0,4,88.0,0,5.0
+90c5cf52ec549726,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,81.0,69.93,61.33,86.0,55.0,31.0,4,85.0,0,4.0
+0e2ed620c70e8963,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,87.0,80.03,85.33,76.0,77.5,9.33,4,88.0,0,1.0
+f5e7d2aaaaf4141d,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,89.0,83.77,74.67,96.0,77.5,21.33,4,89.0,0,0.0
+4a6b2f9f47cd724f,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,86.0,78.53,73.33,83.0,80.0,9.67,4,87.0,0,1.0
+b44af26056b17df8,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,86.0,77.73,69.33,90.0,70.0,20.67,4,86.0,0,0.0
+3d539b73c266ebac,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,84.0,75.4,72.0,84.0,65.0,19.0,4,86.0,0,2.0
+a031944af70aa0ac,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,84.0,74.93,69.33,78.0,80.0,10.67,4,85.0,0,1.0
+d6ba805357083dc3,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,90.0,85.0,72.0,98.0,85.0,26.0,4,90.0,0,0.0
+88d177f752176f51,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,88.0,81.97,82.67,81.0,82.5,1.67,4,89.0,0,1.0
+3d333b7ebb9427f4,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,90.0,85.57,86.67,91.0,72.5,18.5,4,88.0,0,-2.0
+abb4af9bd4234078,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,93.0,89.43,89.33,93.0,82.5,10.5,4,94.0,0,1.0
+8627a67a40ef2a65,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,89.0,83.5,80.0,90.0,77.5,12.5,4,87.0,0,-2.0
+578ebe7bc19a0181,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,85.0,77.5,72.0,83.0,77.5,11.0,4,89.0,0,4.0
+179b3398aee363ec,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,87.0,79.73,69.33,90.0,80.0,20.67,4,87.0,0,0.0
+1882534663f7759a,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,86.0,78.4,80.0,81.0,70.0,11.0,4,87.0,0,1.0
+4b77d586b04c469c,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,88.0,81.7,72.0,91.0,82.5,19.0,4,90.0,0,2.0
+ce04c95412ec6373,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,87.0,80.43,69.33,93.0,77.5,23.67,4,88.0,0,1.0
+a20edddee6d69489,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,91.0,85.63,85.33,90.0,77.5,12.5,4,91.0,0,0.0
+b8d36a61bf8ebcd6,Deogracias U. Tenazas Memorial Elementary School,Science,2025-2026,6.0,90.0,85.2,80.0,93.0,80.0,13.0,4,87.0,0,-3.0
+7ee010d0cdd510e3,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,92.0,88.41,84.71,93.0,82.5,10.5,4,92.0,0,0.0
+3aab4048ba49e38a,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,91.0,86.71,82.35,90.0,85.0,7.65,4,91.0,0,0.0
+8790c71d74b243c8,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,82.0,71.76,45.88,85.0,77.5,39.12,4,85.0,0,3.0
+4e2df9bf6b18cd6b,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,81.0,70.94,56.47,76.0,80.0,23.53,4,85.0,0,4.0
+b51583b5a7c80da7,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,81.0,70.5,60.0,80.0,62.5,20.0,4,86.0,0,5.0
+4b5ca0a3bcc5dd05,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,87.0,79.53,71.76,91.0,62.5,28.5,4,87.0,0,0.0
+563e1b0cf005976f,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,90.0,85.09,75.29,98.0,67.5,30.5,4,92.0,0,2.0
+0821d7dfcc79b1df,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,92.0,87.21,82.35,96.0,72.5,23.5,4,93.0,0,1.0
+538bff579487eff3,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,83.0,73.44,76.47,70.0,77.5,7.5,4,87.0,0,4.0
+93a01f2d410bb3b4,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,85.0,77.21,62.35,84.0,82.5,21.65,4,85.0,0,0.0
+1fa702e20c49902c,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,87.0,80.32,69.41,88.0,77.5,18.59,4,84.0,0,-3.0
+62ec409b2e7ecf72,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,81.0,71.15,58.82,77.0,75.0,18.18,4,86.0,0,5.0
+ff4a77fca4482e17,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,85.0,77.38,72.94,80.0,77.5,7.06,4,88.0,0,3.0
+f1f3828acfc57f26,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,84.0,75.85,61.18,85.0,75.0,23.82,4,88.0,0,4.0
+ffcc1fc0268c0338,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,83.0,73.8,77.65,70.0,77.5,7.65,4,84.0,0,1.0
+00a3fae6b3ae0a3e,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,82.0,71.56,83.53,65.0,70.0,18.53,4,85.0,0,3.0
+c7175fac2a2a11a0,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,92.0,88.5,80.0,98.0,77.5,20.5,4,87.0,0,-5.0
+21272de2936b69ca,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,92.0,87.26,85.88,90.0,82.5,7.5,4,91.0,0,-1.0
+05b6e85715b94e70,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,82.0,71.44,56.47,76.0,82.5,26.03,4,87.0,0,5.0
+a36ba54575d7ea9c,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,93.0,89.18,90.59,90.0,85.0,5.59,4,94.0,0,1.0
+6e52749e34ffcfa5,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,85.0,76.68,70.59,81.0,75.0,10.41,4,90.0,0,5.0
+449b43bed3482b4b,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,86.0,78.0,80.0,77.0,77.5,3.0,4,88.0,0,2.0
+b2502c45f044315c,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,84.0,74.74,74.12,72.0,82.5,10.5,4,88.0,0,4.0
+6cd62339b2926cab,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,88.0,81.44,56.47,95.0,85.0,38.53,4,86.0,0,-2.0
+91a89a53bd7b11ae,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,91.0,86.94,76.47,95.0,82.5,18.53,4,90.0,0,-1.0
+06df97b43416c0fa,Deogracias U. Tenazas Memorial Elementary School,ESP,2025-2026,6.0,90.0,85.12,87.06,82.0,90.0,8.0,4,92.0,0,2.0
+7ee010d0cdd510e3,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,82.0,71.41,46.22,83.08,80.0,36.86,4,85.0,0,3.0
+3aab4048ba49e38a,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,81.0,70.55,44.89,86.15,70.0,41.26,4,84.0,0,3.0
+8790c71d74b243c8,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,84.0,74.96,46.67,96.92,62.5,50.25,4,86.0,0,2.0
+4e2df9bf6b18cd6b,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,88.0,80.95,64.44,89.23,85.0,24.79,4,90.0,0,2.0
+b51583b5a7c80da7,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,79.0,67.04,40.89,81.54,70.0,40.65,4,81.0,0,2.0
+4b5ca0a3bcc5dd05,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,81.0,70.79,42.22,89.23,67.5,47.01,4,84.0,0,3.0
+563e1b0cf005976f,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,88.0,82.26,55.11,98.46,82.5,43.35,4,92.0,0,4.0
+0821d7dfcc79b1df,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,89.0,83.66,66.67,92.31,87.5,25.64,4,92.0,0,3.0
+331150b491f55e41,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,77.0,64.14,32.89,81.54,67.5,48.65,4,74.0,1,-3.0
+538bff579487eff3,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,80.0,68.97,50.67,81.54,65.0,30.87,4,82.0,0,2.0
+93a01f2d410bb3b4,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,83.0,73.86,44.0,92.31,72.5,48.31,4,85.0,0,2.0
+1fa702e20c49902c,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,80.0,69.48,41.33,86.15,70.0,44.82,4,82.0,0,2.0
+62ec409b2e7ecf72,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,83.0,74.39,44.0,95.38,67.5,51.38,4,85.0,0,2.0
+ff4a77fca4482e17,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,84.0,75.49,52.89,89.23,75.0,36.34,4,86.0,0,2.0
+f1f3828acfc57f26,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,82.0,72.74,49.78,84.62,77.5,34.84,4,84.0,0,2.0
+ffcc1fc0268c0338,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,78.0,65.9,42.22,78.46,70.0,36.24,4,81.0,0,3.0
+00a3fae6b3ae0a3e,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,79.0,66.94,41.33,83.08,65.0,41.75,4,81.0,0,2.0
+d52712c77dafe86f,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,83.0,74.05,49.78,89.23,72.5,39.45,1,83.0,0,0.0
+c7175fac2a2a11a0,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,86.0,77.73,56.0,93.85,70.0,37.85,4,92.0,0,6.0
+21272de2936b69ca,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,85.0,76.46,49.33,92.31,77.5,42.98,4,90.0,0,5.0
+05b6e85715b94e70,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,86.0,78.19,56.0,90.77,80.0,34.77,4,88.0,0,2.0
+a36ba54575d7ea9c,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,93.0,90.11,95.11,86.15,92.5,8.96,4,96.0,0,3.0
+6e52749e34ffcfa5,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,87.0,79.46,45.78,98.46,82.5,52.68,4,89.0,0,2.0
+449b43bed3482b4b,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,85.0,76.9,42.22,98.46,75.0,56.24,4,89.0,0,4.0
+b2502c45f044315c,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,82.0,72.26,38.67,92.31,72.5,53.64,4,85.0,0,3.0
+6cd62339b2926cab,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,82.0,71.95,44.44,89.23,70.0,44.79,4,84.0,0,2.0
+91a89a53bd7b11ae,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,86.0,78.88,62.67,86.15,85.0,23.48,4,90.0,0,4.0
+06df97b43416c0fa,Deogracias U. Tenazas Memorial Elementary School,English,2025-2026,6.0,90.0,85.23,69.33,93.85,87.5,24.52,4,94.0,0,4.0
+7ee010d0cdd510e3,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,87.0,79.33,86.67,86.67,50.0,36.67,3,90.0,0,3.0
+3aab4048ba49e38a,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,87.0,80.0,70.0,86.67,70.0,16.67,3,89.0,0,2.0
+8790c71d74b243c8,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,85.0,76.67,83.33,83.33,50.0,33.33,3,85.0,0,0.0
+4e2df9bf6b18cd6b,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,87.0,79.33,86.67,86.67,50.0,36.67,3,86.0,0,-1.0
+b51583b5a7c80da7,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,89.0,82.67,83.33,93.33,50.0,43.33,3,88.0,0,-1.0
+4b5ca0a3bcc5dd05,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,84.0,75.33,86.67,86.67,30.0,56.67,3,82.0,0,-2.0
+563e1b0cf005976f,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,87.0,80.67,93.33,83.33,60.0,33.33,3,87.0,0,0.0
+0821d7dfcc79b1df,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,85.0,77.33,86.67,86.67,40.0,46.67,3,87.0,0,2.0
+538bff579487eff3,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,88.0,81.33,86.67,93.33,40.0,53.33,3,87.0,0,-1.0
+93a01f2d410bb3b4,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,88.0,81.33,86.67,86.67,60.0,26.67,3,84.0,0,-4.0
+1fa702e20c49902c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,84.0,75.33,66.67,86.67,50.0,36.67,3,85.0,0,1.0
+62ec409b2e7ecf72,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,85.0,76.67,83.33,83.33,50.0,33.33,3,84.0,0,-1.0
+ff4a77fca4482e17,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,87.0,79.33,86.67,86.67,50.0,36.67,3,86.0,0,-1.0
+f1f3828acfc57f26,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,86.0,78.67,83.33,93.33,30.0,63.33,3,87.0,0,1.0
+ffcc1fc0268c0338,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,88.0,81.33,86.67,86.67,60.0,26.67,3,82.0,0,-6.0
+00a3fae6b3ae0a3e,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,82.0,72.67,93.33,76.67,40.0,53.33,3,82.0,0,0.0
+c7175fac2a2a11a0,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,92.0,88.67,83.33,100.0,60.0,40.0,3,92.0,0,0.0
+21272de2936b69ca,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,81.0,70.67,93.33,76.67,30.0,63.33,3,85.0,0,4.0
+05b6e85715b94e70,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,83.0,73.33,86.67,76.67,50.0,36.67,3,86.0,0,3.0
+a36ba54575d7ea9c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,94.0,90.67,93.33,96.67,70.0,26.67,3,92.0,0,-2.0
+6e52749e34ffcfa5,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,91.0,86.67,93.33,100.0,40.0,60.0,3,91.0,0,0.0
+449b43bed3482b4b,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,91.0,86.67,93.33,100.0,40.0,60.0,3,92.0,0,1.0
+b2502c45f044315c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,84.0,75.33,86.67,76.67,60.0,26.67,3,86.0,0,2.0
+6cd62339b2926cab,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,76.0,62.0,80.0,60.0,50.0,30.0,3,81.0,0,5.0
+91a89a53bd7b11ae,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,92.0,88.67,93.33,100.0,50.0,50.0,3,92.0,0,0.0
+06df97b43416c0fa,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Arts,2025-2026,6.0,91.0,86.67,93.33,90.0,70.0,23.33,3,92.0,0,1.0
+7ee010d0cdd510e3,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,87.0,79.33,86.67,86.67,50.0,36.67,3,88.0,0,1.0
+3aab4048ba49e38a,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,87.0,80.67,93.33,86.67,50.0,43.33,3,86.0,0,-1.0
+8790c71d74b243c8,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,85.0,77.33,86.67,83.33,50.0,36.67,3,83.0,0,-2.0
+4e2df9bf6b18cd6b,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,85.0,76.67,93.33,86.67,30.0,63.33,3,85.0,0,0.0
+b51583b5a7c80da7,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,90.0,85.33,86.67,93.33,60.0,33.33,3,88.0,0,-2.0
+4b5ca0a3bcc5dd05,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,86.0,78.67,93.33,86.67,40.0,53.33,3,87.0,0,1.0
+563e1b0cf005976f,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,84.0,75.33,86.67,83.33,40.0,46.67,3,85.0,0,1.0
+0821d7dfcc79b1df,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,89.0,82.67,93.33,86.67,60.0,33.33,3,87.0,0,-2.0
+538bff579487eff3,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,89.0,83.33,86.67,93.33,50.0,43.33,3,87.0,0,-2.0
+93a01f2d410bb3b4,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,87.0,80.67,93.33,86.67,50.0,43.33,3,86.0,0,-1.0
+1fa702e20c49902c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,87.0,79.33,86.67,86.67,50.0,36.67,3,87.0,0,0.0
+62ec409b2e7ecf72,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,86.0,78.67,93.33,83.33,50.0,43.33,3,84.0,0,-2.0
+ff4a77fca4482e17,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,87.0,79.33,86.67,86.67,50.0,36.67,3,85.0,0,-2.0
+f1f3828acfc57f26,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,87.0,80.67,93.33,93.33,30.0,63.33,3,87.0,0,0.0
+ffcc1fc0268c0338,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,88.0,81.33,86.67,86.67,60.0,26.67,3,85.0,0,-3.0
+00a3fae6b3ae0a3e,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,82.0,72.67,93.33,76.67,40.0,53.33,3,81.0,0,-1.0
+c7175fac2a2a11a0,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,88.0,81.33,86.67,86.67,60.0,26.67,3,90.0,0,2.0
+21272de2936b69ca,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,84.0,75.33,86.67,86.67,30.0,56.67,3,84.0,0,0.0
+05b6e85715b94e70,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,86.0,78.67,93.33,83.33,50.0,43.33,3,84.0,0,-2.0
+a36ba54575d7ea9c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,92.0,88.67,93.33,93.33,70.0,23.33,3,92.0,0,0.0
+6e52749e34ffcfa5,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,85.0,77.33,86.67,86.67,40.0,46.67,3,86.0,0,1.0
+449b43bed3482b4b,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,85.0,76.67,93.33,83.33,40.0,53.33,3,85.0,0,0.0
+b2502c45f044315c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,89.0,82.67,93.33,86.67,60.0,33.33,3,85.0,0,-4.0
+6cd62339b2926cab,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,89.0,83.33,86.67,93.33,50.0,43.33,3,83.0,0,-6.0
+91a89a53bd7b11ae,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,87.0,80.67,93.33,86.67,50.0,43.33,3,87.0,0,0.0
+06df97b43416c0fa,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Health,2025-2026,6.0,86.0,78.67,93.33,76.67,70.0,23.33,3,89.0,0,3.0
+7ee010d0cdd510e3,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,85.0,76.0,70.0,83.33,60.0,23.33,3,89.0,0,4.0
+3aab4048ba49e38a,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,85.0,76.67,83.33,86.67,40.0,46.67,3,88.0,0,3.0
+8790c71d74b243c8,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,89.0,82.67,83.33,96.67,40.0,56.67,3,83.0,0,-6.0
+4e2df9bf6b18cd6b,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,87.0,80.0,80.0,86.67,60.0,26.67,3,87.0,0,0.0
+b51583b5a7c80da7,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,88.0,82.0,70.0,96.67,50.0,46.67,3,88.0,0,0.0
+4b5ca0a3bcc5dd05,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,87.0,80.67,83.33,83.33,70.0,13.33,3,86.0,0,-1.0
+563e1b0cf005976f,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,86.0,78.67,83.33,86.67,50.0,36.67,3,86.0,0,0.0
+0821d7dfcc79b1df,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,83.0,74.0,70.0,83.33,50.0,33.33,3,84.0,0,1.0
+538bff579487eff3,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,86.0,78.67,83.33,86.67,50.0,36.67,3,88.0,0,2.0
+93a01f2d410bb3b4,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,81.0,70.67,83.33,80.0,30.0,53.33,3,85.0,0,4.0
+1fa702e20c49902c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,89.0,83.33,96.67,86.67,60.0,36.67,3,88.0,0,-1.0
+62ec409b2e7ecf72,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,87.0,80.0,70.0,96.67,40.0,56.67,3,85.0,0,-2.0
+ff4a77fca4482e17,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,84.0,74.67,83.33,83.33,40.0,43.33,3,85.0,0,1.0
+f1f3828acfc57f26,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,84.0,74.67,83.33,86.67,30.0,56.67,3,87.0,0,3.0
+ffcc1fc0268c0338,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,84.0,75.33,96.67,83.33,30.0,66.67,3,86.0,0,2.0
+00a3fae6b3ae0a3e,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,78.0,66.0,70.0,70.0,50.0,20.0,3,82.0,0,4.0
+c7175fac2a2a11a0,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,90.0,84.67,83.33,96.67,50.0,46.67,3,92.0,0,2.0
+21272de2936b69ca,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,90.0,84.0,90.0,93.33,50.0,43.33,3,84.0,0,-6.0
+05b6e85715b94e70,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,86.0,78.67,83.33,86.67,50.0,36.67,3,85.0,0,-1.0
+a36ba54575d7ea9c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,89.0,83.33,96.67,96.67,30.0,66.67,3,91.0,0,2.0
+6e52749e34ffcfa5,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,87.0,79.33,76.67,86.67,60.0,26.67,3,89.0,0,2.0
+449b43bed3482b4b,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,87.0,80.67,83.33,93.33,40.0,53.33,3,89.0,0,2.0
+b2502c45f044315c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,87.0,80.0,80.0,93.33,40.0,53.33,3,85.0,0,-2.0
+6cd62339b2926cab,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,87.0,80.67,83.33,96.67,30.0,66.67,3,79.0,0,-8.0
+91a89a53bd7b11ae,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,84.0,74.67,83.33,86.67,30.0,56.67,3,89.0,0,5.0
+06df97b43416c0fa,Deogracias U. Tenazas Memorial Elementary School,MAPEH - Music,2025-2026,6.0,92.0,88.67,83.33,100.0,60.0,40.0,3,92.0,0,0.0
+7ee010d0cdd510e3,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,92.0,87.33,66.67,96.67,80.0,30.0,3,87.0,0,-5.0
+3aab4048ba49e38a,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,92.0,87.33,66.67,100.0,70.0,33.33,3,89.0,0,-3.0
+8790c71d74b243c8,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,84.0,75.33,86.67,80.0,50.0,36.67,3,83.0,0,-1.0
+4e2df9bf6b18cd6b,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,76.0,62.67,83.33,66.67,30.0,53.33,3,78.0,0,2.0
+b51583b5a7c80da7,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,85.0,77.33,86.67,80.0,60.0,26.67,3,87.0,0,2.0
+4b5ca0a3bcc5dd05,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,87.0,79.33,86.67,90.0,40.0,50.0,3,87.0,0,0.0
+563e1b0cf005976f,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,90.0,84.67,83.33,90.0,70.0,20.0,3,86.0,0,-4.0
+0821d7dfcc79b1df,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,90.0,84.67,93.33,86.67,70.0,23.33,3,87.0,0,-3.0
+538bff579487eff3,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,82.0,71.33,66.67,80.0,50.0,30.0,3,84.0,0,2.0
+93a01f2d410bb3b4,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,79.0,67.33,86.67,66.67,50.0,36.67,3,84.0,0,5.0
+1fa702e20c49902c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,84.0,74.67,83.33,80.0,50.0,33.33,3,82.0,0,-2.0
+62ec409b2e7ecf72,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,85.0,77.33,86.67,90.0,30.0,60.0,3,86.0,0,1.0
+ff4a77fca4482e17,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,85.0,77.33,86.67,80.0,60.0,26.67,3,87.0,0,2.0
+f1f3828acfc57f26,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,86.0,78.67,83.33,90.0,40.0,50.0,3,86.0,0,0.0
+ffcc1fc0268c0338,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,75.0,61.33,66.67,66.67,40.0,26.67,3,79.0,0,4.0
+00a3fae6b3ae0a3e,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,85.0,77.33,86.67,80.0,60.0,26.67,3,80.0,0,-5.0
+c7175fac2a2a11a0,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,94.0,90.67,93.33,100.0,60.0,40.0,3,85.0,0,-9.0
+21272de2936b69ca,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,94.0,90.67,83.33,100.0,70.0,30.0,3,90.0,0,-4.0
+05b6e85715b94e70,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,88.0,81.33,86.67,86.67,60.0,26.67,3,87.0,0,-1.0
+a36ba54575d7ea9c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,92.0,88.67,93.33,96.67,60.0,36.67,3,93.0,0,1.0
+6e52749e34ffcfa5,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,90.0,84.67,73.33,93.33,70.0,23.33,3,86.0,0,-4.0
+449b43bed3482b4b,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,90.0,84.67,83.33,90.0,70.0,20.0,3,85.0,0,-5.0
+b2502c45f044315c,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,92.0,87.33,86.67,93.33,70.0,23.33,3,89.0,0,-3.0
+6cd62339b2926cab,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,92.0,87.33,86.67,93.33,70.0,23.33,3,85.0,0,-7.0
+91a89a53bd7b11ae,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,92.0,87.33,76.67,100.0,60.0,40.0,3,89.0,0,-3.0
+06df97b43416c0fa,Deogracias U. Tenazas Memorial Elementary School,MAPEH - PE,2025-2026,6.0,94.0,90.67,83.33,100.0,70.0,30.0,3,90.0,0,-4.0
+7ee010d0cdd510e3,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,86.0,78.16,68.0,86.15,82.5,18.15,4,88.0,0,2.0
+3aab4048ba49e38a,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,85.0,77.13,66.67,86.15,80.0,19.48,4,88.0,0,3.0
+8790c71d74b243c8,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,87.0,80.09,66.67,92.31,82.5,25.64,4,89.0,0,2.0
+4e2df9bf6b18cd6b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,88.0,82.02,73.33,89.23,85.0,15.9,4,89.0,0,1.0
+b51583b5a7c80da7,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,83.0,73.24,62.22,84.62,72.5,22.4,4,82.0,0,-1.0
+4b5ca0a3bcc5dd05,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,84.0,74.69,60.0,89.23,75.0,29.23,4,84.0,0,0.0
+563e1b0cf005976f,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,90.0,84.5,71.56,98.46,82.5,26.9,4,91.0,0,1.0
+0821d7dfcc79b1df,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,90.0,85.53,77.78,92.31,87.5,14.53,4,91.0,0,1.0
+331150b491f55e41,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,77.0,63.36,43.11,81.54,67.5,38.43,4,72.0,1,-5.0
+538bff579487eff3,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,80.0,68.2,56.44,81.54,65.0,25.1,4,82.0,0,2.0
+93a01f2d410bb3b4,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,84.0,74.71,58.22,92.31,72.5,34.09,4,86.0,0,2.0
+1fa702e20c49902c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,80.0,68.19,49.33,86.15,70.0,36.82,4,82.0,0,2.0
+62ec409b2e7ecf72,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,83.0,73.16,53.78,95.38,67.5,41.6,4,84.0,0,1.0
+ff4a77fca4482e17,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,85.0,76.65,64.89,89.23,75.0,24.34,4,87.0,0,2.0
+f1f3828acfc57f26,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,83.0,72.82,58.67,84.62,77.5,25.95,4,86.0,0,3.0
+ffcc1fc0268c0338,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,79.0,66.89,53.78,78.46,70.0,24.68,4,82.0,0,3.0
+00a3fae6b3ae0a3e,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,80.0,68.1,54.67,83.08,65.0,28.41,4,83.0,0,3.0
+d52712c77dafe86f,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,83.0,74.01,59.56,89.23,72.5,29.67,2,83.0,0,0.0
+c7175fac2a2a11a0,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,88.0,81.76,75.56,93.85,70.0,23.85,4,91.0,0,3.0
+21272de2936b69ca,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,87.0,79.62,68.0,92.31,77.5,24.31,4,90.0,0,3.0
+05b6e85715b94e70,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,87.0,80.75,71.11,90.77,80.0,19.66,4,88.0,0,1.0
+a36ba54575d7ea9c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,93.0,90.15,94.22,86.15,90.0,8.07,4,96.0,0,3.0
+6e52749e34ffcfa5,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,87.0,79.35,58.67,98.46,82.5,39.79,4,89.0,0,2.0
+449b43bed3482b4b,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,85.0,76.6,55.56,98.46,75.0,42.9,4,89.0,0,4.0
+b2502c45f044315c,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,80.0,68.49,42.67,92.31,72.5,49.64,4,83.0,0,3.0
+6cd62339b2926cab,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,81.0,69.96,50.67,89.23,70.0,38.56,4,83.0,0,2.0
+91a89a53bd7b11ae,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,86.0,77.95,66.22,86.15,85.0,19.93,4,89.0,0,3.0
+06df97b43416c0fa,Deogracias U. Tenazas Memorial Elementary School,Mathematics,2025-2026,6.0,90.0,84.73,74.22,93.85,87.5,19.63,4,93.0,0,3.0

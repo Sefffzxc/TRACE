@@ -11,14 +11,19 @@ three-tier architecture.
 
 What it will and will not say
 -----------------------------
-The model estimates whether a learner will finish the term below 80 — the
-mark at which DepEd records call for intervention — from the coursework
-components of the class record, before the term exam is sat. It does NOT
-predict the passing mark of 75: there were only 30 such cases in the
-training records, too few to support a claim. It was validated on complete
-coursework totals, so `/model-card` reports that limitation, and every
-response carries `model_version` so a stored prediction can always be traced
-back to the model that made it.
+From a learner's FIRST-TERM class record in a subject, the model predicts
+their FINAL grade in it: an expected grade, an 80% range, and the chance that
+the final grade falls below the passing mark of 75. It is a regression model
+(Extra Trees) that predicts the change from the first-term grade, so the
+answer stays anchored on the school's own first-term grade.
+
+The range and the chance of failing come from the model's own errors on
+learners it was not trained on, not from an assumed distribution. On the
+training data it is only marginally more accurate than the rule "first-term
+grade plus the average rise for the grade level", and it is only valid for
+the schools and grade levels it was trained on; `/model-card` reports both.
+Every response carries `model_version` so a stored prediction can always be
+traced back to the model that made it.
 
 Endpoints
 ---------
@@ -47,12 +52,12 @@ import numpy as np
 import pandas as pd
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 MODEL_DIR = pathlib.Path(os.getenv("MODEL_DIR", "model"))
-MODEL_PATH = MODEL_DIR / "risk_model_v2.joblib"
-CARD_PATH = MODEL_DIR / "model_card_v2.json"
-MODEL_VERSION = os.getenv("MODEL_VERSION", "v2.0.0-classrecord")
+MODEL_PATH = MODEL_DIR / "final_grade_model_v4.joblib"
+CARD_PATH = MODEL_DIR / "model_card_v4.json"
+MODEL_VERSION = os.getenv("MODEL_VERSION", "v4.0.0-final-grade")
 SERVICE_TOKEN = os.getenv("AI_SERVICE_TOKEN", "").strip()
 MAX_BATCH = 500
 
@@ -65,13 +70,14 @@ STATE: dict = {"bundle": None, "card": None, "loaded_at": None, "error": None}
 def load_model() -> None:
     try:
         bundle_ = joblib.load(MODEL_PATH)
-        # `feature_importances_` on a RandomForest is a PROPERTY: every read
-        # averages the importances of all 400 trees from scratch (~66 ms here,
-        # far worse on a 0.1-CPU instance). It is read once per flagged student
-        # to work out the primary factor, so on a batch it was costing more
-        # than the predictions themselves. It cannot change after fitting, so
-        # it is computed once, here.
-        bundle_["importances"] = np.asarray(bundle_["model"].feature_importances_)
+        # The training script stores the importances with the model, because
+        # the deployed estimator may be a linear model with no
+        # `feature_importances_`. On a forest that attribute is also a
+        # property recomputed over every tree on each read, which made it
+        # costlier than the predictions — so it is read once, here, either way.
+        if bundle_.get("importances") is None:
+            bundle_["importances"] = bundle_["model"].feature_importances_
+        bundle_["importances"] = np.asarray(bundle_["importances"])
         STATE["bundle"] = bundle_
         STATE["loaded_at"] = time.time()
         STATE["error"] = None
@@ -135,49 +141,50 @@ def bundle() -> dict:
 # Schemas — field names mirror the dataset columns exactly
 # ══════════════════════════════════════════════════════════════════════════════
 class StudentRecord(BaseModel):
-    """One learner, one subject, one term.
+    """One learner, one subject, read off their FIRST-TERM class record.
 
-    These are the DepEd class-record figures a teacher has entered by the time
-    a warning is useful: the two coursework components, raw, as a percentage
-    and weighted. The summative tests and the term examination are
-    deliberately absent — they are sat at the end of the term, and a model
-    that needed them would be reporting a result rather than anticipating
-    one.
+    The first-term grade and initial grade, and all three components as
+    percentage scores. The prediction is the CHANGE from the first-term grade,
+    added back onto it, so the answer stays on the school's own scale.
 
     Any field may be omitted; the service substitutes the training median and
-    says so in the response.
+    says so in the response. An UNKNOWN field is refused rather than ignored:
+    a caller still sending an earlier model's inputs would otherwise get every
+    input replaced by a median and a confident-looking score back. Refused,
+    it falls back to its own rule and says so.
     """
 
-    ww_total: Optional[float] = Field(default=None, ge=0,
-        description="Written Works raw total for the term")
-    # Not capped at 100. Thirteen rows of the training data score above the
-    # highest possible score, because a teacher awarded a bonus; capping here
-    # would reject a figure the class record itself produced.
-    ww_pct: Optional[float] = Field(default=None, ge=0, le=200,
-        description="Written Works percentage score (total / highest possible x 100)")
-    ww_weighted: Optional[float] = Field(default=None, ge=0, le=100,
-        description="Written Works weighted score (percentage x component weight)")
-    pt_total: Optional[float] = Field(default=None, ge=0,
-        description="Performance Task raw total for the term")
-    pt_pct: Optional[float] = Field(default=None, ge=0, le=200,
-        description="Performance Task percentage score")
-    pt_weighted: Optional[float] = Field(default=None, ge=0, le=100,
-        description="Performance Task weighted score")
-    pre_exam_weighted: Optional[float] = Field(default=None, ge=0, le=100,
-        description="Written Works weighted + Performance Task weighted: what "
-                    "the learner has banked before the term examination")
-    component_gap: Optional[float] = Field(default=None, ge=0, le=200,
-        description="Absolute difference between the two percentage scores")
+    model_config = ConfigDict(extra="forbid")
+
+    # Not capped at 100: a teacher can award a bonus above the highest
+    # possible score, and capping here would reject a figure the class record
+    # itself produced.
+    q1_term_grade: Optional[float] = Field(default=None, ge=0, le=100,
+        description="First-term grade (transmuted), as the school reports it")
+    q1_initial_grade: Optional[float] = Field(default=None, ge=0, le=200,
+        description="First-term initial grade, before transmutation")
+    q1_ww_pct: Optional[float] = Field(default=None, ge=0, le=200,
+        description="First-term Written Works percentage score")
+    q1_pt_pct: Optional[float] = Field(default=None, ge=0, le=200,
+        description="First-term Performance Tasks percentage score")
+    q1_exam_pct: Optional[float] = Field(default=None, ge=0, le=200,
+        description="First-term examinations percentage score")
+    q1_component_gap: Optional[float] = Field(default=None, ge=0, le=200,
+        description="Highest minus lowest of the three percentages")
     grade_level: Optional[float] = Field(default=None, ge=1, le=12)
-    quarter: Optional[float] = Field(default=None, ge=1, le=4)
 
     # Echoed back untouched so the caller can match responses to its own rows.
     reference: Optional[str] = Field(default=None, max_length=120)
 
 
 class Prediction(BaseModel):
-    risk_score: float = Field(description="Probability of ending the term below 80, 0-1")
-    risk_level: str = Field(description="HIGH or LOW, using the service threshold")
+    risk_score: float = Field(
+        description="Chance that the final grade falls below 75, 0-1")
+    risk_level: str = Field(
+        description="HIGH when that chance is at least the service threshold, else LOW")
+    predicted_final: float = Field(description="Expected final grade")
+    range_low: float = Field(description="Low end of the likely (80%) range")
+    range_high: float = Field(description="High end of the likely (80%) range")
     primary_factor: Optional[str] = Field(
         default=None, description="Biggest contributing feature; null when LOW")
     suggested_action: Optional[str] = None
@@ -198,30 +205,19 @@ class BatchResponse(BaseModel):
     count: int
 
 
-# Request field -> training column, in the order the model expects.
-FIELD_MAP = {
-    "ww_total": "ww_total",
-    "ww_pct": "ww_pct",
-    "ww_weighted": "ww_weighted",
-    "pt_total": "pt_total",
-    "pt_pct": "pt_pct",
-    "pt_weighted": "pt_weighted",
-    "pre_exam_weighted": "pre_exam_weighted",
-    "component_gap": "component_gap",
-    "grade_level": "grade_level",
-    "quarter": "quarter",
-}
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Inference
 # ══════════════════════════════════════════════════════════════════════════════
 def _prepare(rec: StudentRecord, b: dict) -> tuple:
-    """Turn one request into the model's row, noting what had to be imputed."""
+    """Turn one request into the model's row, noting what had to be imputed.
+
+    Request fields carry the training column names exactly, so the bundle's
+    own feature list is the only mapping needed.
+    """
     medians = b["medians"]
     row, imputed = {}, []
-    for field, column in FIELD_MAP.items():
-        value = getattr(rec, field)
+    for column in b["features"]:
+        value = getattr(rec, column, None)
         if value is None:
             row[column] = medians[column]
             imputed.append(column)
@@ -247,20 +243,16 @@ def _explain(row: dict, b: dict) -> tuple:
 def predict_many(records: List[StudentRecord], b: dict) -> List[Prediction]:
     """Score a whole batch with ONE call into the model.
 
-    Calling predict_proba once per row costs ~370x more than one call for the
-    whole batch — 400 trees are walked with full Python/NumPy call overhead
-    every time. On a free 0.1-CPU instance a 500-row batch took long enough
-    that the platform killed the container mid-request, which is how this was
-    found.
+    Calling the model once per row costs hundreds of times more than one call
+    for the whole batch — every tree is walked with full Python/NumPy call
+    overhead each time. On a free 0.1-CPU instance a 500-row batch took long
+    enough that the platform killed the container mid-request, which is how
+    this was found.
 
-    This is also the form the audit used: final_pipeline.py evaluates with
-    `model.predict_proba(Xte)` over the whole test matrix, so batching matches
-    the measured results rather than departing from them. Batched and per-row
-    floats can differ by one ULP (~2e-16) through summation order; measured
-    over 20,000 rows that never changed a stored risk_score at 4 decimals nor
-    a HIGH/LOW decision, and the smallest gap between distinct probabilities
-    the model produces is 2.7e-9 — seven orders of magnitude wider than the
-    perturbation.
+    The model predicts the change from the first-term grade. The expected
+    final grade is that grade plus the change; the range and the chance of
+    failing are read off the model's own out-of-fold errors, exactly as the
+    training script measured them.
     """
     features = b["features"]
     prepared = [_prepare(rec, b) for rec in records]
@@ -268,18 +260,27 @@ def predict_many(records: List[StudentRecord], b: dict) -> List[Prediction]:
     frame = pd.DataFrame(
         [[row[c] for c in features] for row, _ in prepared], columns=features
     )
-    probas = b["model"].predict_proba(frame)[:, 1]
+    changes = b["model"].predict(frame)
     threshold = b["threshold"]
+    residuals = b["residuals"]          # sorted
+    low_off, high_off = b["interval_offsets"]
+    passing = b["passing"]
 
     out = []
-    for rec, (row, imputed), proba in zip(records, prepared, probas):
-        proba = float(proba)
-        is_high = proba >= threshold
+    for rec, (row, imputed), change in zip(records, prepared, changes):
+        final = row["q1_term_grade"] + float(change)
+        # Share of past errors that would carry this prediction below 75.
+        fail = float(np.searchsorted(residuals, passing - final, side="left")
+                     / len(residuals))
+        is_high = fail >= threshold
         factor, action = _explain(row, b) if is_high else (None, None)
         out.append(
             Prediction(
-                risk_score=round(proba, 4),
+                risk_score=round(fail, 4),
                 risk_level="HIGH" if is_high else "LOW",
+                predicted_final=_grade(final),
+                range_low=_grade(final + low_off),
+                range_high=_grade(final + high_off),
                 primary_factor=factor,
                 suggested_action=action,
                 used_threshold=threshold,
@@ -290,6 +291,13 @@ def predict_many(records: List[StudentRecord], b: dict) -> List[Prediction]:
             )
         )
     return out
+
+
+def _grade(value: float) -> float:
+    """A grade on the scale a report card can show: the transmutation table
+    bottoms out at 60 and nothing goes above 100. The chance of failing is
+    computed before this, from the unclipped prediction."""
+    return round(min(100.0, max(60.0, value)), 1)
 
 
 def predict_one(rec: StudentRecord, b: dict) -> Prediction:
@@ -329,37 +337,46 @@ async def model_card():
     card = STATE["card"] or {}
     return {
         "model_version": MODEL_VERSION,
-        "algorithm": type(b["model"]).__name__,
+        # The deployed model may be a pipeline (scaler + estimator); name the
+        # estimator, which is what the card describes.
+        "algorithm": type(getattr(b["model"], "steps", [[None, b["model"]]])[-1][1]).__name__,
         "features": b["features"],
         "threshold": b["threshold"],
-        "target": "HIGH if the term grade will fall below 80",
-        "limitations": [
-            "The term grade is a weighted sum of the components the model "
-            "reads, so the task is substantially arithmetic. A single cut on "
-            "the pre-examination weighted total reaches macro F1 0.864 on the "
-            "same data; the model's advantage over it was not statistically "
-            "significant.",
-            "Measured at the point where written works and performance tasks "
-            "are complete and the term examination is not. No claim is made "
-            "about earlier points in the term.",
-            "Does not transfer across cohorts without threshold "
-            "recalibration: carrying the earlier cohort's threshold to an "
-            "unseen one dropped recall from 0.835 to 0.645.",
-            "Trained on Grade 8 Filipino records (86.8% and 95.6% of the "
-            "training rows). Conclusions do not extend to other grade levels "
-            "or subjects.",
-            "The training export carries no attendance column, so attendance "
-            "plays no part in this model.",
-        ],
-        # Keyed to the card the current training script writes. These were
-        # reading key names from the previous model and silently returning
-        # null for all three.
+        "target": "Expected final grade, its likely range, and the chance it "
+                  "falls below 75; HIGH when that chance is at least "
+                  f"{round(b['threshold'] * 100)}%",
+        "task": card.get("task"),
+        # Written by the training script from the numbers it measured, so the
+        # limitations can never describe a different model from the one loaded.
+        "limitations": card.get("limitations") or [],
         "dataset": card.get("dataset"),
-        "reported_metrics": card.get("results"),
-        "temporal_validation": card.get("temporal_validation"),
+        # One flat set of figures each for the deployed model and the rule it
+        # is measured against, which is the shape the app's card renders.
+        "reported_metrics": _metrics_for(card, card.get("model")),
+        "baseline_for_comparison": _metrics_for(
+            card, "Baseline: Term 1 + average rise for the grade level"),
+        "all_results": card.get("results"),
+        "leave_one_school_out": card.get("leave_one_school_out"),
         "protocol": card.get("protocol"),
         "known_limits": card.get("limitations"),
     }
+
+
+_CARD_NAMES = {"ExtraTreesRegressor": "Extra Trees",
+               "RandomForestRegressor": "Random Forest",
+               "GradientBoostingRegressor": "Gradient Boosting",
+               "Ridge": "Ridge Regression"}
+_SHOWN_METRICS = ("mae", "rmse", "within_1", "within_2", "range_coverage",
+                  "fail_tp", "fail_fn", "fail_fp")
+
+
+def _metrics_for(card: dict, name: Optional[str]) -> dict:
+    """The headline figures for one row of the card's results table."""
+    wanted = _CARD_NAMES.get(name, name)
+    for row in card.get("results") or []:
+        if row.get("model") == wanted:
+            return {k: row[k] for k in _SHOWN_METRICS if k in row}
+    return {}
 
 
 @app.post("/predict", response_model=Prediction, tags=["Inference"],

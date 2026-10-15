@@ -16,6 +16,7 @@ import {
   AiRiskBadge,
   AiServiceNote,
   ModelCard,
+  finalGradeText,
 } from '../../components/common/ai';
 import {
   Avatar,
@@ -163,12 +164,14 @@ export default function AiInsightsPage() {
 
   const exportCsv = () => {
     const header = [
-      'Student', 'Section', 'Subject', 'Probability', 'Level', 'Threshold',
+      'Student', 'Section', 'Subject', 'Expected final grade', 'Range low', 'Range high',
+      'Chance of failing', 'Level', 'Threshold',
       'Primary factor', 'Source', 'Model version', 'Inputs imputed', 'Scored at',
     ];
     const lines = filtered.map((row) =>
       [
-        row.student_name, row.section_name || '', row.subject, row.risk_score,
+        row.student_name, row.section_name || '', row.subject,
+        row.predicted_final ?? '', row.range_low ?? '', row.range_high ?? '', row.risk_score,
         row.risk_level, row.used_threshold, row.primary_factor || '', row.source,
         row.model_version, (row.imputed_fields || []).join('; '), row.created_at || '',
       ]
@@ -451,10 +454,18 @@ export default function AiInsightsPage() {
           title={`${detail.student_name || 'Student'} — ${detail.subject}`}
           subtitle={
             detail.source === 'model'
-              ? `Scored by ${detail.model_version} at ${Math.round(
-                  detail.risk_score * 100,
-                )}%, flagged above ${Math.round(detail.used_threshold * 100)}%`
-              : 'Produced by the PACE rules because the AI service was unreachable'
+              ? detail.predicted_final != null
+                ? `${detail.model_version}: expected final grade ${finalGradeText(detail)}, ` +
+                  `${Math.round(detail.risk_score * 100)}% chance of finishing below 75 ` +
+                  `(flagged at ${Math.round(detail.used_threshold * 100)}%)`
+                : `Scored by ${detail.model_version} at ${Math.round(
+                    detail.risk_score * 100,
+                  )}%, flagged above ${Math.round(detail.used_threshold * 100)}%`
+              : detail.predicted_final != null
+                ? `Produced by the school rule because the AI service was unreachable: ` +
+                  `expected final grade ${finalGradeText(detail)}, ` +
+                  `${Math.round(detail.risk_score * 100)}% chance of finishing below 75`
+                : 'Produced by the school rules because the AI service was unreachable'
           }
           onClose={() => setDetail(null)}
         >
@@ -470,7 +481,8 @@ export default function AiInsightsPage() {
             <div className="alert alert-warning">
               <AlertTriangle size={17} />
               <span>
-                {detail.imputed_fields?.length} of the model&rsquo;s nine inputs were not encoded
+                {detail.imputed_fields?.length} of the model&rsquo;s{' '}
+                {Object.keys(detail.features || {}).length} inputs were not encoded
                 and were replaced with the median from the training data. The score is still
                 reported, but it rests on fewer facts about this student.
               </span>

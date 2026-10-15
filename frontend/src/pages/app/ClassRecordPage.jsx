@@ -263,6 +263,9 @@ export default function ClassRecordPage() {
                 model_version: stored.ai_model_version,
                 used_baseline_defaults: stored.ai_used_baseline_defaults,
                 primary_factor: stored.ai_primary_factor,
+                predicted_final: stored.ai_predicted_final,
+                range_low: stored.ai_range_low,
+                range_high: stored.ai_range_high,
                 imputed_fields: [],
               }
             : null,
@@ -397,10 +400,10 @@ export default function ClassRecordPage() {
       <PageHead
         title="Class record"
         subtitle={
-          'The MATATAG three-term E-Class Record. Written works and performance ' +
-          'tasks are what the risk model reads; the summative tests and the term ' +
-          'examination are not, because they are the result the warning is meant ' +
-          'to come before.'
+          'The MATATAG three-term E-Class Record. Once the first term is graded, the ' +
+          'risk model reads its grade, written works, performance tasks and ' +
+          'examinations and predicts the final grade and the chance of finishing ' +
+          'below 75. If the AI service is down, a school rule answers instead.'
         }
       />
 

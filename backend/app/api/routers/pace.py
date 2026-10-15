@@ -290,8 +290,11 @@ def _attach_ai(item, prediction) -> None:
     """Copy a logged prediction onto a PACE response.
 
     The threshold and model version go with it so the UI can label the number
-    correctly instead of assuming either one.
+    correctly instead of assuming either one. Nothing is attached while the
+    first term is not yet graded, because the model has not been asked.
     """
+    if prediction is None:
+        return
     item.ai_risk_score = prediction.risk_score
     item.ai_risk_level = prediction.risk_level
     item.ai_source = prediction.source
@@ -299,6 +302,9 @@ def _attach_ai(item, prediction) -> None:
     item.ai_model_version = prediction.model_version
     item.ai_used_baseline_defaults = prediction.used_baseline_defaults
     item.ai_primary_factor = prediction.primary_factor
+    item.ai_predicted_final = prediction.predicted_final
+    item.ai_range_low = prediction.range_low
+    item.ai_range_high = prediction.range_high
 
 
 async def _grade_label(
@@ -318,13 +324,62 @@ async def _grade_label(
     return level.name if level is not None else None
 
 
+async def _first_term_records(
+    db: AsyncSession, rows: list[StudentPace], school_id: int
+) -> list[StudentPace]:
+    """The graded first-term record behind each saved record, one per subject.
+
+    The model reads a learner's FIRST term in a subject and answers for the
+    rest of that year, so whichever term was just saved, the record it is
+    asked about is the first one. It is only asked once that term has all
+    three components in; before that the rule's reading stands alone.
+
+    Records already in hand are used as they are, so a first term saved in
+    this same request is read with the values just written.
+    """
+    in_hand = {
+        (r.enrollment_id, r.subject): r
+        for r in rows
+        if (r.grading_period or 1) == ml_client.FIRST_TERM
+    }
+    wanted = {(r.enrollment_id, r.subject) for r in rows if r.enrollment_id}
+    missing = wanted - set(in_hand)
+    if missing:
+        stored = (
+            await db.execute(
+                scoped(
+                    select(StudentPace).where(
+                        StudentPace.grading_period == ml_client.FIRST_TERM,
+                        StudentPace.enrollment_id.in_(
+                            {enrollment for enrollment, _ in missing}
+                        ),
+                    ),
+                    StudentPace,
+                    school_id,
+                )
+            )
+        ).scalars().all()
+        for r in stored:
+            in_hand.setdefault((r.enrollment_id, r.subject), r)
+
+    return [
+        in_hand[key]
+        for key in sorted(wanted, key=lambda k: (k[0], k[1]))
+        if key in in_hand and ml_client.first_term_ready(in_hand[key])
+    ]
+
+
 async def _record_prediction(
     db: AsyncSession,
     row: StudentPace,
     grade_label: Optional[str],
     school_id: int,
-) -> AIRiskPrediction:
-    """Ask the classifier about this record and log the answer.
+) -> Optional[AIRiskPrediction]:
+    """Ask the classifier about this learner's year and log the answer.
+
+    The model reads the learner's graded first-term record in this subject,
+    whichever term was saved. Returns None while that term is not yet graded:
+    there is nothing yet for the model to read.
 
     Appends — never updates. The history of what the model said, and on what
     input, is part of the evidence trail for the study, so a re-score adds a
@@ -333,13 +388,17 @@ async def _record_prediction(
     This cannot fail the save: ``ml_client.predict`` catches everything and
     returns a rule-based result marked ``source="fallback"`` instead.
     """
-    result = await ml_client.predict(row, grade_label)
+    first_terms = await _first_term_records(db, [row], school_id)
+    if not first_terms:
+        return None
+    first = first_terms[0]
+    result = await ml_client.predict(first, grade_label)
     prediction = AIRiskPrediction(
         school_id=school_id,
-        student_id=row.student_id,
-        enrollment_id=row.enrollment_id,
-        pace_id=row.pace_id,
-        subject=row.subject,
+        student_id=first.student_id,
+        enrollment_id=first.enrollment_id,
+        pace_id=first.pace_id,
+        subject=first.subject,
         **result.as_columns(),
     )
     db.add(prediction)
@@ -395,7 +454,7 @@ async def list_paces(
         allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
 
     predictions = await latest_predictions(
-        db, [row.pace_id for row in rows], school_id=scope
+        db, [row.enrollment_id for row in rows], school_id=scope
     )
 
     out = []
@@ -417,7 +476,7 @@ async def list_paces(
         # The same scorer the save path and the Students page use, so the
         # badge on the roster matches the one on the early-warning list.
         item.risk_level = risk.evaluate_row(row, passing_mark)["risk_level"]
-        prediction = predictions.get(row.pace_id)
+        prediction = predictions.get((row.enrollment_id, row.subject))
         if prediction is not None:
             _attach_ai(item, prediction)
         out.append(item)
@@ -651,32 +710,34 @@ async def bulk_upsert_paces(
 async def _score_batch(
     db: AsyncSession, rows: list[StudentPace], school_id: int
 ) -> dict:
-    """Score a list of saved records in one call and log every answer.
+    """Score the learners behind a list of saved records and log every answer.
 
-    First-term records are deliberately left unscored. The model is asked
-    whether a learner will finish the SUBJECT below the line, and during
-    the first term there is no finished term to reason from — the only
-    evidence is the term in progress, which is what the rule reads. Asking
-    the model anyway would produce a number with a confidence it has not
-    earned, and a teacher would read it as a forecast.
+    The model reads each learner's graded FIRST-TERM record in the subject and
+    answers for the rest of the year, so the records sent are first terms,
+    one per learner and subject, whichever terms were saved. A learner whose
+    first term is not yet fully graded is held back: until written works,
+    performance tasks and the examinations are all in, there is nothing for
+    the model to read, and the rule's reading stands alone.
     """
     if not rows:
         return {"scored": 0, "fallback": 0, "source": "none"}
 
-    scorable = [r for r in rows if (r.grading_period or 1) > 1]
-    held_back = len(rows) - len(scorable)
-    if not scorable:
+    subjects = {(r.enrollment_id, r.subject) for r in rows if r.enrollment_id}
+    first_terms = await _first_term_records(db, rows, school_id)
+    held_back = len(subjects) - len(first_terms)
+    if not first_terms:
         return {
             "scored": 0,
             "fallback": 0,
             "source": "rule",
             "held_back": held_back,
             "note": (
-                "First term — the risk shown is the rule's. The model starts "
-                "once a term is finished and there is a year to reason about."
+                "The risk shown is the rule's. The model starts once a "
+                "learner's first term is fully graded, then predicts the "
+                "rest of their year."
             ),
         }
-    rows = scorable
+    rows = first_terms
 
     labels: dict[int, Optional[str]] = {}
     for row in rows:
@@ -718,7 +779,7 @@ async def _score_batch(
         "scored": len(rows),
         "fallback": fallbacks,
         "source": source,
-        # First-term records that were deliberately not sent to the model.
+        # Learner-subjects whose first term is not yet fully graded.
         "held_back": held_back,
         "model_version": next(iter(versions), None),
         "detail": results[0].error if fallbacks else None,

@@ -543,9 +543,15 @@ async def score() -> None:
     from app.services import ml_client
 
     async with AsyncSessionLocal() as db:
-        rows = (await db.execute(select(StudentPace))).scalars().all()
+        # The model reads a learner's graded first term and predicts the final
+        # grade, so those are the only records it is asked about — the same
+        # rule the app's save and re-score paths follow.
+        rows = [
+            row for row in (await db.execute(select(StudentPace))).scalars().all()
+            if ml_client.first_term_ready(row)
+        ]
         if not rows:
-            print("Nothing to score — seed the database first.")
+            print("Nothing to score — no graded first-term records yet.")
             return
 
         levels = {

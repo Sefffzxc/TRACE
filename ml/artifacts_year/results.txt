@@ -1,0 +1,40 @@
+YEAR-RISK MODEL — first term in, rest of the year out
+================================================================
+Rows (learner-subject-years with a Q1 and at least one later term): 286
+Learners: 286
+At risk (later terms average < 80): 37 (12.9%)
+Later terms average < 75 (failing): 1
+By school year: {'2023-2024': {'count': 152, 'sum': 21}, '2025-2026': {'count': 134, 'sum': 16}}
+By subject: {'Filipino': 286}
+Grade level: {8.0: 286}
+Features: ['q1_ww_pct', 'q1_pt_pct', 'q1_exam_pct', 'q1_composite', 'q1_component_gap', 'grade_level']
+
+Grouped CV, 10 x 5-fold by learner — deployed features (percentages)
+                          model  recall  recall_sd  precision  precision_sd     f1  macro_f1  macro_f1_sd  false_neg  false_pos  roc_auc  pr_auc
+       Rule: Q1 term grade < 80  0.7296     0.1436     0.7018        0.1079 0.7067    0.8312       0.0572       2.00       2.40   0.9283  0.6533
+Rule: Q1 composite < fitted cut  0.7975     0.1648     0.6095        0.1167 0.6720    0.8059       0.0480       1.50       4.28   0.9285  0.6775
+            Logistic Regression  0.8136     0.1627     0.5499        0.1115 0.6389    0.7831       0.0489       1.38       5.48   0.9275  0.6906
+                    Extra Trees  0.7929     0.1525     0.5248        0.1228 0.6148    0.7677       0.0536       1.54       5.94   0.9291  0.7059
+                  Random Forest  0.7871     0.1600     0.5009        0.1143 0.5953    0.7545       0.0550       1.58       6.48   0.9204  0.7046
+              Gradient Boosting  0.8139     0.1472     0.4803        0.1291 0.5857    0.7436       0.0674       1.38       7.58   0.9026  0.7010
+
+Grouped CV, 10 x 5-fold by learner — + Q1 transmuted term grade
+                          model  recall  recall_sd  precision  precision_sd     f1  macro_f1  macro_f1_sd  false_neg  false_pos  roc_auc  pr_auc
+       Rule: Q1 term grade < 80  0.7296     0.1436     0.7018        0.1079 0.7067    0.8312       0.0572       2.00       2.40   0.9283  0.6533
+Rule: Q1 composite < fitted cut  0.7975     0.1648     0.6095        0.1167 0.6720    0.8059       0.0480       1.50       4.28   0.9285  0.6775
+            Logistic Regression  0.8054     0.1590     0.5787        0.1190 0.6551    0.7942       0.0482       1.44       4.90   0.9288  0.6939
+                    Extra Trees  0.7868     0.1638     0.5519        0.1249 0.6278    0.7771       0.0489       1.58       5.40   0.9286  0.7033
+                  Random Forest  0.7871     0.1677     0.5286        0.1289 0.6096    0.7640       0.0529       1.58       6.06   0.9195  0.7139
+              Gradient Boosting  0.8189     0.1485     0.4763        0.1341 0.5833    0.7420       0.0668       1.34       7.72   0.9053  0.7110
+
+Temporal check: train 2023-2024 (152 rows, 21 at risk) -> test 2025-2026 (134 rows, 16 at risk)
+                                 recall  precision      f1  macro_f1  false_neg  false_pos  roc_auc  pr_auc
+Rule: Q1 term grade < 80         0.5625     0.6429  0.6000    0.7748        7.0        5.0   0.9052  0.5351
+Rule: Q1 composite < fitted cut  0.5625     0.6429  0.6000    0.7748        7.0        5.0   0.9065  0.5231
+Logistic Regression              0.2500     0.4000  0.3077    0.6167       12.0        6.0   0.7786  0.3604
+Random Forest                    0.2500     0.4444  0.3200    0.6250       12.0        5.0   0.8514  0.4500
+Extra Trees                      0.2500     0.4444  0.3200    0.6250       12.0        5.0   0.8835  0.4461
+Gradient Boosting                0.6250     0.5263  0.5714    0.7535        6.0        9.0   0.7526  0.4478
+
+Deployed: Logistic Regression, threshold 0.685, fitted on all 286 rows
+Importances: q1_pt_pct=0.321, q1_component_gap=0.270, q1_composite=0.219, q1_ww_pct=0.173, q1_exam_pct=0.018, grade_level=0.000

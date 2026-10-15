@@ -39,7 +39,9 @@ from app.schemas.students import (
     RescoreResponse,
 )
 from app.services import ml_client
-from app.services.enrichment import Lookups, sections_for_teacher
+from app.services.enrichment import (Lookups, is_year_prediction,
+                                     newest_year_predictions,
+                                     sections_for_teacher)
 
 router = APIRouter(prefix="/api/ai", tags=["AI risk classification"])
 
@@ -100,7 +102,8 @@ async def list_predictions(
     source: Optional[str] = Query(default=None, description="model or fallback"),
     latest_only: bool = Query(
         default=True,
-        description="One row per PACE record (the newest). False returns the "
+        description="One row per learner and subject (the newest year-model "
+                    "answer). False returns the "
                     "full prediction history.",
     ),
     limit: int = Query(default=500, ge=1, le=2000),
@@ -148,7 +151,11 @@ async def list_predictions(
     out: List[AIPredictionResponse] = []
     for row in rows:  # newest first, so the first row per key is the current one
         if latest_only:
-            key = (row.student_id, row.pace_id, row.subject)
+            # One year-model answer per learner and subject; predictions from
+            # the earlier per-term model are history, not current.
+            if not is_year_prediction(row):
+                continue
+            key = (row.student_id, row.enrollment_id, row.subject)
             if key in seen:
                 continue
             seen.add(key)
@@ -209,10 +216,7 @@ async def prediction_summary(
         )
     ).scalars().all()
 
-    newest: dict = {}
-    for row in rows:
-        newest[(row.student_id, row.pace_id, row.subject)] = row
-    current = list(newest.values())
+    current = list(newest_year_predictions(rows).values())
 
     high = [r for r in current if r.risk_level == "HIGH" and r.source == "model"]
     return {
@@ -258,14 +262,23 @@ async def rescore(
     stay, so "what did the model say before we filled in the Performance Tasks"
     is always answerable.
     """
+    # The model reads a learner's graded first term and answers for the rest
+    # of the year, so those are the only records it is asked about.
     stmt = scoped(
-        select(StudentPace).order_by(StudentPace.pace_id), StudentPace, scope
+        select(StudentPace)
+        .where(StudentPace.grading_period == ml_client.FIRST_TERM)
+        .order_by(StudentPace.pace_id),
+        StudentPace,
+        scope,
     )
     if payload.student_id:
         stmt = stmt.where(StudentPace.student_id == payload.student_id)
     if payload.subject:
         stmt = stmt.where(StudentPace.subject == payload.subject)
-    rows = (await db.execute(stmt)).scalars().all()
+    rows = [
+        row for row in (await db.execute(stmt)).scalars().all()
+        if ml_client.first_term_ready(row)
+    ]
 
     enrollments = {
         e.enrollment_id: e
@@ -303,7 +316,9 @@ async def rescore(
 
     if not selected:
         return RescoreResponse(requested=0, scored=0, fallback=0, source="none",
-                               detail="No PACE records matched.")
+                               detail="No graded first-term records matched. The model "
+                               "starts once a first term has written works, "
+                               "performance tasks and examinations.")
 
     # The AI service caps a batch, so send it in chunks of that size.
     chunk = max(1, settings.AI_BATCH_SIZE)
