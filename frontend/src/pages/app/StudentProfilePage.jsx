@@ -212,8 +212,13 @@ export default function StudentProfilePage() {
                   <span className="v">{student.subjects_tracked}</span>
                 </div>
                 <div className="detail-row">
-                  <span className="k">Average attendance</span>
-                  <span className="v">{student.attendance.toFixed(1)}%</span>
+                  <span className="k">Average standing</span>
+                  <span className="v">
+                    {student.average_standing === null ||
+                    student.average_standing === undefined
+                      ? '—'
+                      : student.average_standing.toFixed(1)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -300,8 +305,17 @@ export default function StudentProfilePage() {
                       <span className="v">{subject.expected_pace}</span>
                     </div>
                     <div>
-                      <span className="k">Attendance</span>
-                      <span className="v">{subject.attendance.toFixed(0)}%</span>
+                      <span className="k">Standing</span>
+                      <span className="v">
+                        {subject.standing === null || subject.standing === undefined
+                          ? '—'
+                          : subject.standing.toFixed(0)}
+                        {subject.basis === 'coursework' && (
+                          <span className="faint" title="Coursework so far; no term grade yet">
+                            {' '}*
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <div>
                       <span className="k">Absences</span>

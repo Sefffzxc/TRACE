@@ -253,7 +253,7 @@ def fallback_prediction(pace, reason: str, features: Dict[str, Any]) -> Predicti
     Two different rules, because the system serves two kinds of school. A
     school keeping a DepEd class record is judged on the coursework it has
     actually banked; a school tracking PACE booklets has no such figure and
-    falls back to the booklet-and-attendance rule instead.
+    falls back to the booklet rule instead.
 
     Neither score is a probability and neither must be read as one — which is
     why ``source`` says "fallback" and the interface shows a different badge.
@@ -284,7 +284,7 @@ def fallback_prediction(pace, reason: str, features: Dict[str, Any]) -> Predicti
         )
 
     evaluation = risk.evaluate(
-        pace.current_pace, pace.expected_pace, pace.total_paces, pace.attendance
+        pace.current_pace, pace.expected_pace, pace.total_paces
     )
     level = evaluation["risk_level"]
 
@@ -292,8 +292,6 @@ def fallback_prediction(pace, reason: str, features: Dict[str, Any]) -> Predicti
     # explainable as the model it stood in for.
     if evaluation["paces_behind"] >= 1:
         factor = "PACE booklets behind (rule-based)"
-    elif pace.attendance < 95.0:
-        factor = "attendance (rule-based)"
     elif evaluation["pace_percent"] < 100.0:
         factor = "curriculum completion (rule-based)"
     else:

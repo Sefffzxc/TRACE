@@ -139,7 +139,7 @@ export default function EarlyWarningPage() {
   const exportCsv = () => {
     const header = [
       'Student', 'Section', 'Subject', 'Risk', 'Score', 'Behind', 'Completion %',
-      'Attendance %', 'Trend', 'Action',
+      'Standing', 'Basis', 'Trend', 'Action',
       // Carried through so the export can be checked, not just read.
       'AI probability', 'AI level', 'AI source', 'AI model version', 'AI inputs imputed',
     ];
@@ -153,7 +153,8 @@ export default function EarlyWarningPage() {
         warning.risk_score,
         warning.paces_behind,
         warning.pace_percent,
-        warning.attendance,
+        warning.standing ?? '',
+        warning.basis ?? '',
         warning.trend,
         warning.intervention || '',
         prediction ? prediction.risk_score : '',
@@ -297,7 +298,7 @@ export default function EarlyWarningPage() {
             <h2>Flagged students</h2>
             <div className="card-subtitle">
               Two independent readings. <strong>School rules</strong> is the school&rsquo;s own
-              judgement from progress, completion and attendance, and it is what the flags
+              judgement from where the learner stands against the passing mark, and it is what the flags
               and interventions are based on. <strong>AI model</strong> is a separate estimate of
               the chance of ending the quarter below 75, from the assessment record. They will
               sometimes disagree — where they do, the disagreement is the useful part, and neither
@@ -327,7 +328,7 @@ export default function EarlyWarningPage() {
                     <th>Subject</th>
                     <th className="right">Behind</th>
                     <th>Completion</th>
-                    <th className="right">Attendance</th>
+                    <th className="right">Standing</th>
                     <th>Trend</th>
                     <th>School rules</th>
                     <th>AI model</th>
@@ -380,7 +381,27 @@ export default function EarlyWarningPage() {
                           <span className="progress-value">{warning.pace_percent.toFixed(0)}%</span>
                         </div>
                       </td>
-                      <td className="right">{warning.attendance.toFixed(0)}%</td>
+                      <td className="right">
+                        {warning.standing === null || warning.standing === undefined ? (
+                          <span className="faint">—</span>
+                        ) : (
+                          <>
+                            <span className="cell-strong">
+                              {warning.standing.toFixed(0)}
+                            </span>
+                            {/* Flagged off coursework rather than a finished
+                                record: the grade is not settled yet. */}
+                            {warning.basis === 'coursework' && (
+                              <span
+                                className="faint"
+                                title="No term grade yet — flagged on the coursework banked so far"
+                              >
+                                {' '}*
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </td>
                       <td>
                         <Trend value={warning.trend} />
                       </td>

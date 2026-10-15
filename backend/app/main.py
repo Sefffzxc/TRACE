@@ -13,8 +13,25 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routers import ai, academic, auth, dashboard, pace, schools, staff, students
 from app.core.config import settings
-from app.db.schema_check import STATE as SCHEMA_STATE, verify as verify_schema
 from app.db.session import init_models
+
+# The schema check is a diagnostic, not a feature. If the module is missing
+# — a half-copied deployment, most likely — the API must still start: an
+# aid to debugging that can itself take the service down is worse than no
+# aid at all. A stub keeps every reference below valid.
+try:
+    from app.db.schema_check import STATE as SCHEMA_STATE
+    from app.db.schema_check import verify as verify_schema
+except ImportError:  # pragma: no cover - only on an incomplete deployment
+    SCHEMA_STATE = {"checked": False, "ok": True}
+
+    async def verify_schema():
+        logging.getLogger("lbca").warning(
+            "app/db/schema_check.py is missing, so the database schema was "
+            "not verified at startup. Copy it into place to get a clear "
+            "report when the models and the database disagree."
+        )
+        return SCHEMA_STATE
 
 
 @asynccontextmanager
@@ -25,7 +42,14 @@ async def lifespan(_: FastAPI):
     # behind the models and every query mentioning a new column fails as a
     # 500. This logs exactly which columns are missing, and the command
     # that fixes it, instead of leaving it to be guessed from the browser.
-    await verify_schema()
+    #
+    # Wrapped because startup must not depend on it: a database that is
+    # briefly unreachable is a different problem, and turning it into a
+    # boot loop would hide it behind a service that never comes up.
+    try:
+        await verify_schema()
+    except Exception:  # noqa: BLE001 - diagnostics never block startup
+        logging.getLogger("lbca").exception("the schema check itself failed")
 
     # Say out loud which origins the browser will be allowed to call from.
     # A CORS rejection looks identical to a dead API from the console, so

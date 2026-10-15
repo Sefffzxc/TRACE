@@ -21,7 +21,8 @@ from app.models.staff import (
 from app.models.students import EarlyWarning, Student, StudentEnrollment, StudentPace
 from app.schemas.students import DashboardStats
 from app.services import risk
-from app.services.enrichment import Lookups, sections_for_teacher
+from app.services.enrichment import (Lookups, school_passing_mark,
+                                     sections_for_teacher)
 
 router = APIRouter(tags=["Dashboard"])
 
@@ -64,6 +65,9 @@ async def dashboard(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    # The bands follow the school's own passing mark, and every screen
+    # reads it from the same place.
+    passing_mark = await school_passing_mark(db, scope)
     lookups = await Lookups.load(db, school_id=scope)
     is_admin = current.role == ROLE_ADMIN
 
@@ -152,16 +156,18 @@ async def dashboard(
 
     if paces:
         stats.average_pace = round(sum(p.pace_percent for p in paces) / len(paces), 1)
-        stats.average_attendance = round(
-            sum(p.attendance for p in paces) / len(paces), 1
-        )
+        standings = [
+            risk.evaluate_row(p, passing_mark)["standing"]
+            for p in paces
+        ]
+        standings = [v for v in standings if v is not None]
+        if standings:
+            stats.average_standing = round(sum(standings) / len(standings), 1)
 
     # ── Risk distribution, one entry per student (worst subject wins) ─────────
     per_student: dict[int, float] = {}
     for pace in paces:
-        score = risk.risk_score(
-            pace.paces_behind, pace.pace_percent, pace.attendance, pace.total_paces
-        )
+        score = risk.evaluate_row(pace, passing_mark)["risk_score"]
         per_student[pace.student_id] = max(per_student.get(pace.student_id, 0.0), score)
 
     buckets = {"critical": 0, "high": 0, "moderate": 0, "low": 0}

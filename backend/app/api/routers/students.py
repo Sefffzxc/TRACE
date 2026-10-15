@@ -26,6 +26,7 @@ from app.schemas.students import (
 from app.services import risk
 from app.services.audit import Action, log_event
 from app.services.enrichment import (
+    school_passing_mark,
     Lookups,
     build_student_list,
     build_student_response,
@@ -142,7 +143,8 @@ async def read_student(
     student = await get_scoped(db, Student, student_id, scope, "Student")
     lookups = await Lookups.load(db, school_id=scope)
     enrollments = await current_enrollments(db, [student_id], school_id=scope)
-    paces = await paces_by_student(db, [student_id], school_id=scope)
+    paces = await paces_by_student(db, [student_id], school_id=scope,
+                                   passing_mark=await school_passing_mark(db, scope))
     return build_student_response(
         student, enrollments.get(student_id), paces.get(student_id, []), lookups
     )
@@ -156,11 +158,14 @@ async def student_profile(
     db: AsyncSession = Depends(get_db),
 ):
     """Everything the profile screen shows, in one request."""
+    passing_mark = await school_passing_mark(db, scope)
     student = await get_scoped(db, Student, student_id, scope, "Student")
 
     lookups = await Lookups.load(db, school_id=scope)
     enrollments_map = await current_enrollments(db, [student_id], school_id=scope)
-    paces_map = await paces_by_student(db, [student_id], school_id=scope)
+    paces_map = await paces_by_student(
+        db, [student_id], school_id=scope, passing_mark=passing_mark
+    )
     overview = build_student_response(
         student, enrollments_map.get(student_id), paces_map.get(student_id, []), lookups
     )
@@ -184,9 +189,7 @@ async def student_profile(
 
     subjects = []
     for row in pace_rows:
-        evaluation = risk.evaluate(
-            row.current_pace, row.expected_pace, row.total_paces, row.attendance
-        )
+        evaluation = risk.evaluate_row(row, passing_mark)
         prediction = predictions.get(row.pace_id)
         subjects.append(
             {
@@ -197,7 +200,10 @@ async def student_profile(
                 "total_paces": row.total_paces,
                 "pace_percent": row.pace_percent,
                 "paces_behind": row.paces_behind,
-                "attendance": row.attendance,
+                "standing": evaluation["standing"],
+                "basis": evaluation["basis"],
+                "term_grade": row.transmuted_grade,
+                "descriptor": row.descriptor,
                 "average_score": row.average_score,
                 "remarks": row.remarks,
                 "updated_at": row.updated_at,
@@ -330,7 +336,8 @@ async def update_student(
 
     lookups = await Lookups.load(db, school_id=scope)
     enrollments = await current_enrollments(db, [student_id], school_id=scope)
-    paces = await paces_by_student(db, [student_id], school_id=scope)
+    paces = await paces_by_student(db, [student_id], school_id=scope,
+                                   passing_mark=await school_passing_mark(db, scope))
     return build_student_response(
         student, enrollments.get(student_id), paces.get(student_id, []), lookups
     )

@@ -196,8 +196,8 @@ export default function DashboardPage() {
           />
         ) : (
           <Stat
-            label="Average attendance"
-            value={stats.average_attendance.toFixed(0)}
+            label="Average standing"
+            value={(stats.average_standing ?? 0).toFixed(0)}
             unit="%"
             icon={Activity}
             foot="Across your sections"
