@@ -916,7 +916,6 @@
 .cr-item { min-width: 2.75rem; font-weight: 560; color: var(--text-muted); }
 .cr-derived { min-width: 3.4rem; background: var(--surface-sunken); }
 .cr-out { min-width: 4.4rem; }
-.cr-risk-head { min-width: 6rem; }
 
 /* The HIGHEST POSSIBLE SCORE row: the denominators every percentage uses. */
 .cr-hps td {
@@ -987,20 +986,6 @@
    however far the grid is scrolled. */
 .cr-dirty .cr-sticky { box-shadow: inset 3px 0 0 var(--warn-500); }
 
-/* MATATAG descriptor bands, in place of the old letter grades. */
-.cr-band {
-  display: inline-block;
-  padding: 0.1rem 0.45rem;
-  border-radius: var(--radius-full);
-  font-size: var(--text-2xs);
-  font-weight: 650;
-  white-space: nowrap;
-}
-.cr-band-advancing    { background: var(--ok-50);   color: var(--ok-500); }
-.cr-band-benchmarking { background: var(--ok-50);   color: var(--ok-500); }
-.cr-band-connecting   { background: var(--warn-50); color: var(--warn-700); }
-.cr-band-developing   { background: var(--risk-50, var(--warn-50)); color: var(--crit-500); }
-.cr-band-emerging     { background: var(--crit-50); color: var(--crit-500); }
 
 .cr-template-note {
   margin: 0 0 0.75rem;

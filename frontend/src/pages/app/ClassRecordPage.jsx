@@ -6,7 +6,7 @@ import {
   PageHead,
   TableSkeleton,
 } from '../../components/common/ui';
-import { AiRiskBadge, AiServiceNote } from '../../components/common/ai';
+import { AiServiceNote } from '../../components/common/ai';
 import {
   aiApi,
   classRecordApi,
@@ -33,7 +33,7 @@ import {
  * a screen that rearranges it makes them translate between two layouts every
  * time they encode: three component groups across the top, the item columns
  * beneath them, a HIGHEST POSSIBLE SCORE row, then one row per learner
- * ending in the initial grade, term grade and descriptor.
+ * ending in the initial grade and term grade.
  *
  * Two records, not one. Science, Mathematics, English, Filipino and Araling
  * Panlipunan weight the components 20/50/30; Music and Arts and Physical
@@ -254,21 +254,6 @@ export default function ClassRecordPage() {
           exam,
           computed,
           dirty: Object.keys(draft).length > 0,
-          ai: stored?.ai_risk_level
-            ? {
-                risk_score: stored.ai_risk_score,
-                risk_level: stored.ai_risk_level,
-                source: stored.ai_source,
-                used_threshold: stored.ai_used_threshold,
-                model_version: stored.ai_model_version,
-                used_baseline_defaults: stored.ai_used_baseline_defaults,
-                primary_factor: stored.ai_primary_factor,
-                predicted_final: stored.ai_predicted_final,
-                range_low: stored.ai_range_low,
-                range_high: stored.ai_range_high,
-                imputed_fields: [],
-              }
-            : null,
         };
       })
       .sort((a, b) =>
@@ -554,12 +539,6 @@ export default function ClassRecordPage() {
                     <br />
                     Grade
                   </th>
-                  <th className="cr-out" rowSpan={3}>
-                    Descriptor
-                  </th>
-                  <th className="cr-out cr-risk-head" rowSpan={3}>
-                    Risk
-                  </th>
                 </tr>
 
                 <tr>
@@ -692,28 +671,16 @@ export default function ClassRecordPage() {
                     <Derived value={row.computed.exam_ws} />
 
                     <Derived value={row.computed.initial_grade} strong />
-                    <td className="cr-derived cr-strong">
+                    <td
+                      className="cr-derived cr-strong"
+                      title={
+                        row.computed.transmuted_grade != null && !row.computed.complete
+                          ? 'Provisional — some assessments are still unmarked'
+                          : undefined
+                      }
+                    >
                       {show(row.computed.transmuted_grade, 0)}
-                    </td>
-                    <td className="cr-derived">
-                      {row.computed.descriptor ? (
-                        <span
-                          className={`cr-band cr-band-${row.computed.descriptor.toLowerCase()}`}
-                          title={
-                            row.computed.complete
-                              ? undefined
-                              : 'Provisional — some assessments are still unmarked'
-                          }
-                        >
-                          {row.computed.descriptor}
-                          {row.computed.complete ? '' : ' *'}
-                        </span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="cr-derived">
-                      <AiRiskBadge ai={row.ai} />
+                      {row.computed.transmuted_grade != null && !row.computed.complete ? ' *' : ''}
                     </td>
                   </tr>
                 ))}
