@@ -95,7 +95,8 @@ async def verify() -> dict:
     for table, columns in result["missing_columns"].items():
         log.error("  %-22s missing columns: %s", table, ", ".join(columns))
     log.error("")
-    log.error("  Fix:  python seed.py --fresh-start")
+    log.error("  Fix:  python add_missing_columns.py --apply   (keeps data)")
+    log.error("   or:  python seed.py --fresh-start           (wipes data)")
     log.error("        python seed.py --demo        (optional demonstration data)")
     log.error("")
     log.error("  create_all adds missing TABLES but never adds a COLUMN to a")

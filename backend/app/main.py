@@ -82,6 +82,44 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+class CatchUnhandledErrors:
+    """Turn a crash into a JSON 500 *inside* the CORS middleware.
+
+    ``@app.exception_handler(Exception)`` does not do this: Starlette hands
+    that handler to ServerErrorMiddleware, which is the outermost layer and
+    sits ABOVE CORS, so its response leaves without an
+    Access-Control-Allow-Origin header and the browser reports a CORS error
+    instead of the 500. This middleware is added before CORSMiddleware, which
+    makes it the inner of the two, so CORS headers are applied to its reply.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        started = False
+
+        async def send_wrapper(message):
+            nonlocal started
+            if message["type"] == "http.response.start":
+                started = True
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_wrapper)
+        except Exception as exc:  # noqa: BLE001 - reported to the client
+            if started:
+                raise
+            response = await unhandled_handler(Request(scope), exc)
+            await response(scope, receive, send)
+
+
+# Order matters: middleware added later wraps middleware added earlier, so
+# this must come before CORSMiddleware to sit inside it.
+app.add_middleware(CatchUnhandledErrors)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -109,18 +147,12 @@ async def validation_handler(_: Request, exc: RequestValidationError):
     )
 
 
-@app.exception_handler(Exception)
 async def unhandled_handler(request: Request, exc: Exception):
     """Return a real response for a crash instead of letting it escape.
 
-    An exception that propagates past the application is turned into a plain
-    500 by Starlette's outermost error middleware, which sits ABOVE the CORS
-    middleware — so the browser never sees an Access-Control-Allow-Origin
-    header and reports a CORS failure. The developer then goes looking at
-    the CORS configuration, which was never the problem.
-
-    Handling it here keeps the response inside the CORS middleware, so the
-    browser can read it and show what actually went wrong. The message is
+    Called from ``CatchUnhandledErrors``, which runs inside the CORS
+    middleware, so the browser can read the response and show what actually
+    went wrong instead of reporting a CORS failure. The message is
     logged in full and only its type is sent to the client, because a
     database error's text can carry table and column names.
     """
@@ -184,7 +216,7 @@ async def health():
             "up_to_date": False,
             "missing_tables": SCHEMA_STATE.get("missing_tables", []),
             "missing_columns": SCHEMA_STATE.get("missing_columns", {}),
-            "fix": "run: python seed.py --fresh-start",
+            "fix": "run: python add_missing_columns.py --apply",
             "why": (
                 "create_all adds missing tables but never adds a column to a "
                 "table that already exists, so redeploying does not clear this."
