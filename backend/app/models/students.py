@@ -359,7 +359,7 @@ class EarlyWarning(Base):
     # This is what the flag was raised on, so it is stored with the flag
     # rather than looked up again later from a record that may have moved.
     standing = Column(Float, nullable=True)
-    # "grades", "coursework" or "units" — which reading produced the flag,
+    # "grades", "coursework", "units" or "year" — which reading produced the flag,
     # so the list can say whether a grade is settled or still provisional.
     basis = Column(String(12), nullable=False, default="grades")
     status = Column(String(20), nullable=False)  # Critical|At Risk|Warning|On Track

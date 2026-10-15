@@ -364,7 +364,8 @@ class WarningBase(BaseModel):
     # the class records the system reads carry no attendance column, so it
     # was a constant 100 on every row at every school.
     standing: Optional[float] = None
-    basis: Literal["grades", "coursework", "units"] = "grades"
+    # "year" comes from risk.evaluate_year, once at least one term is done.
+    basis: Literal["grades", "coursework", "units", "year"] = "grades"
     status: str = "On Track"
     trend: str = "stable"
     last_activity: str = "Today"
