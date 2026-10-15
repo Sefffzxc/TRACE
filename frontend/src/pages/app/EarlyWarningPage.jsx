@@ -21,7 +21,43 @@ import {
 } from '../../components/common/ui';
 import { AiRiskBadge } from '../../components/common/ai';
 import { aiApi, sectionApi, warningApi } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+
+/* What a warning's grade is, in words a teacher reads at a glance. `basis`
+   says which reading raised the flag; see risk.py. */
+const BASIS_LABEL = {
+  grades: 'term grade',
+  year: 'year average',
+  coursework: 'so far',
+};
+
+const BASIS_HINT = {
+  grades: 'The grade of the finished term.',
+  year: 'The average of the terms finished so far this year.',
+  coursework:
+    'The term is not finished: written works and performance tasks banked so far, ' +
+    'on the same 0–100 scale as a grade. It will change.',
+};
+
+/** Where the learner sits against the passing mark, e.g. "4 below 75". */
+function GapToPassing({ standing, passing }) {
+  if (standing === null || standing === undefined) return <span className="faint">—</span>;
+  const gap = Math.round(standing - passing);
+  if (gap < 0) {
+    return (
+      <span style={{ color: 'var(--crit-500)', fontWeight: 600 }}>
+        {Math.abs(gap)} below {passing}
+      </span>
+    );
+  }
+  if (gap === 0) return <span style={{ color: 'var(--warn-500)' }}>At {passing}</span>;
+  return (
+    <span className={gap < 5 ? '' : 'faint'}>
+      {gap} above {passing}
+    </span>
+  );
+}
 
 const LEVELS = [
   { key: 'all', label: 'All flags' },
@@ -51,6 +87,11 @@ function Trend({ value }) {
 export default function EarlyWarningPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  /* A school that tracks units (PACE booklets) is read on how far behind a
+     learner is; every other school is read on grades, and has no booklets,
+     completion or pace trend to show. Until the school's settings arrive the
+     table waits, so neither layout flashes up for the wrong kind of school. */
+  const { school, tracksUnits: units, passingMark: passing } = useAuth();
 
   const [warnings, setWarnings] = useState([]);
   const [predictions, setPredictions] = useState([]);
@@ -138,8 +179,11 @@ export default function EarlyWarningPage() {
 
   const exportCsv = () => {
     const header = [
-      'Student', 'Section', 'Subject', 'Risk', 'Score', 'Behind', 'Completion %',
-      'Standing', 'Basis', 'Trend', 'Action',
+      'Student', 'Section', 'Subject', units ? 'Pace check' : 'Grade check', 'Score',
+      ...(units
+        ? ['Behind', 'Completion %', 'Trend']
+        : ['Current grade', 'Grade type', `Gap to passing (${passing})`]),
+      'Action',
       // Carried through so the export can be checked, not just read.
       'AI expected final grade', 'AI range low', 'AI range high', 'AI chance of failing',
       'AI level', 'AI source', 'AI model version', 'AI inputs imputed',
@@ -152,11 +196,13 @@ export default function EarlyWarningPage() {
         warning.subject,
         warning.risk_level,
         warning.risk_score,
-        warning.paces_behind,
-        warning.pace_percent,
-        warning.standing ?? '',
-        warning.basis ?? '',
-        warning.trend,
+        ...(units
+          ? [warning.paces_behind, warning.pace_percent, warning.trend]
+          : [
+              warning.standing ?? '',
+              BASIS_LABEL[warning.basis] || warning.basis || '',
+              warning.standing == null ? '' : Math.round(warning.standing - passing),
+            ]),
         warning.intervention || '',
         prediction?.predicted_final ?? '',
         prediction?.range_low ?? '',
@@ -208,7 +254,9 @@ export default function EarlyWarningPage() {
             </span>
           </div>
           <div className="stat-value">{counts.critical}</div>
-          <div className="stat-foot">Furthest behind, needs escalating</div>
+          <div className="stat-foot">
+            {units ? 'Furthest behind, needs escalating' : 'Well below passing, needs escalating'}
+          </div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -228,7 +276,9 @@ export default function EarlyWarningPage() {
             </span>
           </div>
           <div className="stat-value">{counts.moderate}</div>
-          <div className="stat-foot">Slipping, but recoverable</div>
+          <div className="stat-foot">
+            {units ? 'Slipping, but recoverable' : 'Close to the passing mark, still recoverable'}
+          </div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -301,19 +351,30 @@ export default function EarlyWarningPage() {
           <div>
             <h2>Flagged students</h2>
             <div className="card-subtitle">
-              Two independent readings. <strong>School rules</strong> is the school&rsquo;s own
-              judgement from where the learner stands against the passing mark, and it is what the flags
-              and interventions are based on. <strong>AI model</strong> is a separate estimate, made
-              once the first term is graded, of the learner&rsquo;s final grade and the chance it
-              ends below 75. It is blank until then, and when the AI service is down a school rule
-              answers in its place, labelled rule-based. They will
-              sometimes disagree — where they do, the disagreement is the useful part, and neither
-              one decides anything on its own.
+              Two independent readings.{' '}
+              {units ? (
+                <>
+                  <strong>Pace check</strong> is the school&rsquo;s own rule, from how far the
+                  learner is behind the expected pace; it raises the flags on this page.
+                </>
+              ) : (
+                <>
+                  <strong>Grade check</strong> is the school&rsquo;s own rule, from the
+                  learner&rsquo;s current grade against the passing mark of {passing}; it raises the
+                  flags on this page. <strong>Current grade</strong> is the finished term&rsquo;s
+                  grade, the year average so far, or — marked &ldquo;so far&rdquo; — the coursework
+                  banked in a term that is not finished yet.
+                </>
+              )}{' '}
+              <strong>AI forecast</strong> is a separate estimate, made once the first term is graded,
+              of the final grade and the chance it ends below 75. It is blank until then; if the AI
+              service is down, a school rule answers in its place, labelled rule-based. Where the two
+              disagree, that is worth a closer look — neither decides anything on its own.
             </div>
           </div>
         </div>
         <div className="card-body flush">
-          {loading ? (
+          {loading || !school ? (
             <TableSkeleton rows={8} columns={7} />
           ) : filtered.length === 0 ? (
             <EmptyState
@@ -332,12 +393,21 @@ export default function EarlyWarningPage() {
                   <tr>
                     <th>Student</th>
                     <th>Subject</th>
-                    <th className="right">Behind</th>
-                    <th>Completion</th>
-                    <th className="right">Standing</th>
-                    <th>Trend</th>
-                    <th>School rules</th>
-                    <th>AI model</th>
+                    {units ? (
+                      <>
+                        <th className="right">Behind</th>
+                        <th>Completion</th>
+                        <th>Trend</th>
+                        <th>Pace check</th>
+                      </>
+                    ) : (
+                      <>
+                        <th>Current grade</th>
+                        <th>Gap to passing</th>
+                        <th>Grade check</th>
+                      </>
+                    )}
+                    <th>AI forecast</th>
                     <th className="actions">Action</th>
                   </tr>
                 </thead>
@@ -375,42 +445,45 @@ export default function EarlyWarningPage() {
                           {warning.teacher}
                         </div>
                       </td>
-                      <td className="right cell-strong">{warning.paces_behind}</td>
-                      <td style={{ minWidth: 140 }}>
-                        <div className="progress-row">
-                          <div className="progress">
-                            <div
-                              className={`progress-fill is-${warning.risk_level}`}
-                              style={{ width: `${warning.pace_percent}%` }}
-                            />
-                          </div>
-                          <span className="progress-value">{warning.pace_percent.toFixed(0)}%</span>
-                        </div>
-                      </td>
-                      <td className="right">
-                        {warning.standing === null || warning.standing === undefined ? (
-                          <span className="faint">—</span>
-                        ) : (
-                          <>
-                            <span className="cell-strong">
-                              {warning.standing.toFixed(0)}
-                            </span>
-                            {/* Flagged off coursework rather than a finished
-                                record: the grade is not settled yet. */}
-                            {warning.basis === 'coursework' && (
-                              <span
-                                className="faint"
-                                title="No term grade yet — flagged on the coursework banked so far"
-                              >
-                                {' '}*
+                      {units ? (
+                        <>
+                          <td className="right cell-strong">{warning.paces_behind}</td>
+                          <td style={{ minWidth: 140 }}>
+                            <div className="progress-row">
+                              <div className="progress">
+                                <div
+                                  className={`progress-fill is-${warning.risk_level}`}
+                                  style={{ width: `${warning.pace_percent}%` }}
+                                />
+                              </div>
+                              <span className="progress-value">
+                                {warning.pace_percent.toFixed(0)}%
                               </span>
+                            </div>
+                          </td>
+                          <td>
+                            <Trend value={warning.trend} />
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td title={BASIS_HINT[warning.basis] || ''}>
+                            {warning.standing === null || warning.standing === undefined ? (
+                              <span className="faint">—</span>
+                            ) : (
+                              <>
+                                <span className="cell-strong">{warning.standing.toFixed(0)}</span>
+                                <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
+                                  {BASIS_LABEL[warning.basis] || ''}
+                                </div>
+                              </>
                             )}
-                          </>
-                        )}
-                      </td>
-                      <td>
-                        <Trend value={warning.trend} />
-                      </td>
+                          </td>
+                          <td>
+                            <GapToPassing standing={warning.standing} passing={passing} />
+                          </td>
+                        </>
+                      )}
                       <td>
                         <RiskBadge level={warning.risk_level} showScore score={warning.risk_score} />
                       </td>
