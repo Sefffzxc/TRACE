@@ -125,6 +125,8 @@ export const subjectApi = {
 
 export const assignmentApi = {
   list: (params) => api.get('/api/teacher-assignments', params),
+  /* The signed-in teacher's own classes: what they may grade. */
+  mine: () => api.get('/api/my-classes'),
   create: (payload) => api.post('/api/teacher-assignments', payload),
   remove: (id) => api.delete(`/api/teacher-assignments/${id}`),
 };

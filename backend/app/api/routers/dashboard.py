@@ -22,6 +22,7 @@ from app.models.schools import School
 from app.models.students import EarlyWarning, Student, StudentEnrollment, StudentPace
 from app.schemas.students import DashboardStats
 from app.services import risk
+from app.services.access import class_access
 from app.services.enrichment import Lookups, sections_for_teacher
 
 router = APIRouter(tags=["Dashboard"])
@@ -117,6 +118,12 @@ async def dashboard(
     ).scalars().all()
     if allowed_sections is not None:
         warnings = [w for w in warnings if w.enrollment_id in enrollment_ids]
+
+    # Within those sections, only the subjects the teacher teaches, plus every
+    # subject in the section they advise (app/services/access.py).
+    access = await class_access(db, current, scope)
+    paces = [p for p in paces if access.can_see_record(p.enrollment_id, p.subject)]
+    warnings = [w for w in warnings if access.can_see_record(w.enrollment_id, w.subject)]
 
     stats = DashboardStats()
     stats.passing_mark = passing_mark

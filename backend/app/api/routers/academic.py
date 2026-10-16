@@ -21,6 +21,7 @@ from app.models.academic import (
 )
 from app.models.staff import Staff
 from app.models.students import StudentEnrollment
+from app.services.access import class_access
 from app.schemas.academic import (
     GradeLevelCreate,
     GradeLevelResponse,
@@ -665,3 +666,24 @@ async def delete_assignment(
     row = await get_scoped(db, TeacherAssignment, assignment_id, scope, "Assignment")
     await db.delete(row)
     await db.commit()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# The signed-in teacher's own classes
+# ══════════════════════════════════════════════════════════════════════════════
+@router.get("/api/my-classes")
+async def my_classes(
+    current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    """The sections and subjects this person grades, for the class record's
+    pickers. ``grade`` maps a section id to subject names, or to ["*"] for
+    every subject; ``unrestricted`` is true for an administrator. The server
+    enforces the same rule on every save (app/services/access.py)."""
+    access = await class_access(db, current, scope)
+    return {
+        "unrestricted": access.unrestricted,
+        "grade": {str(k): sorted(v) for k, v in access.grade.items()},
+        "advisory": sorted(access.advisory),
+    }

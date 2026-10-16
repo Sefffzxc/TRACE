@@ -42,6 +42,7 @@ from app.schemas.students import (
     WarningUpdate,
 )
 from app.services import grading, ml_client, risk
+from app.services.access import class_access
 from app.services.audit import Action, log_event
 from app.services.enrichment import (Lookups, latest_predictions,
                                      term_grades_by_subject,
@@ -456,6 +457,9 @@ async def list_paces(
     predictions = await latest_predictions(
         db, [row.enrollment_id for row in rows], school_id=scope
     )
+    # A teacher sees only the classes they teach, and every subject in the
+    # section they advise; see app/services/access.py.
+    access = await class_access(db, current, scope)
 
     out = []
     for row in rows:
@@ -465,6 +469,8 @@ async def list_paces(
         if allowed is not None and (
             enrollment is None or enrollment.section_id not in allowed
         ):
+            continue
+        if not access.can_see_record(row.enrollment_id, row.subject):
             continue
 
         item = PaceResponse.model_validate(row)
@@ -492,7 +498,12 @@ async def create_pace(
     db: AsyncSession = Depends(get_db),
 ):
     await get_scoped(db, Student, payload.student_id, scope, "Student")
-    await get_scoped(db, StudentEnrollment, payload.enrollment_id, scope, "Enrolment")
+    enrollment = await get_scoped(
+        db, StudentEnrollment, payload.enrollment_id, scope, "Enrolment"
+    )
+    (await class_access(db, current, scope)).require_grade(
+        enrollment.section_id, payload.subject
+    )
     if payload.current_pace > payload.total_paces:
         raise HTTPException(
             status_code=400,
@@ -553,6 +564,10 @@ async def update_pace(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, StudentPace, pace_id, scope, "PACE record")
+    enrollment = await get_scoped_optional(db, StudentEnrollment, row.enrollment_id, scope)
+    (await class_access(db, current, scope)).require_grade(
+        enrollment.section_id if enrollment else None, row.subject
+    )
     sent = payload.model_dump(exclude_unset=True)
     for field, value in sent.items():
         if field in SCORE_ARRAYS:
@@ -611,6 +626,8 @@ async def bulk_upsert_paces(
         db, school_id=scope,
         student_ids=[e.student_id for e in payload.entries],
     )
+    # Grades are entered only for the classes the teacher is assigned to.
+    access = await class_access(db, current, scope)
 
     for entry in payload.entries:
         if entry.current_pace > entry.total_paces:
@@ -624,15 +641,18 @@ async def bulk_upsert_paces(
                 f"{entry.subject} for student {entry.student_id}: not found in this school"
             )
             continue
-        if (
-            await get_scoped_optional(
-                db, StudentEnrollment, entry.enrollment_id, scope
-            )
-            is None
-        ):
+        enrollment = await get_scoped_optional(
+            db, StudentEnrollment, entry.enrollment_id, scope
+        )
+        if enrollment is None:
             skipped.append(
                 f"{entry.subject} for student {entry.student_id}: "
                 "enrolment not found in this school"
+            )
+            continue
+        if not access.can_grade(enrollment.section_id, entry.subject):
+            skipped.append(
+                f"{entry.subject}: you are not assigned to teach it in this section"
             )
             continue
 
@@ -801,6 +821,10 @@ async def get_class_record_setup(
     so a teacher opening a fresh record sees a usable sheet rather than an
     error.
     """
+    subject = await get_scoped(db, Subject, subject_id, scope)
+    access = await class_access(db, current, scope)
+    if not access.can_see(section_id, subject.subject_name):
+        access.require_grade(section_id, subject.subject_name)
     setup = await _load_setup(db, scope, section_id, subject_id, grading_period)
     return ClassRecordSetupResponse(
         section_id=section_id, subject_id=subject_id,
@@ -825,7 +849,10 @@ async def put_class_record_setup(
     percentage and grade. Recomputing them here is what stops the sheet from
     showing grades derived from a denominator that no longer exists.
     """
-    await get_scoped(db, Subject, subject_id, scope)
+    header_subject = await get_scoped(db, Subject, subject_id, scope)
+    (await class_access(db, current, scope)).require_grade(
+        section_id, header_subject.subject_name
+    )
 
     row = (
         await db.execute(
@@ -949,9 +976,13 @@ async def list_warnings(
         {lvl.strip().lower() for lvl in risk_level.split(",")} if risk_level else None
     )
 
+    access = await class_access(db, current, scope)
+
     out = []
     for row in rows:
         if wanted and row.risk_level not in wanted:
+            continue
+        if not access.can_see_record(row.enrollment_id, row.subject):
             continue
         enrollment = enrollments.get(row.enrollment_id)
         if section_id and (enrollment is None or enrollment.section_id != section_id):
@@ -990,6 +1021,8 @@ async def warning_summary(
             )
         )
     ).scalars().all()
+    access = await class_access(db, current, scope)
+    rows = [r for r in rows if access.can_see_record(r.enrollment_id, r.subject)]
     if mine and current.role != ROLE_ADMIN:
         allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
         section_of = {
@@ -1035,11 +1068,15 @@ async def warning_summary(
 async def update_warning(
     warning_id: int,
     payload: WarningUpdate,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, EarlyWarning, warning_id, scope, "Warning")
+    if not (await class_access(db, current, scope)).can_see_record(
+        row.enrollment_id, row.subject
+    ):
+        raise HTTPException(status_code=404, detail="Warning not found.")
     data = payload.model_dump(exclude_unset=True)
     if data.get("is_resolved"):
         row.resolved_at = _now()

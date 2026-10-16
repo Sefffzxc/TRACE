@@ -581,18 +581,20 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                 Subject
               </label>
               <select id="a_subject" className="select" value={form.subject_id} onChange={set('subject_id')}>
-                <option value="">All subjects (adviser)</option>
+                <option value="">All subjects in this section</option>
                 {data.subjects.map((subject) => (
                   <option key={subject.subject_id} value={subject.subject_id}>
                     {subject.subject_name} — {subject.grade_level_name}
                   </option>
                 ))}
               </select>
+              <span className="field-hint">The teacher grades only the subjects assigned here.</span>
             </div>
             <label className="checkbox">
               <input type="checkbox" checked={form.is_adviser} onChange={set('is_adviser')} />
               This teacher is the section adviser
             </label>
+            <span className="field-hint">An adviser also sees every subject of this section.</span>
           </>
         )}
       </form>

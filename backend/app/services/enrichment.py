@@ -2,7 +2,7 @@
 React screens consume, so the UI never has to stitch six lists together."""
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -99,7 +99,11 @@ async def paces_by_student(
     passing_mark: float = 75.0,
     risk_line: float = 80.0,
     terms_per_year: Optional[int] = None,
+    visible: Optional[Callable[[Optional[int], Optional[str]], bool]] = None,
 ) -> Dict[int, List[dict]]:
+    """``visible(enrollment_id, subject)``, when given, keeps only the
+    subjects the viewer may see (see app/services/access.py), so a subject
+    teacher's summary of a learner is built from their own subjects."""
     stmt = select(StudentPace).where(StudentPace.school_id == school_id)
     if student_ids is not None:
         ids = list(student_ids)
@@ -107,6 +111,8 @@ async def paces_by_student(
             return {}
         stmt = stmt.where(StudentPace.student_id.in_(ids))
     rows = (await db.execute(stmt)).scalars().all()
+    if visible is not None:
+        rows = [r for r in rows if visible(r.enrollment_id, r.subject)]
 
     # Every term of every subject, so each record can be judged on where its
     # YEAR is heading rather than on the term it happens to sit in.
@@ -239,7 +245,11 @@ async def school_passing_mark(db: AsyncSession, school_id: int) -> float:
 
 
 async def build_student_list(
-    db: AsyncSession, students: List[Student], *, school_id: int
+    db: AsyncSession,
+    students: List[Student],
+    *,
+    school_id: int,
+    visible: Optional[Callable[[Optional[int], Optional[str]], bool]] = None,
 ) -> List[StudentResponse]:
     from app.models.schools import School
 
@@ -253,9 +263,12 @@ async def build_student_list(
         )
     ).scalar_one_or_none()
     paces = await paces_by_student(
-        db, ids, school_id=school_id, passing_mark=mark, terms_per_year=terms
+        db, ids, school_id=school_id, passing_mark=mark, terms_per_year=terms,
+        visible=visible,
     )
-    predictions = await latest_prediction_per_student(db, ids, school_id=school_id)
+    predictions = await latest_prediction_per_student(
+        db, ids, school_id=school_id, visible=visible
+    )
 
     out = []
     for student in students:
@@ -342,8 +355,10 @@ async def latest_prediction_per_student(
     student_ids: Optional[Iterable[int]] = None,
     *,
     school_id: int,
+    visible: Optional[Callable[[Optional[int], Optional[str]], bool]] = None,
 ) -> Dict[int, "AIRiskPrediction"]:
     """The student's worst current prediction across their subjects.
+    ``visible`` keeps only the subjects the viewer may see.
 
     A learner flagged HIGH in one subject is a concern even when the other
     subjects are fine, so the student-level view takes the highest risk score
@@ -361,6 +376,8 @@ async def latest_prediction_per_student(
             return {}
         stmt = stmt.where(AIRiskPrediction.student_id.in_(ids))
     rows = (await db.execute(stmt)).scalars().all()
+    if visible is not None:
+        rows = [r for r in rows if visible(r.enrollment_id, r.subject)]
 
     worst: Dict[int, AIRiskPrediction] = {}
     for row in newest_year_predictions(rows).values():

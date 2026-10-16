@@ -39,6 +39,7 @@ from app.schemas.students import (
     RescoreResponse,
 )
 from app.services import ml_client
+from app.services.access import class_access
 from app.services.enrichment import (Lookups, is_year_prediction,
                                      newest_year_predictions,
                                      sections_for_teacher)
@@ -146,10 +147,14 @@ async def list_predictions(
     allowed: Optional[set[int]] = None
     if mine and current.role != ROLE_ADMIN:
         allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
+    # A teacher sees forecasts only for the classes they may see.
+    access = await class_access(db, current, scope)
 
     seen: set = set()
     out: List[AIPredictionResponse] = []
     for row in rows:  # newest first, so the first row per key is the current one
+        if not access.can_see_record(row.enrollment_id, row.subject):
+            continue
         if latest_only:
             # One year-model answer per learner and subject; predictions from
             # the earlier per-term model are history, not current.
@@ -183,19 +188,23 @@ async def list_predictions(
 @router.get("/predictions/{prediction_id}", response_model=AIPredictionResponse)
 async def get_prediction(
     prediction_id: int,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     """One prediction with the exact input that produced it — the "show me why"
     view, and what makes any number on screen checkable by hand."""
     row = await get_scoped(db, AIRiskPrediction, prediction_id, scope, "Prediction")
+    if not (await class_access(db, current, scope)).can_see_record(
+        row.enrollment_id, row.subject
+    ):
+        raise HTTPException(status_code=404, detail="Prediction not found.")
     return AIPredictionResponse.model_validate(row)
 
 
 @router.get("/summary")
 async def prediction_summary(
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
@@ -216,6 +225,8 @@ async def prediction_summary(
         )
     ).scalars().all()
 
+    access = await class_access(db, current, scope)
+    rows = [r for r in rows if access.can_see_record(r.enrollment_id, r.subject)]
     current = list(newest_year_predictions(rows).values())
 
     high = [r for r in current if r.risk_level == "HIGH" and r.source == "model"]
@@ -293,6 +304,7 @@ async def rescore(
     allowed: Optional[set[int]] = None
     if current.role != ROLE_ADMIN:
         allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
+    access = await class_access(db, current, scope)
 
     selected = []
     for row in rows:
@@ -304,6 +316,8 @@ async def rescore(
         if allowed is not None and (
             enrollment is None or enrollment.section_id not in allowed
         ):
+            continue
+        if not access.can_see_record(row.enrollment_id, row.subject):
             continue
         label = (
             lookups.grade_levels.get(enrollment.grade_level_id)

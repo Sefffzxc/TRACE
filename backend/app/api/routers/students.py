@@ -24,6 +24,7 @@ from app.schemas.students import (
     StudentUpdate,
 )
 from app.services import risk
+from app.services.access import class_access
 from app.services.audit import Action, log_event
 from app.services.enrichment import (
     school_passing_mark,
@@ -88,6 +89,20 @@ async def _resolve_school_year(
 # ══════════════════════════════════════════════════════════════════════════════
 # Students
 # ══════════════════════════════════════════════════════════════════════════════
+async def _student_access(db: AsyncSession, current: Staff, scope: int, student_id: int):
+    """The viewer's class access, refusing a learner outside their sections.
+
+    Answers 404 rather than 403 so a teacher cannot tell which learners exist
+    in sections they do not handle.
+    """
+    access = await class_access(db, current, scope)
+    if not access.unrestricted:
+        enrollment = (await current_enrollments(db, [student_id], school_id=scope)).get(student_id)
+        if enrollment is None or not access.can_see_section(enrollment.section_id):
+            raise HTTPException(status_code=404, detail="Student not found.")
+    return access
+
+
 @router.get("/api/students", response_model=List[StudentResponse])
 async def list_students(
     search: Optional[str] = Query(default=None),
@@ -116,7 +131,14 @@ async def list_students(
         )
 
     students = (await db.execute(stmt)).scalars().all()
-    rows = await build_student_list(db, list(students), school_id=scope)
+    # A teacher sees the learners in the sections they teach or advise, each
+    # summarised from the subjects they may see (app/services/access.py).
+    access = await class_access(db, current, scope)
+    rows = await build_student_list(
+        db, list(students), school_id=scope,
+        visible=None if access.unrestricted else access.can_see_record,
+    )
+    rows = [r for r in rows if access.can_see_section(r.section_id)]
 
     # Teachers may narrow the list to the sections they actually handle.
     if mine and current.role != ROLE_ADMIN:
@@ -136,15 +158,17 @@ async def list_students(
 @router.get("/api/students/{student_id}", response_model=StudentResponse)
 async def read_student(
     student_id: int,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     student = await get_scoped(db, Student, student_id, scope, "Student")
+    access = await _student_access(db, current, scope, student_id)
     lookups = await Lookups.load(db, school_id=scope)
     enrollments = await current_enrollments(db, [student_id], school_id=scope)
     paces = await paces_by_student(db, [student_id], school_id=scope,
-                                   passing_mark=await school_passing_mark(db, scope))
+                                   passing_mark=await school_passing_mark(db, scope),
+                                   visible=None if access.unrestricted else access.can_see_record)
     return build_student_response(
         student, enrollments.get(student_id), paces.get(student_id, []), lookups
     )
@@ -153,18 +177,20 @@ async def read_student(
 @router.get("/api/students/{student_id}/profile")
 async def student_profile(
     student_id: int,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     """Everything the profile screen shows, in one request."""
     passing_mark = await school_passing_mark(db, scope)
     student = await get_scoped(db, Student, student_id, scope, "Student")
+    access = await _student_access(db, current, scope, student_id)
+    visible = None if access.unrestricted else access.can_see_record
 
     lookups = await Lookups.load(db, school_id=scope)
     enrollments_map = await current_enrollments(db, [student_id], school_id=scope)
     paces_map = await paces_by_student(
-        db, [student_id], school_id=scope, passing_mark=passing_mark
+        db, [student_id], school_id=scope, passing_mark=passing_mark, visible=visible
     )
     overview = build_student_response(
         student, enrollments_map.get(student_id), paces_map.get(student_id, []), lookups
@@ -180,6 +206,8 @@ async def student_profile(
             .order_by(StudentPace.subject)
         )
     ).scalars().all()
+    if visible is not None:
+        pace_rows = [r for r in pace_rows if visible(r.enrollment_id, r.subject)]
 
     # Newest AI prediction per PACE record, shown alongside — never instead of —
     # the school's own rule-based standing.
@@ -274,6 +302,9 @@ async def create_student(
     data = payload.model_dump()
     grade_level_id = data.pop("grade_level_id", None)
     section_id = data.pop("section_id", None)
+    # A teacher adds learners only to a section they teach or advise.
+    if section_id is not None:
+        (await class_access(db, current, scope)).require_section(section_id)
     school_year_id = data.pop("school_year_id", None)
 
     student = Student(**data, school_id=scope, created_by=current.id)
@@ -326,6 +357,7 @@ async def update_student(
     db: AsyncSession = Depends(get_db),
 ):
     student = await get_scoped(db, Student, student_id, scope, "Student")
+    await _student_access(db, current, scope, student_id)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(student, field, value)
     await log_event(
@@ -382,11 +414,14 @@ async def list_enrollments(
     section_id: Optional[int] = None,
     student_id: Optional[int] = None,
     is_active: Optional[bool] = None,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    access = await class_access(db, current, scope)
     stmt = scoped(select(StudentEnrollment), StudentEnrollment, scope)
+    if not access.unrestricted:
+        stmt = stmt.where(StudentEnrollment.section_id.in_(access.sections or {0}))
     if school_year_id:
         stmt = stmt.where(StudentEnrollment.school_year_id == school_year_id)
     if section_id:
@@ -428,6 +463,8 @@ async def create_enrollment(
     db: AsyncSession = Depends(get_db),
 ):
     await get_scoped(db, Student, payload.student_id, scope, "Student")
+    # A teacher enrols learners only into a section they teach or advise.
+    (await class_access(db, current, scope)).require_section(payload.section_id)
 
     if await get_scoped_optional(db, GradeLevel, payload.grade_level_id, scope) is None:
         raise HTTPException(status_code=400, detail="That grade level does not exist.")
@@ -488,12 +525,16 @@ async def create_enrollment(
 async def update_enrollment(
     enrollment_id: int,
     payload: EnrollmentUpdate,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, StudentEnrollment, enrollment_id, scope, "Enrolment")
     data = payload.model_dump(exclude_unset=True)
+    access = await class_access(db, current, scope)
+    access.require_section(row.section_id)
+    if data.get("section_id") is not None:
+        access.require_section(data["section_id"])
 
     # Anything the payload may point at has to belong to this school, or the
     # loop below would quietly move the enrolment onto another school's rows.

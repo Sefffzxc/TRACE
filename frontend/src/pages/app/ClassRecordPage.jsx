@@ -9,6 +9,7 @@ import {
 import { AiServiceNote } from '../../components/common/ai';
 import {
   aiApi,
+  assignmentApi,
   classRecordApi,
   enrollmentApi,
   paceApi,
@@ -111,17 +112,29 @@ export default function ClassRecordPage() {
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // section id -> subject names this teacher grades there ("*" = all);
+  // null for an administrator, who is not limited.
+  const [myClasses, setMyClasses] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [sectionRows, subjectRows] = await Promise.all([
+        const [sectionRows, subjectRows, mine] = await Promise.all([
           sectionApi.list(),
           subjectApi.list({ is_active: true }),
+          assignmentApi.mine(),
         ]);
-        setSections(sectionRows || []);
+        // Only the classes this teacher grades: the sections they are
+        // assigned to, and in each only their own subjects. The server
+        // refuses any other save as well.
+        const grade = mine?.grade || {};
+        const own = mine?.unrestricted
+          ? sectionRows || []
+          : (sectionRows || []).filter((s) => grade[String(s.section_id)]);
+        setMyClasses(mine?.unrestricted ? null : grade);
+        setSections(own);
         setSubjects(subjectRows || []);
-        if (sectionRows?.length) setSectionId(String(sectionRows[0].section_id));
+        if (own.length) setSectionId(String(own[0].section_id));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -152,10 +165,13 @@ export default function ClassRecordPage() {
     [sections, sectionId],
   );
 
-  const subjectOptions = useMemo(
-    () => (section ? subjects.filter((s) => s.grade_level_id === section.grade_level_id) : []),
-    [subjects, section],
-  );
+  const subjectOptions = useMemo(() => {
+    if (!section) return [];
+    const forLevel = subjects.filter((s) => s.grade_level_id === section.grade_level_id);
+    if (!myClasses) return forLevel; // an administrator
+    const taught = myClasses[String(section.section_id)] || [];
+    return taught.includes('*') ? forLevel : forLevel.filter((s) => taught.includes(s.subject_name));
+  }, [subjects, section, myClasses]);
 
   useEffect(() => {
     if (!subjectOptions.length) {
