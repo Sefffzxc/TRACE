@@ -39,28 +39,40 @@
      rule-based risk badges. */
   --ai-50:#f2eefe;  --ai-200:#cbbaf7;  --ai-300:#a68bf0;  --ai-500:#6d43e0;  --ai-700:#4a2aa8;
 
-  /* ── Neutrals (light theme) ─────────────────────────────────────────── */
-  --surface-page:    #f4f6fb;
+  /* ── Neutrals (light theme) ─────────────────────────────────────────────
+     Navy-tinted, like the dark theme, so the two read as one design. The
+     page sits a clear step below the white cards (contrast 1.18, was 1.08,
+     which made cards vanish into the page), borders are visible, and the
+     faintest text still passes WCAG AA on a card (4.9:1; it was 2.6:1). */
+  --surface-page:    #e8ecf4;
   --surface-card:    #ffffff;
   --surface-raised:  #ffffff;
-  --surface-sunken:  #eef1f8;
-  --surface-hover:   #f4f6fb;
+  --surface-sunken:  #e2e7f0;
+  --surface-hover:   #eef1f7;
   --surface-inverse: #101828;
 
   --text-strong: #101828;
   --text-body:   #344054;
-  --text-muted:  #667085;
-  --text-faint:  #98a2b3;
+  --text-muted:  #5d6778;
+  --text-faint:  #677184;
   --text-invert: #ffffff;
+  /* Text on the navy surfaces (hero banner, profile banner, selected chips)
+     — the same white in both themes, because those surfaces are navy in
+     both. It was used but never defined, so in light mode that text fell
+     back to dark grey on navy. */
+  --on-dark:     #ffffff;
 
-  --border-subtle: #e6e9f0;
-  --border-strong: #d0d5dd;
+  --border-subtle: #d5dbe6;
+  --border-strong: #bcc5d4;
+  /* A hover border one step firmer than the resting one. Was used but
+     never defined, so hover outlines showed nothing. */
+  --border-dark:   var(--border-strong);
   --border-focus:  var(--brand-500);
 
   /* ── Elevation ──────────────────────────────────────────────────────── */
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 4px 10px -2px rgba(16, 24, 40, 0.08), 0 2px 6px -2px rgba(16, 24, 40, 0.05);
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.10), 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 10px -2px rgba(16, 24, 40, 0.10), 0 2px 6px -2px rgba(16, 24, 40, 0.06);
   --shadow-lg: 0 14px 28px -8px rgba(16, 24, 40, 0.14), 0 6px 12px -6px rgba(16, 24, 40, 0.08);
   --shadow-xl: 0 26px 50px -12px rgba(16, 24, 40, 0.24);
 
@@ -123,20 +135,21 @@
   --ai-500:   #a48bf5;
 
   --surface-page:    #0b1220;
-  --surface-card:    #121a2b;
+  --surface-card:    #131c2e;
   --surface-raised:  #182134;
   --surface-sunken:  #0e1626;
   --surface-hover:   #1b2439;
   --surface-inverse: #f4f6fb;
 
+  /* Faint text lifted to pass WCAG AA on a card (5.0:1; it was 3.9:1). */
   --text-strong: #f2f5fa;
   --text-body:   #ccd4e3;
-  --text-muted:  #94a1b8;
-  --text-faint:  #6b7890;
+  --text-muted:  #9aa6bc;
+  --text-faint:  #7f8ba3;
   --text-invert: #0b1220;
 
-  --border-subtle: #222d44;
-  --border-strong: #31405c;
+  --border-subtle: #26324b;
+  --border-strong: #36466a;
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
