@@ -476,6 +476,16 @@
 
 /* Address pickers (components/common/AddressFields.jsx). */
 .combo { position: relative; }
+.combo .input { padding-right: 2.2rem; }
+.combo .input:disabled { cursor: not-allowed; opacity: 0.6; }
+.combo-chevron {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  pointer-events: none;
+}
 .combo-list {
   top: calc(100% + 0.25rem);
   left: 0;

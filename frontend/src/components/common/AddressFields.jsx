@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 /* A school's address, picked from the PSA's list instead of typed out:
    province, then a city or municipality in that province, then a barangay in
@@ -99,17 +100,17 @@ export default function AddressFields({ value, onChange, idPrefix = 'addr' }) {
   };
 
   return (
-    <div className="form-grid">
+    <div className="stack">
       <div className="field">
         <label className="field-label" htmlFor={`${idPrefix}_province`}>
-          Province
+          Province <span className="req">*</span>
         </label>
         <Combo
           id={`${idPrefix}_province`}
           value={value.province || ''}
           options={provinces.map((p) => p.name)}
           onChange={pickProvince}
-          placeholder="Start typing, e.g. Lanao del Norte"
+          placeholder="Type or choose a province"
         />
         {province && <span className="field-hint">{province.region}</span>}
       </div>
@@ -122,72 +123,90 @@ export default function AddressFields({ value, onChange, idPrefix = 'addr' }) {
           value={value.city || ''}
           options={province ? province.cities.map(([, name]) => name) : []}
           onChange={pickCity}
-          placeholder={province ? 'Start typing' : 'Choose the province first'}
+          disabled={!province}
+          placeholder={province ? 'Type or choose a city or municipality' : 'Choose the province first'}
           required
         />
       </div>
-      <div className="field">
-        <label className="field-label" htmlFor={`${idPrefix}_barangay`}>
-          Barangay
-        </label>
-        <Combo
-          id={`${idPrefix}_barangay`}
-          value={barangay}
-          options={city ? barangays[city[0]] || [] : []}
-          onChange={(name) => setAddress({ street, barangay: name })}
-          placeholder={city ? 'Start typing' : 'Choose the city first'}
-        />
-      </div>
-      <div className="field">
-        <label className="field-label" htmlFor={`${idPrefix}_street`}>
-          Street
-        </label>
-        <input
-          id={`${idPrefix}_street`}
-          className="input"
-          placeholder="House no., street, purok — optional"
-          value={street}
-          onChange={(event) => setAddress({ street: event.target.value, barangay })}
-        />
+      <div className="form-grid">
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}_barangay`}>
+            Barangay
+          </label>
+          <Combo
+            id={`${idPrefix}_barangay`}
+            value={barangay}
+            options={city ? barangays[city[0]] || [] : []}
+            onChange={(name) => setAddress({ street, barangay: name })}
+            disabled={!city}
+            placeholder={city ? 'Type or choose a barangay' : 'Choose the city first'}
+          />
+        </div>
+        <div className="field">
+          <label className="field-label" htmlFor={`${idPrefix}_street`}>
+            Street
+          </label>
+          <input
+            id={`${idPrefix}_street`}
+            className="input"
+            placeholder="House no., street, purok — optional"
+            value={street}
+            onChange={(event) => setAddress({ street: event.target.value, barangay })}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-const SHOWN = 80;
-
-/* A text box with a list of matches under it. Names that start with what was
-   typed come first, then names that merely contain it. */
-function Combo({ id, value, options, onChange, placeholder, required }) {
+/* A text box with a list under it. Clicking it shows the whole list to scroll
+   through; typing narrows it to the names that start with what was typed. */
+function Combo({ id, value, options, onChange, placeholder, required, disabled }) {
   const listId = useId();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  // True from opening the box until the first key typed: the whole list is
+  // offered then, even with a name already picked, so it can be changed.
+  const [browsing, setBrowsing] = useState(false);
 
   const matches = useMemo(() => {
     const term = value.trim().toLowerCase();
-    if (!term) return options.slice(0, SHOWN);
-    const starts = [];
-    const contains = [];
-    for (const name of options) {
-      const at = name.toLowerCase().indexOf(term);
-      if (at === 0) starts.push(name);
-      else if (at > 0) contains.push(name);
-    }
-    return [...starts, ...contains].slice(0, SHOWN);
-  }, [value, options]);
+    if (!term || (browsing && options.some((name) => same(name, term)))) return options;
+    return options.filter((name) => name.toLowerCase().startsWith(term));
+  }, [value, options, browsing]);
 
   // Nothing to suggest once the box already holds the one listed name.
-  const showing = open && matches.length > 0 && !(matches.length === 1 && same(matches[0], value));
+  const showing = open && !disabled && matches.length > 0;
 
   const pick = (name) => {
     onChange(name);
     setOpen(false);
   };
 
+  // "lanao del norte" typed in full counts as picking "Lanao del Norte".
+  const settle = () => {
+    setOpen(false);
+    const listed = options.find((name) => same(name, value));
+    if (listed && listed !== value) onChange(listed);
+  };
+
+  const openList = () => {
+    const at = options.findIndex((name) => same(name, value));
+    setActive(at < 0 ? 0 : at);
+    setBrowsing(true);
+    setOpen(true);
+  };
+
+  // Keep the highlighted name in view while moving through a long list.
+  const listRef = useRef(null);
+  useEffect(() => {
+    listRef.current?.children[active]?.scrollIntoView({ block: 'nearest' });
+  }, [active, open]);
+
   const onKeyDown = (event) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      setOpen(true);
+      if (!open) return openList();
       const step = event.key === 'ArrowDown' ? 1 : -1;
       setActive((i) => (matches.length ? (i + step + matches.length) % matches.length : 0));
     } else if (event.key === 'Enter' && showing) {
@@ -200,6 +219,7 @@ function Combo({ id, value, options, onChange, placeholder, required }) {
 
   return (
     <div className="combo">
+      <ChevronDown size={16} className="combo-chevron" aria-hidden="true" />
       <input
         id={id}
         className="input"
@@ -211,17 +231,20 @@ function Combo({ id, value, options, onChange, placeholder, required }) {
         placeholder={placeholder}
         value={value}
         required={required}
+        disabled={disabled}
         onChange={(event) => {
           onChange(event.target.value);
+          setBrowsing(false);
           setActive(0);
           setOpen(true);
         }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setOpen(false)}
+        onFocus={openList}
+        onClick={() => !open && openList()}
+        onBlur={settle}
         onKeyDown={onKeyDown}
       />
       {showing && (
-        <div className="dropdown combo-list" id={listId} role="listbox">
+        <div className="dropdown combo-list" id={listId} role="listbox" ref={listRef}>
           {matches.map((name, i) => (
             <button
               key={name}

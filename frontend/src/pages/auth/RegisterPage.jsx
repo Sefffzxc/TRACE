@@ -261,6 +261,15 @@ export default function RegisterPage() {
         setError('Please say whether the school is public or private.');
         return;
       }
+      // The region is filled in only when a province is picked from the list.
+      if (!school.region) {
+        setError('Please choose the province from the list.');
+        return;
+      }
+      if (!school.city.trim()) {
+        setError('Please choose the city or municipality.');
+        return;
+      }
       if (school.tracks_units === null) {
         setError('Please answer whether teachers track progress through numbered booklets.');
         return;
