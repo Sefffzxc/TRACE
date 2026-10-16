@@ -28,6 +28,13 @@ const STATUS_BADGE = {
   deactivated: 'badge-neutral',
 };
 
+const STATUS_LABEL = {
+  approved: 'Approved',
+  pending: 'Pending',
+  rejected: 'Rejected',
+  deactivated: 'Deactivated',
+};
+
 export default function TeachersPage() {
   const toast = useToast();
 
@@ -41,7 +48,6 @@ export default function TeachersPage() {
   useEffect(() => {
     setSearch(urlQuery);
   }, [urlQuery]);
-  const [roleFilter, setRoleFilter] = useState('');
   const [confirm, setConfirm] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -63,12 +69,14 @@ export default function TeachersPage() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
+    // Teachers only: the administrator's own account is managed from their
+    // profile, not listed here among the people they manage.
     return staff.filter((person) => {
-      if (roleFilter && person.role !== roleFilter) return false;
+      if (person.role !== 'teacher') return false;
       if (!term) return true;
       return `${person.first_name} ${person.last_name} ${person.email}`.toLowerCase().includes(term);
     });
-  }, [staff, search, roleFilter]);
+  }, [staff, search]);
 
   const runAction = async () => {
     const { person, action } = confirm;
@@ -121,7 +129,7 @@ export default function TeachersPage() {
 
   return (
     <div className="page">
-      <PageHead title="Staff directory" subtitle="Everyone with access to your school." />
+      <PageHead title="Teachers" subtitle="Teacher accounts in your school." />
 
       <ErrorNote message={error} />
 
@@ -136,28 +144,18 @@ export default function TeachersPage() {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
-        <select
-          className="select"
-          value={roleFilter}
-          onChange={(event) => setRoleFilter(event.target.value)}
-          aria-label="Filter by role"
-        >
-          <option value="">All roles</option>
-          <option value="teacher">Teachers</option>
-          <option value="admin">Administrators</option>
-        </select>
         <span className="spacer" />
         <span className="result-count">
-          {filtered.length} account{filtered.length === 1 ? '' : 's'}
+          {filtered.length} teacher{filtered.length === 1 ? '' : 's'}
         </span>
       </div>
 
       <div className="card">
         <div className="card-body flush">
           {loading ? (
-            <TableSkeleton rows={6} columns={5} />
+            <TableSkeleton rows={6} columns={4} />
           ) : filtered.length === 0 ? (
-            <EmptyState icon={UserCheck} title="No staff accounts match" />
+            <EmptyState icon={UserCheck} title={search.trim() ? 'No teachers match' : 'No teachers yet'} />
           ) : (
             <div className="table-wrap">
               <table className="table">
@@ -165,7 +163,6 @@ export default function TeachersPage() {
                   <tr>
                     <th>Name</th>
                     <th>Contact</th>
-                    <th>Role</th>
                     <th>Status</th>
                     <th className="actions">Actions</th>
                   </tr>
@@ -180,13 +177,8 @@ export default function TeachersPage() {
                             src={person.profile_pic}
                             size="sm"
                           />
-                          <div>
-                            <div className="cell-strong">
-                              {person.first_name} {person.last_name}
-                            </div>
-                            <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
-                              {person.department || person.employee_no || '—'}
-                            </div>
+                          <div className="cell-strong">
+                            {person.first_name} {person.last_name}
                           </div>
                         </div>
                       </td>
@@ -202,13 +194,8 @@ export default function TeachersPage() {
                         </div>
                       </td>
                       <td>
-                        <span className={`badge ${person.role === 'admin' ? 'badge-brand' : 'badge-neutral'}`}>
-                          {person.role === 'admin' ? 'Administrator' : 'Teacher'}
-                        </span>
-                      </td>
-                      <td>
                         <span className={`badge ${STATUS_BADGE[person.account_status] || 'badge-neutral'}`}>
-                          {person.account_status}
+                          {STATUS_LABEL[person.account_status] || person.account_status}
                         </span>
                         {person.permanent_lock && (
                           <span className="badge badge-critical" style={{ marginLeft: 4 }}>
