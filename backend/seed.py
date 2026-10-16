@@ -1,7 +1,8 @@
-"""Database setup for SmartPACE.
+"""Database setup for TRACE.
 
+    python seed.py --rebuild        DELETE EVERYTHING, then add the demo school
     python seed.py --fresh-start    empty everything, keep one operator account
-    python seed.py --demo           add the small demonstration school
+    python seed.py --demo           add the demonstration school
     python seed.py --score          as --demo, then ask the model to score it
     python seed.py --score-only     re-score whatever is already stored
     python seed.py --purge-demo     remove the demonstration school only
@@ -13,10 +14,10 @@ deployment and stays there.
 
 What --demo creates
 -------------------
-One school, one principal, two teachers, ten learners in one section, two
-subjects, and a class record for each learner in each subject. Small enough
-to read end to end on screen, large enough that every screen in the system
-has something real to show.
+One school, one principal, four teachers, three sections of five learners,
+four subjects, and a class record for each learner in each subject and
+quarter. The teachers' assignments are chosen to show who may see and grade
+what (app/services/access.py); `--demo` prints the table at the end.
 
 Every learner here is invented. The names, the scores and the guardians are
 made up, and nothing in this file is ever used to train or evaluate the risk
@@ -54,7 +55,7 @@ from app.models.students import (
 )
 from app.services import grading, risk
 
-PASSWORD = "Lbca@2026"
+PASSWORD = "Trace@2026"
 
 # `example.com` rather than something like `system.local`: `.local` is reserved
 # for multicast DNS and the address validation the API applies at sign-in
@@ -83,50 +84,78 @@ WW_HIGHEST = [20.0, 20.0, 15.0, 15.0, 15.0]     # 85 in total
 PT_HIGHEST = [25.0, 25.0, 25.0]                 # 75
 EXAM_HIGHEST = [25.0, 25.0, 50.0]               # ST1, ST2, TE
 
-# Four subjects across BOTH class records, because a school runs both at
-# once and the system has to show that it does. The weights come from the
-# template, not from here — see app/services/grading.py.
-# The last field nudges every mark in that subject up or down a point, so a
-# learner is not identical across all four. Kept small: the point is that a
-# learner can be fine in one subject and not in another, not that the
-# demonstration should look like a failing cohort.
+# Four core subjects in every grade level. The last field nudges every mark
+# in that subject up or down a point, so a learner is not identical across
+# subjects: fine in one, slipping in another, as real learners are.
 SUBJECTS = [
     ("Filipino", "FIL", grading.CORE, 0),
+    ("English", "ENG", grading.CORE, +1),
+    ("Mathematics", "MATH", grading.CORE, -2),
     ("Science", "SCI", grading.CORE, -1),
-    ("Music and Arts", "MA", grading.MAPEH, +1),
-    ("Physical Education and Health", "PEH", grading.MAPEH, -1),
 ]
 
-# Ten learners. The scores are written out rather than generated at random so
-# that the demonstration is the same every time it is seeded — a screenshot
-# taken today still matches the database next week, and a figure quoted in
-# the manuscript does not move underneath it.
+# ── Who teaches what ──────────────────────────────────────────────────────────
+# Built to show the access rule (app/services/access.py) in every form it
+# takes. Read alongside the table printed at the end of `--demo`.
+#
+#   key: (email, first, last)
+TEACHERS = {
+    "ana":   ("teacher1@lnhs.deped.gov.ph", "Ana", "Reyes"),
+    "ben":   ("teacher2@lnhs.deped.gov.ph", "Ben", "Cruz"),
+    "carla": ("teacher3@lnhs.deped.gov.ph", "Carla", "Santos"),
+    "dan":   ("teacher4@lnhs.deped.gov.ph", "Dan", "Lopez"),
+}
+
+# Sections: (code, name, grade level, adviser key)
+SECTIONS = [
+    ("G7-SAM", "Grade 7 - Sampaguita", "7", "ana"),
+    ("G7-ROS", "Grade 7 - Rosal", "7", "ben"),
+    ("G8-NAR", "Grade 8 - Narra", "8", "dan"),
+]
+
+# Subject assignments: (teacher, section code, subject). A section with an
+# adviser but no subject rows for them means "every subject" (Dan in Narra).
+CLASSES = [
+    ("ana", "G7-SAM", "English"),
+    ("ana", "G7-ROS", "English"),
+    ("ben", "G7-SAM", "Mathematics"),
+    ("ben", "G7-ROS", "Mathematics"),
+    ("carla", "G7-SAM", "Filipino"),
+    ("carla", "G7-SAM", "Science"),
+    ("carla", "G7-ROS", "Filipino"),
+    ("carla", "G7-ROS", "Science"),
+]
+
+# Five learners per section. The scores are written out rather than generated
+# at random so the demonstration is the same every time it is seeded.
 #
 # Columns: first, last, sex, five written works, three performance tasks,
-#          [ST1, ST2, term examination].
-# A None is a blank cell: the assessment has not been taken or not yet marked.
-LEARNERS = [
-    # Tuned so the demonstration shows every band rather than a failing
-    # cohort: four comfortably on track, two to watch, two at risk and two
-    # below the passing mark. Those are the proportions a teacher would
-    # recognise, and they exercise every colour on every screen.
-    ("Althea Mae",   "Bontigao", "Female", [18, 17, 14, 13, 14], [23, 22, 24], [22, 23, 44]),
-    ("Jerome",       "Cabanlit", "Male",   [11,  9,  8,  7,  9], [14, 13, 12], [12, 11, 23]),
-    ("Kyla Marie",   "Dagohoy",  "Female", [19, 18, 14, 14, 15], [24, 24, 23], [23, 24, 47]),
-    # Just under the passing mark: the case the whole system exists for.
-    ("Mark Anthony", "Escobido", "Male",   [15, 14, 11, 11, 11], [19, 18, 20], [17, 18, 35]),
-    # Passing, but inside the band the model targets.
-    ("Shaira",       "Fuentes",  "Female", [16, 15, 12, 12, 13], [21, 20, 21], [19, 20, 39]),
-    ("Paulo",        "Gumapac",  "Male",   [ 9,  8,  7,  6,  8], [13, 12, 11], [10, 12, 21]),
-    ("Jenny Rose",   "Lumabao",  "Female", [17, 16, 13, 13, 12], [22, 21, 22], [20, 21, 41]),
-    # Comfortable in most subjects, slipping in the weaker one.
-    ("Rhoda",        "Makinano", "Female", [16, 15, 12, 11, 13], [20, 20, 21], [19, 19, 38]),
-    ("Carl Jason",   "Nunez",    "Male",   [20, 19, 15, 14, 15], [25, 24, 25], [24, 25, 48]),
-    # Coursework complete, no examinations sat yet, so there is no term
-    # grade. That is the ordinary mid-term state and the only one in which
-    # an early warning has any point at all.
-    ("Trisha Mae",   "Olvido",   "Female", [15, 14, 12, 11, 12], [20, 19, 20], [None, None, None]),
-]
+#          [ST1, ST2, term examination]. None is a blank, unmarked cell.
+# Each section has one learner comfortably on track, one to watch, one at
+# risk, one below the passing mark, and one with the term still in progress.
+LEARNERS = {
+    "G7-SAM": [
+        ("Althea Mae", "Bontigao", "Female", [18, 17, 14, 13, 14], [23, 22, 24], [22, 23, 44]),
+        ("Carl Jason", "Nunez",    "Male",   [17, 16, 13, 12, 13], [21, 21, 22], [20, 21, 41]),
+        ("Shaira",     "Fuentes",  "Female", [16, 15, 12, 12, 13], [21, 20, 21], [19, 20, 39]),
+        ("Jerome",     "Cabanlit", "Male",   [11,  9,  8,  7,  9], [14, 13, 12], [12, 11, 23]),
+        ("Trisha Mae", "Olvido",   "Female", [15, 14, 12, 11, 12], [20, 19, 20], [None, None, None]),
+    ],
+    "G7-ROS": [
+        ("Kyla Marie",   "Dagohoy",  "Female", [19, 18, 14, 14, 15], [24, 24, 23], [23, 24, 47]),
+        ("Jenny Rose",   "Lumabao",  "Female", [17, 16, 13, 13, 12], [22, 21, 22], [20, 21, 41]),
+        ("Mark Anthony", "Escobido", "Male",   [15, 14, 11, 11, 11], [19, 18, 20], [17, 18, 35]),
+        ("Paulo",        "Gumapac",  "Male",   [ 9,  8,  7,  6,  8], [13, 12, 11], [10, 12, 21]),
+        ("Rhoda",        "Makinano", "Female", [16, 15, 12, 11, 13], [20, 20, 21], [None, None, None]),
+    ],
+    "G8-NAR": [
+        ("Miguel",      "Santiago", "Male",   [19, 18, 15, 14, 14], [24, 23, 24], [23, 23, 46]),
+        ("Angela",      "Villanueva", "Female", [16, 16, 12, 12, 13], [21, 21, 21], [19, 20, 40]),
+        ("Joshua",      "Ramos",    "Male",   [14, 13, 11, 10, 11], [18, 18, 19], [16, 17, 33]),
+        ("Princess",    "Dela Cruz", "Female", [10,  9,  7,  7,  8], [14, 13, 12], [11, 11, 22]),
+        ("Kenneth",     "Bautista", "Male",   [16, 15, 12, 12, 12], [20, 20, 20], [None, None, None]),
+    ],
+}
 
 
 def _now() -> datetime:
@@ -240,7 +269,12 @@ def make_staff(school_id, email, first, last, role, contact, department, employe
 
 # ── The demonstration school ─────────────────────────────────────────────────
 async def build_demo(db, operator_id) -> dict:
-    """One school, two teachers, ten learners, two subjects."""
+    """One school, three sections of five learners, four teachers.
+
+    The teachers' assignments are chosen to show the access rule in every
+    form: an adviser who teaches one subject, a subject teacher with no
+    advisory, and an adviser whose assignment leaves the subject blank.
+    """
     school = School(
         name=DEMO_SCHOOL_NAME,
         short_name="LNHS",
@@ -251,11 +285,12 @@ async def build_demo(db, operator_id) -> dict:
         region="Region X (Northern Mindanao)",
         contact_number="(088) 855 0199",
         contact_email="office@lnhs.deped.gov.ph",
-        # A DepEd school: no PACE booklets, so the unit screens stay hidden
-        # and the class record is the only place marks are entered.
+        # A DepEd school: no PACE booklets, so the class record is where
+        # every mark is entered.
         tracks_units=False,
         passing_mark=PASSING_MARK,
         grading_periods=3,
+        grading_period_label="Quarter",
         status=SCHOOL_APPROVED,
         approved_at=_now(),
         approved_by=operator_id,
@@ -266,15 +301,14 @@ async def build_demo(db, operator_id) -> dict:
 
     principal = make_staff(
         sid, "principal@lnhs.deped.gov.ph", "Remedios", "Alcantara",
-        ROLE_ADMIN, "0917 300 1001", "School Administration", "EMP-0001",
+        ROLE_ADMIN, "0917 300 1001", None, None,
     )
-    teachers = [
-        make_staff(sid, "teacher1@lnhs.deped.gov.ph", "Marivic", "Bermudez",
-                   ROLE_TEACHER, "0917 300 1002", "Filipino", "EMP-0002"),
-        make_staff(sid, "teacher2@lnhs.deped.gov.ph", "Dennis", "Carcedo",
-                   ROLE_TEACHER, "0917 300 1003", "Araling Panlipunan", "EMP-0003"),
-    ]
-    db.add_all([principal, *teachers])
+    teachers = {
+        key: make_staff(sid, email, first, last, ROLE_TEACHER,
+                        f"0917 300 10{index + 2:02d}", None, None)
+        for index, (key, (email, first, last)) in enumerate(TEACHERS.items())
+    }
+    db.add_all([principal, *teachers.values()])
     await db.flush()
 
     year = SchoolYear(
@@ -285,204 +319,226 @@ async def build_demo(db, operator_id) -> dict:
     db.add(year)
     await db.flush()
 
-    level = GradeLevel(school_id=sid, level="8", name="Grade 8", sort_order=1)
-    db.add(level)
-    await db.flush()
+    levels = {}
+    for order, level_no in enumerate(sorted({lvl for _c, _n, lvl, _a in SECTIONS}), start=1):
+        level = GradeLevel(school_id=sid, level=level_no, name=f"Grade {level_no}",
+                           sort_order=order)
+        db.add(level)
+        await db.flush()
+        levels[level_no] = level
 
-    section = Section(
-        school_id=sid,
-        grade_level_id=level.grade_level_id,
-        section_code="G8-CAT",
-        name="Grade 8 - Cattleya",
-        room="Room 801",
-        capacity=40,
-    )
-    db.add(section)
-    await db.flush()
-
-    subjects = [
-        Subject(school_id=sid, grade_level_id=level.grade_level_id,
-                subject_name=name, subject_code=f"{code}8",
-                total_paces=0, is_active=True)
-        for name, code, _template, _shift in SUBJECTS
-    ]
-    db.add_all(subjects)
+    # The same four subjects in each grade level, as separate subject rows.
+    subjects = {}
+    for level_no, level in levels.items():
+        for name, code, _tpl, _shift in SUBJECTS:
+            row = Subject(school_id=sid, grade_level_id=level.grade_level_id,
+                          subject_name=name, subject_code=f"{code}{level_no}",
+                          total_paces=0, is_active=True)
+            db.add(row)
+            subjects[(level_no, name)] = row
     await db.flush()
     template_of = {name: tpl for name, _code, tpl, _s in SUBJECTS}
     shift_of = {name: shift for name, _code, _tpl, shift in SUBJECTS}
 
-    # The core subjects belong to the first teacher, MAPEH to the second;
-    # the first is also the section's adviser.
-    db.add_all([
-        TeacherAssignment(school_id=sid, teacher_id=teachers[0].id,
-                          section_id=section.section_id, is_adviser=True),
-        TeacherAssignment(school_id=sid, teacher_id=teachers[1].id,
-                          section_id=section.section_id, is_adviser=False),
-    ])
+    sections = {}
+    for code, name, level_no, _adviser in SECTIONS:
+        section = Section(school_id=sid, grade_level_id=levels[level_no].grade_level_id,
+                          section_code=code, name=name,
+                          room=f"Room {level_no}0{len(sections) + 1}", capacity=40)
+        db.add(section)
+        sections[code] = section
+    await db.flush()
 
-    # One class-record header per subject per term. Without it there is no
+    # ── Assignments ─────────────────────────────────────────────────────────
+    # The adviser row carries no subject; a teacher's subjects come from the
+    # rows in CLASSES. Dan has only his adviser row in Narra, which means he
+    # handles every subject there.
+    for code, _name, _level, adviser in SECTIONS:
+        db.add(TeacherAssignment(school_id=sid, teacher_id=teachers[adviser].id,
+                                 section_id=sections[code].section_id, is_adviser=True))
+    for teacher, code, subject_name in CLASSES:
+        level_no = next(lvl for c, _n, lvl, _a in SECTIONS if c == code)
+        db.add(TeacherAssignment(
+            school_id=sid, teacher_id=teachers[teacher].id,
+            section_id=sections[code].section_id,
+            subject_id=subjects[(level_no, subject_name)].subject_id,
+            is_adviser=False))
+    await db.flush()
+
+    def teacher_of(code: str, subject_name: str) -> Staff:
+        """Who grades this class: the subject's teacher, else the adviser."""
+        for teacher, c, s in CLASSES:
+            if c == code and s == subject_name:
+                return teachers[teacher]
+        adviser = next(a for c, _n, _l, a in SECTIONS if c == code)
+        return teachers[adviser]
+
+    # One class-record header per class per term. Without it there is no
     # denominator, so every percentage would stay blank.
-    for subject in subjects:
-        tpl = template_of[subject.subject_name]
-        profile = grading.TEMPLATES[tpl]
-        for period in grading.TERMS:
-            db.add(ClassRecordSetup(
-                school_id=sid,
-                section_id=section.section_id,
-                subject_id=subject.subject_id,
-                grading_period=period,
-                template=tpl,
-                ww_highest=json.dumps(WW_HIGHEST),
-                pt_highest=json.dumps(PT_HIGHEST),
-                exam_highest=json.dumps(EXAM_HIGHEST),
-                ww_weight=profile["ww_weight"],
-                pt_weight=profile["pt_weight"],
-                ex_weight=profile["ex_weight"],
-                exam_subweights=json.dumps(list(grading.EXAM_SUBWEIGHTS)),
-                updated_by=principal.id,
-            ))
-
-    at_risk = 0
-    flagged = 0
-    records = 0
-    for index, (first, last, sex, ww, pt, exam) in enumerate(LEARNERS, start=1):
-        student = Student(
-            school_id=sid,
-            first_name=first,
-            last_name=last,
-            gender=sex,
-            birth_date=date(2013, (index % 12) + 1, (index % 28) + 1),
-            address=f"Purok {index}, Barangay Looc, Cagayan de Oro",
-            guardian_first_name="Maria" if index % 2 else "Roberto",
-            guardian_last_name=last,
-            guardian_contact=f"0917 300 2{index:03d}",
-            guardian_relationship="Parent",
-            created_by=principal.id,
-        )
-        db.add(student)
-        await db.flush()
-        student.login_id = f"S{student.student_id:04d}"
-
-        enrollment = StudentEnrollment(
-            school_id=sid,
-            student_id=student.student_id,
-            grade_level_id=level.grade_level_id,
-            section_id=section.section_id,
-            school_year_id=year.school_year_id,
-            enrolled_by=principal.id,
-            enrollment_date=date(2026, 6, 3),
-            is_active=True,
-        )
-        db.add(enrollment)
-        await db.flush()
-
-        for subject in subjects:
-            tpl = template_of[subject.subject_name]
+    for code, _name, level_no, _adviser in SECTIONS:
+        for subject_name, _c, tpl, _s in SUBJECTS:
             profile = grading.TEMPLATES[tpl]
-            base_shift = shift_of[subject.subject_name]
-            teacher = teachers[0 if tpl == grading.CORE else 1]
-            term_grades: list = []
-
-            # Terms 1 and 2 are finished; the third is still being taught,
-            # so it carries coursework and no examinations. That is the
-            # state a school is actually in when an early warning is worth
-            # anything, and it is the state the screens have to handle: a
-            # year average from two finished terms, plus one in progress.
             for period in grading.TERMS:
-                shift = base_shift + TERM_DRIFT[period]
-                bump = [None if v is None else max(0, v + shift) for v in ww]
-                bump_pt = [None if v is None else max(0, v + shift) for v in pt]
-                in_progress = period == LAST_TERM
-                bump_ex = ([None, None, None] if in_progress
-                           else [None if v is None else max(0, v + shift) for v in exam])
-
-                # Computed by the same module the API uses, so a seeded
-                # grade is identical to one a teacher would get by typing
-                # these marks in by hand.
-                derived = grading.compute(
-                    ww_scores=bump, pt_scores=bump_pt, exam_scores=bump_ex,
-                    ww_highest=WW_HIGHEST, pt_highest=PT_HIGHEST,
-                    exam_highest=EXAM_HIGHEST, template=tpl,
+                db.add(ClassRecordSetup(
+                    school_id=sid,
+                    section_id=sections[code].section_id,
+                    subject_id=subjects[(level_no, subject_name)].subject_id,
+                    grading_period=period,
+                    template=tpl,
+                    ww_highest=json.dumps(WW_HIGHEST),
+                    pt_highest=json.dumps(PT_HIGHEST),
+                    exam_highest=json.dumps(EXAM_HIGHEST),
                     ww_weight=profile["ww_weight"],
                     pt_weight=profile["pt_weight"],
                     ex_weight=profile["ex_weight"],
-                )
-                term_grades.append(derived["transmuted_grade"])
-
-                pace = StudentPace(
-                    school_id=sid,
-                    student_id=student.student_id,
-                    enrollment_id=enrollment.enrollment_id,
-                    subject_id=subject.subject_id,
-                    subject=subject.subject_name,
-                    grading_period=period,
-                    # This school counts no booklets; the row exists
-                    # because it is also where the class record lives.
-                    current_pace=0, expected_pace=0, total_paces=0,
-                    pace_percent=0.0, paces_behind=0, attendance=100.0,
-                    average_score=derived["transmuted_grade"] or 0.0,
-                    recorded_by=teacher.id,
-                    ww_scores=json.dumps(bump),
-                    pt_scores=json.dumps(bump_pt),
-                    exam_scores=json.dumps(bump_ex),
-                    exam_parts=json.dumps(derived["exam_parts"]),
-                    record_complete=bool(derived["complete"]),
-                    **{k: derived[k] for k in (
-                        "ww_total_raw", "ww_percent", "ww_weighted",
-                        "pt_total_raw", "pt_percent", "pt_weighted",
-                        "exam_percent", "exam_weighted",
-                        "initial_grade", "transmuted_grade", "descriptor",
-                        "pre_exam_weighted", "pre_exam_max")},
-                )
-                db.add(pace)
-                await db.flush()
-                records += 1
-
-            # One flag per subject, judged on the YEAR rather than on any
-            # single term — the final grade is the mean of the terms, so
-            # that is what the system was asked about. Written here the way
-            # the save path writes it, through the same scoring function,
-            # so a freshly seeded demonstration opens with the list it
-            # would have had if a teacher had typed every mark in.
-            evaluation = risk.evaluate_year(
-                pace, term_grades, RISK_LINE, PASSING_MARK
-            )
-            outlook = evaluation["outlook"]
-            if outlook["year_average"] is not None and outlook["year_average"] < RISK_LINE:
-                at_risk += 1
-            if evaluation["risk_level"] != "low":
-                flagged += 1
-                db.add(EarlyWarning(
-                    school_id=sid,
-                    student_id=student.student_id,
-                    enrollment_id=enrollment.enrollment_id,
-                    subject=subject.subject_name,
-                    teacher=teacher.full_name,
-                    risk_level=evaluation["risk_level"],
-                    risk_score=evaluation["risk_score"],
-                    paces_behind=0,
-                    pace_percent=0.0,
-                    standing=evaluation["standing"],
-                    basis=evaluation["basis"],
-                    status=evaluation["status"],
-                    trend="stable",
-                    last_activity="Today",
-                    intervention=evaluation["intervention"],
+                    exam_subweights=json.dumps(list(grading.EXAM_SUBWEIGHTS)),
+                    updated_by=teacher_of(code, subject_name).id,
                 ))
 
+    flagged = 0
+    records = 0
+    learner_no = 0
+    for code, _name, level_no, _adviser in SECTIONS:
+        for first, last, sex, ww, pt, exam in LEARNERS[code]:
+            learner_no += 1
+            student = Student(
+                school_id=sid,
+                first_name=first,
+                last_name=last,
+                gender=sex,
+                birth_date=date(2014 - int(level_no) + 7, (learner_no % 12) + 1,
+                                (learner_no % 28) + 1),
+                address=f"Purok {learner_no}, Barangay Looc, Cagayan de Oro",
+                guardian_first_name="Maria" if learner_no % 2 else "Roberto",
+                guardian_last_name=last,
+                guardian_contact=f"0917 300 2{learner_no:03d}",
+                guardian_relationship="Parent",
+                created_by=teachers[next(a for c, _n, _l, a in SECTIONS if c == code)].id,
+            )
+            db.add(student)
+            await db.flush()
+            student.login_id = f"S{student.student_id:04d}"
+
+            enrollment = StudentEnrollment(
+                school_id=sid,
+                student_id=student.student_id,
+                grade_level_id=levels[level_no].grade_level_id,
+                section_id=sections[code].section_id,
+                school_year_id=year.school_year_id,
+                enrolled_by=principal.id,
+                enrollment_date=date(2026, 6, 3),
+                is_active=True,
+            )
+            db.add(enrollment)
+            await db.flush()
+
+            for subject_name, _c, tpl, _s in SUBJECTS:
+                subject = subjects[(level_no, subject_name)]
+                profile = grading.TEMPLATES[tpl]
+                teacher = teacher_of(code, subject_name)
+                term_grades: list = []
+
+                # Quarters 1 and 2 are finished; the third is still being
+                # taught, so it carries coursework and no examinations.
+                for period in grading.TERMS:
+                    shift = shift_of[subject_name] + TERM_DRIFT[period]
+                    bump = [None if v is None else max(0, v + shift) for v in ww]
+                    bump_pt = [None if v is None else max(0, v + shift) for v in pt]
+                    in_progress = period == LAST_TERM
+                    bump_ex = ([None, None, None] if in_progress
+                               else [None if v is None else max(0, v + shift) for v in exam])
+
+                    # Computed by the same module the API uses, so a seeded
+                    # grade is identical to one typed in by hand.
+                    derived = grading.compute(
+                        ww_scores=bump, pt_scores=bump_pt, exam_scores=bump_ex,
+                        ww_highest=WW_HIGHEST, pt_highest=PT_HIGHEST,
+                        exam_highest=EXAM_HIGHEST, template=tpl,
+                        ww_weight=profile["ww_weight"],
+                        pt_weight=profile["pt_weight"],
+                        ex_weight=profile["ex_weight"],
+                    )
+                    term_grades.append(derived["transmuted_grade"])
+
+                    pace = StudentPace(
+                        school_id=sid,
+                        student_id=student.student_id,
+                        enrollment_id=enrollment.enrollment_id,
+                        subject_id=subject.subject_id,
+                        subject=subject_name,
+                        grading_period=period,
+                        current_pace=0, expected_pace=0, total_paces=0,
+                        pace_percent=0.0, paces_behind=0, attendance=100.0,
+                        average_score=derived["transmuted_grade"] or 0.0,
+                        recorded_by=teacher.id,
+                        ww_scores=json.dumps(bump),
+                        pt_scores=json.dumps(bump_pt),
+                        exam_scores=json.dumps(bump_ex),
+                        exam_parts=json.dumps(derived["exam_parts"]),
+                        record_complete=bool(derived["complete"]),
+                        **{k: derived[k] for k in (
+                            "ww_total_raw", "ww_percent", "ww_weighted",
+                            "pt_total_raw", "pt_percent", "pt_weighted",
+                            "exam_percent", "exam_weighted",
+                            "initial_grade", "transmuted_grade", "descriptor",
+                            "pre_exam_weighted", "pre_exam_max")},
+                    )
+                    db.add(pace)
+                    await db.flush()
+                    records += 1
+
+                # One flag per subject, judged on the year so far, written
+                # the way the save path writes it.
+                evaluation = risk.evaluate_year(pace, term_grades, RISK_LINE, PASSING_MARK)
+                if evaluation["risk_level"] != "low":
+                    flagged += 1
+                    db.add(EarlyWarning(
+                        school_id=sid,
+                        student_id=student.student_id,
+                        enrollment_id=enrollment.enrollment_id,
+                        subject=subject_name,
+                        teacher=teacher.full_name,
+                        risk_level=evaluation["risk_level"],
+                        risk_score=evaluation["risk_score"],
+                        paces_behind=0,
+                        pace_percent=0.0,
+                        standing=evaluation["standing"],
+                        basis=evaluation["basis"],
+                        status=evaluation["status"],
+                        trend="stable",
+                        last_activity="Today",
+                        intervention=evaluation["intervention"],
+                    ))
 
     return {
         "school": school.name,
-        "learners": len(LEARNERS),
+        "learners": learner_no,
         "records": records,
-        "subjects": ", ".join(
-            f"{name} ({grading.TEMPLATES[tpl]['short']})"
-            for name, _code, tpl, _s in SUBJECTS),
-        "at_risk": at_risk,
         "flagged": flagged,
         "principal": principal.email,
-        "teachers": [t.email for t in teachers],
     }
+
+
+# What each teacher should see and grade, printed after seeding so the rule
+# can be checked by signing in as each one.
+WHO_SEES_WHAT = [
+    ("teacher1  Ana Reyes",
+     "Adviser of 7-Sampaguita; teaches English in 7-Sampaguita and 7-Rosal",
+     "Sees every subject in 7-Sampaguita, and English in 7-Rosal",
+     "Grades English only, in both sections"),
+    ("teacher2  Ben Cruz",
+     "Adviser of 7-Rosal; teaches Mathematics in 7-Sampaguita and 7-Rosal",
+     "Sees every subject in 7-Rosal, and Mathematics in 7-Sampaguita",
+     "Grades Mathematics only, in both sections"),
+    ("teacher3  Carla Santos",
+     "Teaches Filipino and Science in 7-Sampaguita and 7-Rosal; no advisory",
+     "Sees Filipino and Science in those two sections only",
+     "Grades Filipino and Science there"),
+    ("teacher4  Dan Lopez",
+     "Adviser of 8-Narra, subject left blank (= every subject)",
+     "Sees everything in 8-Narra, and nothing in Grade 7",
+     "Grades every subject in 8-Narra"),
+]
 
 
 async def demo() -> None:
@@ -492,7 +548,7 @@ async def demo() -> None:
         ).scalar_one_or_none()
         if existing is not None:
             print(f"{DEMO_SCHOOL_NAME} is already in the database — nothing to do.")
-            print("Run `python seed.py --purge-demo` first to rebuild it.")
+            print("Run `python seed.py --rebuild` to wipe everything and start again.")
             return
 
         operator = (
@@ -511,22 +567,25 @@ async def demo() -> None:
 
         print("Demonstration data created. Every learner in it is invented.")
         print()
-        print(f"  School     {summary['school']} (public, no unit tracking)")
-        print(f"  Learners   {summary['learners']} in Grade 8 - Cattleya")
-        print(f"  Subjects   {summary['subjects']}")
-        print(f"  Records    {summary['records']} class records, first term "
-              f"({summary['at_risk']} below a term grade of 80)")
-        print(f"  Warnings   {summary['flagged']} subject flags on the "
-              f"early-warning list")
+        print(f"  School     {summary['school']} (public, grades by class record)")
+        print(f"  Sections   " + ", ".join(name for _c, name, _l, _a in SECTIONS)
+              + " (5 learners each)")
+        print(f"  Subjects   " + ", ".join(name for name, *_ in SUBJECTS))
+        print(f"  Records    {summary['records']} class records (Quarters 1-2 graded, "
+              f"Quarter 3 in progress)")
+        print(f"  Warnings   {summary['flagged']} subject flags")
         print()
         print(f"  Password for every account below: {PASSWORD}")
         if made_operator:
             print(f"  Operator   {SUPERADMIN_EMAIL}")
-            print("             manages schools and accounts; cannot open a "
-                  "student record anywhere")
         print(f"  Principal  {summary['principal']}")
-        for email in summary["teachers"]:
-            print(f"  Teacher    {email}")
+        print()
+        print("  Who sees and grades what (sign in as each to check):")
+        for who, setup, sees, grades in WHO_SEES_WHAT:
+            print(f"    {who}")
+            print(f"      {setup}")
+            print(f"      {sees}")
+            print(f"      {grades}")
 
 
 # ── Scoring ──────────────────────────────────────────────────────────────────
@@ -692,7 +751,10 @@ async def main() -> None:
                              "also how to apply a schema change")
     parser.add_argument("--demo", action="store_true",
                         help="add the demonstration school: 1 principal, "
-                             "2 teachers, 10 learners")
+                             "4 teachers, 3 sections of 5 learners")
+    parser.add_argument("--rebuild", action="store_true",
+                        help="DELETE EVERYTHING, then add the demonstration "
+                             "school; the operator gets the demo password")
     parser.add_argument("--purge-demo", action="store_true",
                         help="remove the demonstration school, leaving real ones")
     parser.add_argument("--score", action="store_true",
@@ -709,7 +771,15 @@ async def main() -> None:
     # --fresh-start is tested first because it accepts --create-superadmin as
     # the address for the account it leaves behind; the other way round, that
     # combination would create an account and never empty anything.
-    if args.fresh_start:
+    if args.rebuild:
+        # Everything goes, then the demonstration school comes back with every
+        # account on the one demo password, the operator included.
+        check_grading_module()
+        await fresh_start(SUPERADMIN_EMAIL, args.password or PASSWORD)
+        await demo()
+        if args.score:
+            await score()
+    elif args.fresh_start:
         await fresh_start(args.create_superadmin or SUPERADMIN_EMAIL, args.password)
     elif args.create_superadmin:
         # Tables may not exist yet on a fresh deployment; this adds only what
