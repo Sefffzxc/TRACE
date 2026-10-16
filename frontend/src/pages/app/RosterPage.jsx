@@ -465,7 +465,7 @@ export default function RosterPage({ mode = 'units' }) {
                             {column.label}
                           </th>
                         ))}
-                        <th>Classifier</th>
+                        <th>AI forecast</th>
                       </>
                     )}
                   </tr>

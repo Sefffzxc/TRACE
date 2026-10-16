@@ -181,7 +181,7 @@ export default function StudentProfilePage() {
           <div className="card">
             <div className="card-header">
               <h2>Student details</h2>
-              <RiskBadge level={student.risk_level} showScore score={student.risk_score} />
+              <RiskBadge level={student.risk_level} />
             </div>
             <div className="card-body">
               <div className="detail-list">
@@ -350,7 +350,7 @@ export default function StudentProfilePage() {
 
                   {/* The model's separate reading of the same subject. */}
                   <div className="sc-ai">
-                    <span className="k">Classifier</span>
+                    <span className="k">AI forecast</span>
                     <AiRiskBadge prediction={subject.ai} />
                   </div>
                   <AiReason prediction={subject.ai} />

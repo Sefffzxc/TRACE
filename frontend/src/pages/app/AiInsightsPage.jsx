@@ -376,7 +376,7 @@ export default function AiInsightsPage() {
                   <tr>
                     <th>Student</th>
                     <th>Subject</th>
-                    <th>Model says</th>
+                    <th>AI forecast</th>
                     <th>Biggest factor</th>
                     <th>Provenance</th>
                     <th className="actions">Input</th>
@@ -405,7 +405,7 @@ export default function AiInsightsPage() {
                       </td>
                       <td>{row.subject}</td>
                       <td>
-                        <AiRiskBadge prediction={row} />
+                        <AiRiskBadge prediction={row} compact />
                       </td>
                       <td className="faint">{row.primary_factor || '—'}</td>
                       <td>

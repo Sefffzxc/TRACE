@@ -25,59 +25,25 @@ import StudentFormModal from '../../components/common/StudentFormModal';
 import { gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { AiRiskBadge } from '../../components/common/ai';
+import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
 
 const PAGE_SIZE = 12;
 
-/* What the weakest subject's grade is; see `basis` in risk.py. */
-const BASIS_LABEL = {
-  grades: 'now',
-  year: 'year avg. now',
-  coursework: 'so far',
-};
-
-const BASIS_HINT = {
-  grades: 'The grade of the finished term.',
-  year: 'The average of the terms finished so far this year.',
-  coursework:
-    'The term is not finished: written works and performance tasks banked so far. It will change.',
-};
-
-/* The final-grade model's most worrying subject for this learner. */
-function AiForecast({ student }) {
-  if (student.ai_predicted_final == null) {
-    return (
-      <span className="faint" title="No forecast yet — it starts once a first term is fully graded.">
-        —
-      </span>
-    );
-  }
-  const failing = student.ai_risk_level === 'HIGH';
-  const ruleBased = student.ai_source === 'fallback';
-  const chance = Math.round((student.ai_risk_score || 0) * 100);
-  return (
-    <div
-      title={
-        `${student.ai_subject}: expected final grade ${Math.round(student.ai_predicted_final)}, ` +
-        `${chance}% chance of finishing below 75` +
-        (ruleBased ? ' — from the school rule, because the AI service was unavailable.' : '.')
-      }
-    >
-      <div>
-        {student.ai_subject} · final ≈{' '}
-        <span className="cell-strong">{Math.round(student.ai_predicted_final)}</span>
-      </div>
-      <div
-        style={{
-          fontSize: 'var(--text-2xs)',
-          fontWeight: failing ? 600 : 400,
-          color: failing ? 'var(--crit-500)' : 'var(--text-faint)',
-        }}
-      >
-        {failing ? 'likely to fail' : 'on track'}
-        {ruleBased ? ' · rule-based' : ''}
-      </div>
-    </div>
-  );
+/* The student list carries the learner's most worrying forecast as flat
+   `ai_` fields; the shared badge reads a prediction object. */
+function aiOfStudent(student) {
+  return {
+    risk_score: student.ai_risk_score,
+    risk_level: student.ai_risk_level,
+    source: student.ai_source,
+    used_threshold: student.ai_used_threshold,
+    model_version: student.ai_model_version,
+    predicted_final: student.ai_predicted_final,
+    range_low: student.ai_range_low,
+    range_high: student.ai_range_high,
+    imputed_fields: [],
+  };
 }
 
 const RISK_FILTERS = [
@@ -549,7 +515,19 @@ export default function StudentsPage() {
                         <RiskBadge level={student.risk_level} />
                       </td>
                       <td>
-                        <AiForecast student={student} />
+                        {/* The same badge as every other screen, with the
+                            subject above it: this row covers all of a
+                            learner's subjects, so it has to say which one. */}
+                        {student.ai_predicted_final == null ? (
+                          <AiRiskBadge prediction={null} compact />
+                        ) : (
+                          <>
+                            <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
+                              {student.ai_subject}
+                            </div>
+                            <AiRiskBadge prediction={aiOfStudent(student)} compact />
+                          </>
+                        )}
                       </td>
                       {isAdmin && (
                         <td className="actions" onClick={(event) => event.stopPropagation()}>

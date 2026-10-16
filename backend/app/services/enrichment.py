@@ -268,9 +268,13 @@ async def build_student_list(
         if prediction is not None:
             item.ai_subject = prediction.subject
             item.ai_predicted_final = prediction.predicted_final
+            item.ai_range_low = prediction.range_low
+            item.ai_range_high = prediction.range_high
             item.ai_risk_level = prediction.risk_level
             item.ai_risk_score = prediction.risk_score
+            item.ai_used_threshold = prediction.used_threshold
             item.ai_source = prediction.source
+            item.ai_model_version = prediction.model_version
         out.append(item)
     return out
 

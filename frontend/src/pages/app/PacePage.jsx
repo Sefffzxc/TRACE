@@ -458,7 +458,7 @@ export default function PacePage() {
                             {column.label}
                           </th>
                         ))}
-                        <th>Classifier</th>
+                        <th>AI forecast</th>
                       </>
                     )}
                   </tr>

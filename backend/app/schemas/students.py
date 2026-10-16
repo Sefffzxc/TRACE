@@ -106,9 +106,13 @@ class StudentResponse(ORMModel, StudentBase):
     # rule fallback's), so the list can say where the learner is heading.
     ai_subject: Optional[str] = None
     ai_predicted_final: Optional[float] = None
+    ai_range_low: Optional[float] = None
+    ai_range_high: Optional[float] = None
     ai_risk_level: Optional[str] = None
     ai_risk_score: Optional[float] = None
+    ai_used_threshold: Optional[float] = None
     ai_source: Optional[str] = None
+    ai_model_version: Optional[str] = None
     # Only meaningful at a school that counts booklets; a DepEd school
     # leaves them at zero and its screens do not show them.
     pace_percent: float = 0.0

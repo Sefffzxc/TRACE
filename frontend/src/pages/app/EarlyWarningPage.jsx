@@ -23,22 +23,7 @@ import { AiRiskBadge } from '../../components/common/ai';
 import { aiApi, sectionApi, warningApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-
-/* What a warning's grade is, in words a teacher reads at a glance. `basis`
-   says which reading raised the flag; see risk.py. */
-const BASIS_LABEL = {
-  grades: 'term grade',
-  year: 'year average',
-  coursework: 'so far',
-};
-
-const BASIS_HINT = {
-  grades: 'The grade of the finished term.',
-  year: 'The average of the terms finished so far this year.',
-  coursework:
-    'The term is not finished: written works and performance tasks banked so far, ' +
-    'on the same 0–100 scale as a grade. It will change.',
-};
+import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
 
 /** Where the learner sits against the passing mark, e.g. "4 below 75". */
 function GapToPassing({ standing, passing }) {
@@ -485,7 +470,7 @@ export default function EarlyWarningPage() {
                         </>
                       )}
                       <td>
-                        <RiskBadge level={warning.risk_level} showScore score={warning.risk_score} />
+                        <RiskBadge level={warning.risk_level} />
                       </td>
                       <td>
                         <AiRiskBadge

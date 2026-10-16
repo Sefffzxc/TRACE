@@ -34,8 +34,11 @@ export function finalGradeText(prediction) {
 export function AiRiskBadge({ prediction, compact = false }) {
   if (!prediction) {
     return (
-      <span className="badge badge-neutral badge-plain" title="No prediction logged for this record yet.">
-        <CircleSlash size={12} /> Not scored
+      <span
+        className="badge badge-neutral badge-plain"
+        title="No forecast yet — it starts once the learner's first term is fully graded."
+      >
+        <CircleSlash size={12} /> No forecast yet
       </span>
     );
   }
@@ -44,24 +47,31 @@ export function AiRiskBadge({ prediction, compact = false }) {
   const isFallback = prediction.source === 'fallback';
   const isHigh = prediction.risk_level === 'HIGH';
   const finalText = finalGradeText(prediction);
-  // The final-grade model's score is a chance of failing; earlier models'
-  // rows carry no final grade and read as before.
-  const detail = finalText
-    ? `final ≈ ${finalText} · ${percent}% fail`
-    : `${percent}%`;
+  // One wording for every screen and both sources: the verdict, then the
+  // expected final grade. The short form (tables) stops there; the full form
+  // adds the range and the chance of failing. Rows from earlier models carry
+  // no final grade and show their percentage instead.
+  const verdict = isHigh ? 'likely to fail' : 'on track';
+  const tail = finalText
+    ? compact
+      ? ` · ${Math.round(prediction.predicted_final)}`
+      : ` · final ≈ ${finalText} · ${percent}% fail`
+    : ` · ${percent}%`;
 
   if (isFallback) {
     return (
       <span
         className="badge badge-neutral ai-badge is-fallback"
         title={
-          `Rule-based fallback — the AI service did not answer, so the school rule ` +
-          `(first-term grade + the usual rise for the grade level) gave this projection. ` +
+          `Rule-based — the AI service did not answer, so the school rule ` +
+          `(first-term grade + the usual rise for the grade level) gave this forecast` +
+          (finalText ? `: expected final grade ${finalText}, ${percent}% chance of finishing below 75. ` : '. ') +
           `${prediction.error || ''}`
         }
       >
         <ServerOff size={12} />
-        Rule-based{compact ? '' : ` · ${detail}`}
+        Rule-based: {verdict}
+        {tail}
       </span>
     );
   }
@@ -81,8 +91,8 @@ export function AiRiskBadge({ prediction, compact = false }) {
         }
       >
         <Brain size={12} />
-        {isHigh ? 'AI: likely to fail' : 'AI: on track'}
-        {compact && finalText ? ` · ${Math.round(prediction.predicted_final)}` : ` · ${detail}`}
+        AI: {verdict}
+        {tail}
       </span>
       {prediction.used_baseline_defaults && (
         <span
