@@ -28,6 +28,58 @@ import { useToast } from '../../context/ToastContext';
 
 const PAGE_SIZE = 12;
 
+/* What the weakest subject's grade is; see `basis` in risk.py. */
+const BASIS_LABEL = {
+  grades: 'now',
+  year: 'year avg. now',
+  coursework: 'so far',
+};
+
+const BASIS_HINT = {
+  grades: 'The grade of the finished term.',
+  year: 'The average of the terms finished so far this year.',
+  coursework:
+    'The term is not finished: written works and performance tasks banked so far. It will change.',
+};
+
+/* The final-grade model's most worrying subject for this learner. */
+function AiForecast({ student }) {
+  if (student.ai_predicted_final == null) {
+    return (
+      <span className="faint" title="No forecast yet — it starts once a first term is fully graded.">
+        —
+      </span>
+    );
+  }
+  const failing = student.ai_risk_level === 'HIGH';
+  const ruleBased = student.ai_source === 'fallback';
+  const chance = Math.round((student.ai_risk_score || 0) * 100);
+  return (
+    <div
+      title={
+        `${student.ai_subject}: expected final grade ${Math.round(student.ai_predicted_final)}, ` +
+        `${chance}% chance of finishing below 75` +
+        (ruleBased ? ' — from the school rule, because the AI service was unavailable.' : '.')
+      }
+    >
+      <div>
+        {student.ai_subject} · final ≈{' '}
+        <span className="cell-strong">{Math.round(student.ai_predicted_final)}</span>
+      </div>
+      <div
+        style={{
+          fontSize: 'var(--text-2xs)',
+          fontWeight: failing ? 600 : 400,
+          color: failing ? 'var(--crit-500)' : 'var(--text-faint)',
+        }}
+      >
+        {failing ? 'likely to fail' : 'on track'}
+        {ruleBased ? ' · rule-based' : ''}
+      </div>
+    </div>
+  );
+}
+
 const RISK_FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'critical', label: 'Critical' },
@@ -170,12 +222,17 @@ export default function StudentsPage() {
       'First name',
       'Grade level',
       'Section',
-      'Year average',
       'Weakest subject',
-      'Needs from here',
+      'Weakest subject grade now',
+      'Grade type',
+      'Needs to pass',
       'Subjects flagged',
       'Subjects tracked',
-      'Risk',
+      'Grade check',
+      'AI forecast subject',
+      'AI forecast final grade',
+      'AI chance of failing',
+      'AI source',
     ];
     const lines = sorted.map((student) =>
       [
@@ -184,12 +241,17 @@ export default function StudentsPage() {
         student.first_name,
         student.grade_level_name || '',
         student.section_name || '',
-        student.lowest_standing ?? '',
         student.weakest_subject ?? '',
-        student.required_in_weakest ?? '',
+        student.weakest_standing ?? '',
+        BASIS_LABEL[student.weakest_basis] || student.weakest_basis || '',
+        student.needs_to_pass ?? '',
         student.subjects_flagged ?? 0,
         student.subjects_tracked ?? 0,
         student.risk_level,
+        student.ai_subject ?? '',
+        student.ai_predicted_final ?? '',
+        student.ai_risk_score ?? '',
+        student.ai_source ?? '',
       ]
         .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
         .join(','),
@@ -342,17 +404,16 @@ export default function StudentsPage() {
                     {/* The weakest subject, not an average. A learner doing
                         well in three subjects and failing the fourth still
                         needs the conversation, and a mean would hide them. */}
-                    <th className="right sortable" onClick={() => toggleSort('lowest_standing')}>
+                    <th className="sortable" onClick={() => toggleSort('weakest_standing')}>
                       <span className="th-inner">
-                        Year average <SortIcon column="lowest_standing" />
+                        Weakest subject <SortIcon column="weakest_standing" />
                       </span>
                     </th>
-                    <th>Weakest subject</th>
                     {/* The number a teacher can say out loud. "At risk"
-                        is not advice; "needs 84 from here" is. */}
-                    <th className="right sortable" onClick={() => toggleSort('required_in_weakest')}>
+                        is not advice; "needs 78 to pass" is. */}
+                    <th className="right sortable" onClick={() => toggleSort('needs_to_pass')}>
                       <span className="th-inner">
-                        Needs from here <SortIcon column="required_in_weakest" />
+                        Needs to pass <SortIcon column="needs_to_pass" />
                       </span>
                     </th>
                     <th className="right sortable" onClick={() => toggleSort('subjects_flagged')}>
@@ -362,7 +423,12 @@ export default function StudentsPage() {
                     </th>
                     <th className="sortable" onClick={() => toggleSort('risk_score')}>
                       <span className="th-inner">
-                        Risk <SortIcon column="risk_score" />
+                        Grade check <SortIcon column="risk_score" />
+                      </span>
+                    </th>
+                    <th className="sortable" onClick={() => toggleSort('ai_risk_score')}>
+                      <span className="th-inner">
+                        AI forecast <SortIcon column="ai_risk_score" />
                       </span>
                     </th>
                     {isAdmin && <th className="actions">Actions</th>}
@@ -390,34 +456,38 @@ export default function StudentsPage() {
                           {student.grade_level_name || 'Not enrolled'}
                         </div>
                       </td>
-                      <td className="right">
-                        {student.lowest_standing === null ||
-                        student.lowest_standing === undefined ? (
-                          <span className="faint">—</span>
-                        ) : (
+                      {/* The weakest subject with its own grade, so the
+                          number always belongs to the subject named beside it.
+                          A grade from a term still in progress says so. */}
+                      <td title={BASIS_HINT[student.weakest_basis] || ''}>
+                        {student.weakest_subject ? (
                           <>
-                            <span className="cell-strong">
-                              {student.lowest_standing.toFixed(0)}
-                            </span>
-                            {/* A standing taken from coursework rather than
-                                from a finished record is provisional, and
-                                saying so is the difference between a grade
-                                and an estimate. */}
-                            {student.lowest_term_grade === null ||
-                            student.lowest_term_grade === undefined ? (
-                              <span className="faint" title="No term grade yet — this is the coursework banked so far">
-                                {' '}*
-                              </span>
-                            ) : null}
+                            <div>
+                              {student.weakest_subject}
+                              {student.weakest_standing != null && (
+                                <>
+                                  {' · '}
+                                  <span className="cell-strong">
+                                    {student.weakest_standing.toFixed(0)}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {student.weakest_standing != null && (
+                              <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
+                                {BASIS_LABEL[student.weakest_basis] || ''}
+                              </div>
+                            )}
                           </>
+                        ) : (
+                          <span className="faint">—</span>
                         )}
                       </td>
-                      <td>
-                        <span className="faint">{student.weakest_subject || '—'}</span>
-                      </td>
+                      {/* What the weakest subject needs, on average, over the
+                          terms still to come to finish at the passing mark. */}
                       <td className="right">
-                        {student.required_in_weakest === null ||
-                        student.required_in_weakest === undefined ? (
+                        {student.needs_to_pass === null ||
+                        student.needs_to_pass === undefined ? (
                           <span
                             className="faint"
                             title={
@@ -428,20 +498,39 @@ export default function StudentsPage() {
                           >
                             —
                           </span>
-                        ) : student.required_in_weakest > 100 ? (
-                          // Above 100 is not an achievable average, so the
-                          // line is already out of reach. Saying that is
-                          // more use than printing an impossible target.
+                        ) : student.needs_to_pass > 100 ? (
+                          // Above 100 is not an achievable average, so passing
+                          // is already out of reach. Saying that is more use
+                          // than printing an impossible target.
                           <span
                             className="cell-strong"
                             style={{ color: 'var(--crit-500)' }}
-                            title={`Would need ${student.required_in_weakest.toFixed(0)} — out of reach`}
+                            title={`Would need an average of ${student.needs_to_pass.toFixed(
+                              0,
+                            )} — out of reach`}
                           >
                             out of reach
                           </span>
+                        ) : student.needs_to_pass <= 60 ? (
+                          // No grade is transmuted below 60, so the learner
+                          // passes this subject whatever the remaining terms
+                          // bring.
+                          <span
+                            className="faint"
+                            title="Passes this subject even with the lowest possible grades from here"
+                          >
+                            already safe
+                          </span>
                         ) : (
-                          <span className="cell-strong">
-                            {student.required_in_weakest.toFixed(0)}
+                          <span
+                            className="cell-strong"
+                            title={`Must average ${student.needs_to_pass.toFixed(
+                              0,
+                            )} over the remaining terms of ${
+                              student.weakest_subject
+                            } to finish at the passing mark`}
+                          >
+                            {student.needs_to_pass.toFixed(0)}
                           </span>
                         )}
                       </td>
@@ -458,6 +547,9 @@ export default function StudentsPage() {
                       </td>
                       <td>
                         <RiskBadge level={student.risk_level} />
+                      </td>
+                      <td>
+                        <AiForecast student={student} />
                       </td>
                       {isAdmin && (
                         <td className="actions" onClick={(event) => event.stopPropagation()}>

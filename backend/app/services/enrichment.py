@@ -98,6 +98,7 @@ async def paces_by_student(
     school_id: int,
     passing_mark: float = 75.0,
     risk_line: float = 80.0,
+    terms_per_year: Optional[int] = None,
 ) -> Dict[int, List[dict]]:
     stmt = select(StudentPace).where(StudentPace.school_id == school_id)
     if student_ids is not None:
@@ -143,6 +144,13 @@ async def paces_by_student(
                 "terms_done": outlook.get("terms_done", 0),
                 "year_average": outlook.get("year_average"),
                 "required": outlook.get("required"),
+                # Against the passing mark rather than the risk line, over
+                # the school's own number of terms: the figure a teacher
+                # means by "what does this learner need to pass".
+                "needs_to_pass": risk.required_average(
+                    years.get(key, []), passing_mark,
+                    terms_per_year or risk.TERMS_PER_YEAR,
+                ),
                 "reachable": outlook.get("reachable", True),
                 "intervention": evaluation.get("intervention"),
             }
@@ -182,6 +190,11 @@ def build_student_response(
     item.weakest_subject = summary["weakest_subject"]
     item.required_in_weakest = summary["required_in_weakest"]
     item.terms_done = summary["terms_done"]
+    weakest = max(pace_rows, key=lambda r: r["risk_score"]) if pace_rows else None
+    if weakest is not None:
+        item.weakest_standing = weakest.get("standing")
+        item.weakest_basis = weakest.get("basis")
+        item.needs_to_pass = weakest.get("needs_to_pass")
     return item
 
 
@@ -228,17 +241,38 @@ async def school_passing_mark(db: AsyncSession, school_id: int) -> float:
 async def build_student_list(
     db: AsyncSession, students: List[Student], *, school_id: int
 ) -> List[StudentResponse]:
+    from app.models.schools import School
+
     ids = [s.student_id for s in students]
     lookups = await Lookups.load(db, school_id=school_id)
     enrollments = await current_enrollments(db, ids, school_id=school_id)
     mark = await school_passing_mark(db, school_id)
-    paces = await paces_by_student(db, ids, school_id=school_id, passing_mark=mark)
-    return [
-        build_student_response(
-            student, enrollments.get(student.student_id), paces.get(student.student_id, []), lookups
+    terms = (
+        await db.execute(
+            select(School.grading_periods).where(School.school_id == school_id)
         )
-        for student in students
-    ]
+    ).scalar_one_or_none()
+    paces = await paces_by_student(
+        db, ids, school_id=school_id, passing_mark=mark, terms_per_year=terms
+    )
+    predictions = await latest_prediction_per_student(db, ids, school_id=school_id)
+
+    out = []
+    for student in students:
+        item = build_student_response(
+            student, enrollments.get(student.student_id),
+            paces.get(student.student_id, []), lookups,
+        )
+        # The subject the final-grade model is most worried about.
+        prediction = predictions.get(student.student_id)
+        if prediction is not None:
+            item.ai_subject = prediction.subject
+            item.ai_predicted_final = prediction.predicted_final
+            item.ai_risk_level = prediction.risk_level
+            item.ai_risk_score = prediction.risk_score
+            item.ai_source = prediction.source
+        out.append(item)
+    return out
 
 
 def is_year_prediction(row) -> bool:

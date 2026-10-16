@@ -91,6 +91,24 @@ class StudentResponse(ORMModel, StudentBase):
     # any term is finished and once the year is over.
     required_in_weakest: Optional[float] = None
     terms_done: int = 0
+    # The weakest subject's own current grade and what kind of grade it is
+    # ("grades" a finished term, "year" the average so far, "coursework" a
+    # term in progress) — so the number shown always belongs to the subject
+    # named beside it.
+    weakest_standing: Optional[float] = None
+    weakest_basis: Optional[str] = None
+    # What the learner must average over the terms still to come in the
+    # weakest subject to finish it at the school's PASSING mark, counted with
+    # the school's own number of grading periods. None before any term is
+    # finished and once the year is over.
+    needs_to_pass: Optional[float] = None
+    # The final-grade model's most worrying subject for this learner (or its
+    # rule fallback's), so the list can say where the learner is heading.
+    ai_subject: Optional[str] = None
+    ai_predicted_final: Optional[float] = None
+    ai_risk_level: Optional[str] = None
+    ai_risk_score: Optional[float] = None
+    ai_source: Optional[str] = None
     # Only meaningful at a school that counts booklets; a DepEd school
     # leaves them at zero and its screens do not show them.
     pace_percent: float = 0.0
