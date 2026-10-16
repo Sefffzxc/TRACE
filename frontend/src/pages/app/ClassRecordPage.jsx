@@ -15,13 +15,14 @@ import {
   sectionApi,
   subjectApi,
 } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import {
   CORE,
   EXAM_LABELS,
   TEMPLATES,
-  TERMS,
-  TERM_LABELS,
+  gradingPeriods,
+  periodName,
   computeRow,
   show,
 } from '../../lib/grading';
@@ -88,6 +89,16 @@ export default function ClassRecordPage() {
   const [sectionId, setSectionId] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [term, setTerm] = useState(1);
+  // How many periods a year has and what one is called come from the
+  // school's settings, so this sheet says "Quarter" or "Term" as the school
+  // does.
+  const { gradingPeriodCount, periodLabel, passingMark } = useAuth();
+  const periods = gradingPeriods(gradingPeriodCount);
+  // If the school's settings shrink, do not leave the sheet on a period that
+  // no longer exists.
+  useEffect(() => {
+    if (term > periods.length) setTerm(1);
+  }, [term, periods.length]);
   const [search, setSearch] = useState('');
 
   const [setup, setSetup] = useState(DEFAULT_SETUP);
@@ -397,10 +408,10 @@ export default function ClassRecordPage() {
       <PageHead
         title="Class record"
         subtitle={
-          'The MATATAG three-term E-Class Record. Once the first term is graded, the ' +
-          'risk model reads its grade, written works, performance tasks and ' +
-          'examinations and predicts the final grade and the chance of finishing ' +
-          'below 75. If the AI service is down, a school rule answers instead.'
+          `The E-Class Record. Once the ${periodName(1, periodLabel).toLowerCase()} is ` +
+          'graded, the risk model reads its grade, written works, performance tasks ' +
+          'and examinations and predicts the final grade and the chance of finishing ' +
+          `below ${passingMark}. If the AI service is down, a school rule answers instead.`
         }
       />
 
@@ -440,11 +451,11 @@ export default function ClassRecordPage() {
           className="select"
           value={term}
           onChange={(e) => setTerm(Number(e.target.value))}
-          aria-label="Term"
+          aria-label={periodLabel}
         >
-          {TERMS.map((t) => (
+          {periods.map((t) => (
             <option key={t} value={t}>
-              {TERM_LABELS[t]}
+              {periodName(t, periodLabel)}
             </option>
           ))}
         </select>
@@ -547,7 +558,7 @@ export default function ClassRecordPage() {
                     Grade
                   </th>
                   <th className="cr-out" rowSpan={3}>
-                    Term
+                    {periodLabel}
                     <br />
                     Grade
                   </th>

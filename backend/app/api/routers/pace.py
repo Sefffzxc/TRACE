@@ -790,7 +790,7 @@ async def _score_batch(
 async def get_class_record_setup(
     section_id: int = Query(...),
     subject_id: int = Query(...),
-    grading_period: int = Query(1, ge=1, le=4),
+    grading_period: int = Query(1, ge=1, le=6),
     current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
@@ -814,7 +814,7 @@ async def put_class_record_setup(
     request: Request,
     section_id: int = Query(...),
     subject_id: int = Query(...),
-    grading_period: int = Query(1, ge=1, le=4),
+    grading_period: int = Query(1, ge=1, le=6),
     current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),

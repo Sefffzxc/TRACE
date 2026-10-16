@@ -128,6 +128,10 @@ export function AuthProvider({ children }) {
       unitLabel: school?.unit_label_singular || 'Module',
       unitLabelPlural: school?.unit_label_plural || 'Modules',
       passingMark: school?.passing_mark ?? 75,
+      /* How the school divides its year, from School Settings → Grading:
+         how many periods, and what one is called ("Quarter", "Term"…). */
+      gradingPeriodCount: school?.grading_periods ?? 3,
+      periodLabel: school?.grading_period_label || 'Quarter',
 
       signIn,
       signOut,

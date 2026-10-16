@@ -43,8 +43,22 @@ export const TEMPLATES = {
 
 export const EXAM_SUBWEIGHTS = [30, 30, 40];
 export const EXAM_LABELS = ['ST1', 'ST2', 'TE'];
-export const TERMS = [1, 2, 3];
-export const TERM_LABELS = { 1: 'First Term', 2: 'Second Term', 3: 'Third Term' };
+/* How many grading periods a year has, and what one is called, are the
+   school's own settings (School Settings → Grading). Every screen names a
+   period through these two helpers, so "Quarter" or "Term" follows the
+   school rather than being written into a screen. */
+const ORDINALS = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'];
+
+/** [1, 2, …, count]: the periods a school year has. */
+export function gradingPeriods(count) {
+  const n = Math.min(Math.max(Number(count) || 3, 1), ORDINALS.length);
+  return Array.from({ length: n }, (_, i) => i + 1);
+}
+
+/** 2, "Quarter" → "Second Quarter". */
+export function periodName(period, label = 'Quarter') {
+  return `${ORDINALS[period - 1] || `Period ${period}`} ${label}`;
+}
 
 /**
  * (minimum initial grade, transmuted grade), highest band first.
