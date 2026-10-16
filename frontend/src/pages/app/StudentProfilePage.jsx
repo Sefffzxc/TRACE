@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowLeft,
   BookOpen,
   CalendarDays,
@@ -18,7 +19,8 @@ import { Avatar, EmptyState, ErrorNote, ProgressBar, RiskBadge } from '../../com
 import { AiReason, AiRiskBadge } from '../../components/common/ai';
 import { gradingPeriods, periodName } from '../../lib/grading';
 import { BASIS_LABEL } from '../../lib/standing';
-import { studentApi } from '../../api/endpoints';
+import { gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
+import StudentFormModal from '../../components/common/StudentFormModal';
 import { useAuth } from '../../context/AuthContext';
 import { IMAGES } from '../../config/images';
 
@@ -53,6 +55,9 @@ export default function StudentProfilePage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overview');
   const [banner, setBanner] = useState(null);
+  // The edit form, with the lists it needs; null while closed.
+  const [editing, setEditing] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const image = new Image();
@@ -76,7 +81,16 @@ export default function StudentProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [studentId]);
+  }, [studentId, reloadKey]);
+
+  const openEdit = async () => {
+    try {
+      const [gradeLevels, sections] = await Promise.all([gradeLevelApi.list(), sectionApi.list()]);
+      setEditing({ gradeLevels: gradeLevels || [], sections: sections || [] });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -139,6 +153,18 @@ export default function StudentProfilePage() {
           <Printer size={15} /> Print profile
         </button>
       </div>
+
+      {student.profile_missing?.length > 0 && (
+        <div className="alert alert-warning">
+          <AlertTriangle size={17} />
+          <span style={{ flex: 1 }}>
+            Profile incomplete: no {student.profile_missing.join(', ')} yet.
+          </span>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={openEdit}>
+            Fill in details
+          </button>
+        </div>
+      )}
 
       {/* ── Banner ───────────────────────────────────────────────────────── */}
       <section className="profile-banner">
@@ -479,6 +505,18 @@ export default function StudentProfilePage() {
             )}
           </div>
         </section>
+      )}
+      {editing && (
+        <StudentFormModal
+          student={student}
+          gradeLevels={editing.gradeLevels}
+          sections={editing.sections}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            setReloadKey((k) => k + 1);
+          }}
+        />
       )}
     </div>
   );

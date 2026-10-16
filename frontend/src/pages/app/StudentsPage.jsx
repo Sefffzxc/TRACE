@@ -451,7 +451,18 @@ export default function StudentsPage() {
                           <Avatar name={student.full_name} src={student.photo} size="sm" />
                           <div>
                             <div className="cell-strong">{student.full_name}</div>
-                            <div className="mono faint">{student.login_id}</div>
+                            <div className="mono faint">
+                              {student.login_id}
+                              {student.profile_missing?.length > 0 && (
+                                <span
+                                  className="badge badge-moderate"
+                                  style={{ marginLeft: 6 }}
+                                  title={`Missing: ${student.profile_missing.join(', ')}`}
+                                >
+                                  Incomplete
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>

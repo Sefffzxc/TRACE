@@ -606,6 +606,23 @@ async def bulk_upsert_paces(
     db: AsyncSession = Depends(get_db),
 ):
     """Encode a whole section in one submit — the teacher's main workflow."""
+    result = await save_class_rows(payload, request, current, scope, db)
+    result.pop("rows")
+    return result
+
+
+async def save_class_rows(
+    payload: BulkPaceRequest,
+    request: Request,
+    current: Staff,
+    scope: int,
+    db: AsyncSession,
+    *,
+    score: bool = True,
+) -> dict:
+    """The save behind the endpoint above. ``score`` False leaves the AI
+    forecast for the caller to ask for once, as an import of three terms
+    does, instead of once per term."""
     saved, skipped = 0, []
     touched: list[StudentPace] = []
 
@@ -717,14 +734,14 @@ async def bulk_upsert_paces(
     # One batch call for the whole section instead of one request per student:
     # on a free Render instance that is the difference between a save that
     # feels instant and one that makes forty round trips.
-    ai_summary = await _score_batch(db, touched, scope)
+    ai_summary = await _score_batch(db, touched, scope) if score else None
 
     await log_event(
         db, Action.PACE_RECORDED, actor_id=current.id, detail=f"bulk saved={saved}",
         request=request,
     )
     await db.commit()
-    return {"saved": saved, "skipped": skipped, "ai": ai_summary}
+    return {"saved": saved, "skipped": skipped, "ai": ai_summary, "rows": touched}
 
 
 async def _score_batch(
@@ -895,7 +912,9 @@ async def put_class_record_setup(
                 .join(StudentEnrollment,
                       StudentEnrollment.enrollment_id == StudentPace.enrollment_id)
                 .where(StudentEnrollment.section_id == section_id,
-                       StudentPace.subject == subject.subject_name),
+                       StudentPace.subject == subject.subject_name,
+                       # This header is one term's; the other terms keep theirs.
+                       StudentPace.grading_period == grading_period),
                 StudentPace,
                 scope,
             )

@@ -15,6 +15,11 @@ python-dotenv==1.0.1
 # and lets the model be retrained without redeploying the API.
 httpx==0.28.1
 
+# Reads uploaded E-Class Record workbooks (app/services/eclass_import.py).
+# defusedxml makes openpyxl parse the file's XML safely.
+openpyxl==3.1.5
+defusedxml==0.7.1
+
 # Database drivers — SQLite works out of the box, PostgreSQL for deployment
 aiosqlite==0.20.0
 asyncpg==0.30.0

@@ -1033,3 +1033,38 @@
   .cr-name { min-width: 9rem; max-width: 9rem; }
   .cr-scroll { max-height: calc(100vh - 16rem); }
 }
+
+/* ── Class record import (components/common/ImportClassRecord.jsx) ───────── */
+.import-drop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1.5px dashed var(--border-strong, var(--border-subtle));
+  border-radius: var(--radius-md, 10px);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.import-drop:hover { background: var(--surface-hover); }
+.import-drop > span { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.import-drop strong { color: var(--text-strong); overflow-wrap: anywhere; }
+.import-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.import-counts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; color: var(--text-muted); }
+.import-counts strong { color: var(--text-strong); }
+.import-notes { margin: 0; padding-left: 1rem; display: grid; gap: 0.2rem; }
+.import-learners summary { cursor: pointer; font-weight: 600; color: var(--text-strong); }
+.import-learners ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.import-learners li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}

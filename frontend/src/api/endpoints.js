@@ -170,6 +170,15 @@ export const classRecordApi = {
         `&subject_id=${params.subject_id}&grading_period=${params.grading_period}`,
       payload,
     ),
+  /** Read a DepEd E-Class Record workbook; with save it is imported. */
+  importFile: (file, { section_id, subject_id, save = false }) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('section_id', section_id);
+    form.append('subject_id', subject_id);
+    form.append('save', save ? 'true' : 'false');
+    return api.post('/api/class-record/import', form);
+  },
 };
 
 export const warningApi = {

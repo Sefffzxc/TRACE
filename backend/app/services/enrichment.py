@@ -164,6 +164,22 @@ async def paces_by_student(
     return out
 
 
+def profile_missing(student: Student) -> list[str]:
+    """The parts of a learner's profile nobody has filled in yet."""
+    missing = []
+    if not student.birth_date:
+        missing.append("birth date")
+    if not (student.address or "").strip():
+        missing.append("address")
+    if not (student.guardian_first_name or "").strip() or not (
+        student.guardian_last_name or ""
+    ).strip():
+        missing.append("parent or guardian")
+    if not (student.guardian_contact or "").strip():
+        missing.append("guardian contact")
+    return missing
+
+
 def build_student_response(
     student: Student,
     enrollment: Optional[StudentEnrollment],
@@ -172,6 +188,7 @@ def build_student_response(
 ) -> StudentResponse:
     item = StudentResponse.model_validate(student)
     item.full_name = student.full_name
+    item.profile_missing = profile_missing(student)
 
     if enrollment is not None:
         item.enrollment_id = enrollment.enrollment_id

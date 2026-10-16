@@ -116,32 +116,35 @@ export function componentTotal(scores) {
  * consequence is that part-way through a term this reads low for everybody,
  * which is why `complete` travels with it.
  */
-export function percentageScore(scores, highest) {
+// `exact` skips the rounding, for working out the initial grade (see computeRow).
+const finish = (n, exact) => (exact ? n : round2(n));
+
+export function percentageScore(scores, highest, exact = false) {
   const total = componentTotal(scores);
   const cap = (highest || []).filter((h) => !blank(h)).reduce((a, b) => a + Number(b), 0);
   if (total === null || cap <= 0) return null;
-  return round2((total / cap) * 100);
+  return finish((total / cap) * 100, exact);
 }
 
-export function weightedScore(percentage, weight) {
+export function weightedScore(percentage, weight, exact = false) {
   if (percentage === null || percentage === undefined) return null;
-  return round2((percentage * weight) / 100);
+  return finish((percentage * weight) / 100, exact);
 }
 
 /** ST1, ST2 and the term examination, each on its own scale and share. */
-export function examComponent(scores, highest, subweights = EXAM_SUBWEIGHTS) {
+export function examComponent(scores, highest, subweights = EXAM_SUBWEIGHTS, exact = false) {
   const parts = subweights.map((share, i) => {
     const score = (scores || [])[i];
     const cap = (highest || [])[i];
     if (blank(score) || blank(cap) || Number(cap) === 0) return null;
-    return round2((Number(score) / Number(cap)) * share);
+    return finish((Number(score) / Number(cap)) * share, exact);
   });
   const taken = parts.filter((p) => p !== null);
   return {
     parts,
     // Blank examinations contribute nothing, exactly as the workbook's sum
     // over the three weighted cells does.
-    percentage: taken.length ? round2(taken.reduce((a, b) => a + b, 0)) : null,
+    percentage: taken.length ? finish(taken.reduce((a, b) => a + b, 0), exact) : null,
     complete: parts.every((p) => p !== null),
   };
 }
@@ -181,8 +184,21 @@ export function computeRow(row, setup) {
   // shows no grade rather than a wrong one.
   const parts = [wwWs, ptWs, exWs];
   const ready = parts.every((p) => p !== null);
-  const initial = ready ? round2(parts[0] + parts[1] + parts[2]) : null;
-  const final = transmute(initial);
+  // The initial grade is worked out at full precision and rounded only for
+  // showing, as the workbook and the server do. Rounding each step first can
+  // push a learner across a band edge (73.533 read as 73.54 gives 78, not 77).
+  const exactParts = [
+    weightedScore(percentageScore(row.ww_scores, setup.ww_highest, true), wWw, true),
+    weightedScore(percentageScore(row.pt_scores, setup.pt_highest, true), wPt, true),
+    weightedScore(
+      examComponent(row.exam_scores, setup.exam_highest, setup.exam_subweights, true).percentage,
+      wEx,
+      true,
+    ),
+  ];
+  const exactInitial = ready ? exactParts[0] + exactParts[1] + exactParts[2] : null;
+  const initial = exactInitial === null ? null : round2(exactInitial);
+  const final = transmute(exactInitial);
 
   return {
     ww_total: componentTotal(row.ww_scores),

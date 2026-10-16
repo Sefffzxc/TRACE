@@ -11,7 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routers import ai, academic, auth, dashboard, pace, schools, staff, students
+from app.api.routers import (
+    academic, ai, auth, class_import, dashboard, pace, schools, staff, students,
+)
 from app.core.config import settings
 from app.db.session import init_models
 
@@ -178,6 +180,7 @@ for router in (
     academic.router,
     students.router,
     pace.router,
+    class_import.router,
     dashboard.router,
     ai.router,
     schools.router,

@@ -111,6 +111,8 @@ def component_total(scores: Optional[Sequence[Score]]) -> Optional[float]:
 def percentage_score(
     scores: Optional[Sequence[Score]],
     highest: Optional[Sequence[Score]],
+    *,
+    exact: bool = False,
 ) -> Optional[float]:
     """Total over the component's full highest possible score, as a percentage.
 
@@ -132,19 +134,25 @@ def percentage_score(
     cap = sum(float(h) for h in (highest or []) if h)
     if total is None or cap <= 0:
         return None
-    return round(total / cap * 100, 2)
+    value = total / cap * 100
+    return value if exact else round(value, 2)
 
 
-def weighted_score(percentage: Optional[float], weight: float) -> Optional[float]:
+def weighted_score(
+    percentage: Optional[float], weight: float, *, exact: bool = False
+) -> Optional[float]:
     if percentage is None:
         return None
-    return round(percentage * weight / 100.0, 2)
+    value = percentage * weight / 100.0
+    return value if exact else round(value, 2)
 
 
 def exam_component(
     scores: Optional[Sequence[Score]],
     highest: Optional[Sequence[Score]],
     subweights: Sequence[float] = EXAM_SUBWEIGHTS,
+    *,
+    exact: bool = False,
 ) -> dict:
     """The examinations component: ST1, ST2 and the term examination.
 
@@ -162,14 +170,16 @@ def exam_component(
         if score is None or not cap:
             parts.append(None)
         else:
-            parts.append(round(float(score) / float(cap) * share, 2))
+            part = float(score) / float(cap) * share
+            parts.append(part if exact else round(part, 2))
 
     taken = [p for p in parts if p is not None]
+    total = sum(taken) if taken else None
     return {
         "parts": parts,
         # Blank examinations contribute nothing, exactly as the workbook's
         # SUM over the three weighted cells does.
-        "percentage": round(sum(taken), 2) if taken else None,
+        "percentage": total if exact or total is None else round(total, 2),
         "complete": all(p is not None for p in parts),
     }
 
@@ -231,10 +241,24 @@ def compute(
     # of the school's own export read as failing learners when they were
     # really empty columns, so this requires all three. An incomplete record
     # shows no grade rather than a wrong one.
+    # The initial grade is worked out at full precision and only rounded for
+    # showing, as the workbook does. Rounding each step first can push a
+    # learner across a band edge: 73.533 read as 73.54 transmutes to 78
+    # where the official record says 77.
+    exact = [
+        weighted_score(percentage_score(ww_scores, ww_highest, exact=True), w_ww, exact=True),
+        weighted_score(percentage_score(pt_scores, pt_highest, exact=True), w_pt, exact=True),
+        weighted_score(
+            exam_component(exam_scores, exam_highest, exam_subweights, exact=True)["percentage"],
+            w_ex,
+            exact=True,
+        ),
+    ]
     parts = [ww_ws, pt_ws, ex_ws]
     complete = all(p is not None for p in parts) and exam["complete"]
-    initial = round(sum(parts), 2) if all(p is not None for p in parts) else None
-    final = transmute(initial)
+    initial_exact = sum(exact) if all(p is not None for p in exact) else None
+    initial = round(initial_exact, 2) if initial_exact is not None else None
+    final = transmute(initial_exact)
 
     return {
         "template": template,

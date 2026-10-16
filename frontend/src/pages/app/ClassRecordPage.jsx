@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Save, Search, Settings2, X } from 'lucide-react';
+import { Check, FileUp, Save, Search, Settings2, X } from 'lucide-react';
 import {
   EmptyState,
   ErrorNote,
@@ -7,6 +7,7 @@ import {
   TableSkeleton,
 } from '../../components/common/ui';
 import { AiServiceNote } from '../../components/common/ai';
+import ImportClassRecord from '../../components/common/ImportClassRecord';
 import {
   aiApi,
   assignmentApi,
@@ -101,6 +102,9 @@ export default function ClassRecordPage() {
     if (term > periods.length) setTerm(1);
   }, [term, periods.length]);
   const [search, setSearch] = useState('');
+  const [importing, setImporting] = useState(false);
+  // Bumped after an import so the header is fetched again.
+  const [setupVersion, setSetupVersion] = useState(0);
 
   const [setup, setSetup] = useState(DEFAULT_SETUP);
   const [setupDraft, setSetupDraft] = useState(null); // non-null while editing
@@ -239,7 +243,7 @@ export default function ClassRecordPage() {
     return () => {
       cancelled = true;
     };
-  }, [sectionId, subjectId, term]);
+  }, [sectionId, subjectId, term, setupVersion]);
 
   /** One row per learner: stored scores, overlaid with anything unsaved. */
   const rows = useMemo(() => {
@@ -510,14 +514,24 @@ export default function ClassRecordPage() {
             </button>
           </div>
         ) : (
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => setSetupDraft({ ...setup })}
-            disabled={!subjectId}
-          >
-            <Settings2 size={15} /> Set up record
-          </button>
+          <>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setSetupDraft({ ...setup })}
+              disabled={!subjectId}
+            >
+              <Settings2 size={15} /> Set up record
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setImporting(true)}
+              disabled={!subjectId || !section}
+            >
+              <FileUp size={15} /> Import from Excel
+            </button>
+          </>
         )}
       </div>
 
@@ -755,6 +769,24 @@ export default function ClassRecordPage() {
             </button>
           </div>
         </div>
+      )}
+      {importing && section && subject && (
+        <ImportClassRecord
+          section={section}
+          subject={subject}
+          periodLabel={periodLabel}
+          onClose={() => setImporting(false)}
+          onDone={(saved) => {
+            setImporting(false);
+            const added = (saved?.added || 0) + (saved?.enrolled || 0);
+            toast.success(
+              `Imported ${saved?.terms?.length || 0} ${periodLabel.toLowerCase()}(s)` +
+                (added ? `, ${added} learner${added === 1 ? '' : 's'} added.` : '.'),
+            );
+            setSetupVersion((v) => v + 1);
+            loadRoster();
+          }}
+        />
       )}
     </div>
   );

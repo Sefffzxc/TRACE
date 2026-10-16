@@ -71,6 +71,9 @@ class StudentResponse(ORMModel, StudentBase):
     section_name: Optional[str] = None
     school_year_id: Optional[int] = None
     adviser_name: Optional[str] = None
+    # Details still to be filled in, e.g. for a learner added by a class
+    # record import with a name only. Empty when the profile is complete.
+    profile_missing: List[str] = Field(default_factory=list)
 
     # Rolled up across the learner's subjects. The risk is the WORST
     # subject's, not an average: a learner excellent in three subjects and

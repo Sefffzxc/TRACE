@@ -31,7 +31,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 # Routers whose endpoints read or write a school's own records. Every routed
 # endpoint in these files must take a school scope.
-TENANT_ROUTERS = {"students.py", "pace.py", "ai.py", "dashboard.py", "academic.py"}
+TENANT_ROUTERS = {"students.py", "pace.py", "class_import.py", "ai.py", "dashboard.py", "academic.py"}
 
 # The only permitted exceptions, each with the reason it is one. An endpoint
 # may be listed here when it returns nothing belonging to any school. Adding a
