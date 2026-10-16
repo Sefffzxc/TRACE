@@ -1,4 +1,4 @@
-"""LBCA Monitoring System — FastAPI application entry point."""
+"""TRACE — FastAPI application entry point."""
 from __future__ import annotations
 
 import logging
@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover - only on an incomplete deployment
     SCHEMA_STATE = {"checked": False, "ok": True}
 
     async def verify_schema():
-        logging.getLogger("lbca").warning(
+        logging.getLogger("trace").warning(
             "app/db/schema_check.py is missing, so the database schema was "
             "not verified at startup. Copy it into place to get a clear "
             "report when the models and the database disagree."
@@ -49,13 +49,13 @@ async def lifespan(_: FastAPI):
     try:
         await verify_schema()
     except Exception:  # noqa: BLE001 - diagnostics never block startup
-        logging.getLogger("lbca").exception("the schema check itself failed")
+        logging.getLogger("trace").exception("the schema check itself failed")
 
     # Say out loud which origins the browser will be allowed to call from.
     # A CORS rejection looks identical to a dead API from the console, so
     # the one list that decides it should not have to be inferred.
     origins = settings.cors_origins
-    log = logging.getLogger("lbca.cors")
+    log = logging.getLogger("trace.cors")
     if not origins:
         log.error("ALLOWED_ORIGINS is empty — every browser request will be "
                   "refused. Set it to the front end's URL.")
@@ -74,8 +74,8 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description=(
-        "Student PACE monitoring and early-warning API for "
-        f"{settings.SCHOOL_NAME}."
+        f"{settings.SYSTEM_LONG_NAME}: class-record monitoring, final-grade "
+        "forecasts and early warnings for schools."
     ),
     lifespan=lifespan,
     docs_url="/docs",
@@ -156,7 +156,7 @@ async def unhandled_handler(request: Request, exc: Exception):
     logged in full and only its type is sent to the client, because a
     database error's text can carry table and column names.
     """
-    logging.getLogger("lbca").exception(
+    logging.getLogger("trace").exception(
         "unhandled error on %s %s", request.method, request.url.path
     )
     return JSONResponse(
@@ -190,7 +190,7 @@ async def root():
     return {
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "school": settings.SCHOOL_NAME,
+        "system": settings.SYSTEM_LONG_NAME,
         "docs": "/docs",
     }
 

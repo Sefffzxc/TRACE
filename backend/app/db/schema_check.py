@@ -27,7 +27,7 @@ from sqlalchemy import inspect
 
 from app.db.session import Base, async_engine
 
-log = logging.getLogger("lbca.schema")
+log = logging.getLogger("trace.schema")
 
 # The state of the last check, so /health can report it without re-running.
 STATE: dict = {"checked": False, "ok": True, "missing_tables": [], "missing_columns": {}}

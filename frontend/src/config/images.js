@@ -38,11 +38,10 @@ export const IMAGES = {
     'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=1200&q=70',
 };
 
-/** School identity — change these and the whole app follows. */
-export const SCHOOL = {
-  name: "Lord's Blessing Christian Academy",
-  shortName: 'LBCA',
-  tagline: 'Student PACE Monitoring & Early Warning System',
-  motto: 'Wisdom begins with reverence.',
-  address: 'Cabanatuan City, Nueva Ecija',
+/** The product's identity — change these and the whole app follows. Each
+    school's own name comes from its settings, not from here. */
+export const SYSTEM = {
+  name: 'TRACE',
+  longName: 'Tracking and Risk Assessment for Continuous Education',
+  tagline: 'Early Warning System',
 };

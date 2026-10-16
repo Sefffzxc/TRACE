@@ -184,7 +184,7 @@ export default function AiInsightsPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `lbca-ai-predictions-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `trace-ai-predictions-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
     toast.success('Predictions exported with their provenance columns.');

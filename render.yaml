@@ -1,12 +1,12 @@
 # ══════════════════════════════════════════════════════════════════════════════
-# LBCA Monitoring System — Render blueprint
+# TRACE — Render blueprint
 #
 # One commit, four pieces:
 #
-#   lbca-db    PostgreSQL          the database
-#   lbca-ai    Python web service  the trained risk model, inference only
-#   lbca-api   Python web service  the FastAPI monitoring backend
-#   lbca-web   Static site         the React app
+#   lbca-db    PostgreSQL          the database (keeps its original name: see below)
+#   trace-ai    Python web service  the trained risk model, inference only
+#   trace-api   Python web service  the FastAPI monitoring backend
+#   trace-web   Static site         the React app
 #
 # Deploy with: New → Blueprint, point it at this repository, Apply.
 # Then run the one-time seed described in DEPLOYMENT.md.
@@ -31,6 +31,10 @@
 # ══════════════════════════════════════════════════════════════════════════════
 
 databases:
+  # Deliberately still named lbca-db. The system was called LBCA before it
+  # was TRACE, and renaming a database here makes Render create a NEW, EMPTY
+  # one rather than rename the old one — every school's records would be left
+  # behind. The name is never shown to anyone, so it stays.
   - name: lbca-db
     plan: free
     databaseName: lbca
@@ -38,7 +42,7 @@ databases:
     # This MUST match the region on the two services below. Render's docs:
     # "To use the internal URL, your connecting service and your database must
     # belong to the same account and region." The connection string injected
-    # into lbca-api is the internal one, and an internal hostname only resolves
+    # into trace-api is the internal one, and an internal hostname only resolves
     # inside its own region's private network — so a mismatch does not fail
     # with a permission error, it fails with a DNS lookup error
     # (socket.gaierror: Name or service not known) at startup.
@@ -55,7 +59,7 @@ services:
   # touching the monitoring system. It holds no data and knows nothing about
   # students; it takes nine numbers and returns a probability.
   - type: web
-    name: lbca-ai
+    name: trace-ai
     runtime: python
     plan: free
     region: singapore
@@ -83,7 +87,7 @@ services:
 
   # ── The monitoring API ──────────────────────────────────────────────────────
   - type: web
-    name: lbca-api
+    name: trace-api
     runtime: python
     plan: free
     region: singapore
@@ -111,7 +115,7 @@ services:
         value: "true"
 
       # Render prompts for this. Paste the AI service's PUBLIC address — the URL
-      # shown at the top of the lbca-ai page, e.g. lbca-ai.onrender.com (the
+      # shown at the top of the trace-ai page, e.g. trace-ai.onrender.com (the
       # scheme is optional; the backend adds https for a bare host).
       #
       # Do NOT wire this with `fromService: property: host`. That injects
@@ -124,7 +128,7 @@ services:
         sync: false
       - key: AI_SERVICE_TOKEN
         fromService:
-          name: lbca-ai
+          name: trace-ai
           type: web
           envVarKey: AI_SERVICE_TOKEN
 
@@ -141,7 +145,7 @@ services:
       # fromService reference, and pointing this API back at the static site
       # the same way would make the two services depend on each other in a
       # loop. Render prompts for this when you Apply the blueprint — paste the
-      # static site's address (for example lbca-web.onrender.com; the scheme is
+      # static site's address (for example trace-web.onrender.com; the scheme is
       # optional). Get it wrong and the browser will report a CORS error even
       # though the API itself is healthy.
       - key: ALLOWED_ORIGINS
@@ -158,7 +162,7 @@ services:
   # instance hours. VITE_API_URL is baked in at build time, so changing the
   # API's name means rebuilding this site, not just restarting it.
   - type: web
-    name: lbca-web
+    name: trace-web
     runtime: static
     rootDir: frontend
     # No `plan` and no `region` here, and neither is an oversight: a static site
@@ -178,11 +182,11 @@ services:
         value: "22.11.0"
 
       # Render prompts for this. Paste the API's PUBLIC address — the URL at the
-      # top of the lbca-api page, e.g. lbca-api.onrender.com.
+      # top of the trace-api page, e.g. trace-api.onrender.com.
       #
       # This one is read by a BROWSER, so it must be the public hostname. A
       # `fromService: property: host` reference injects the internal name
-      # (`lbca-api`, no domain), and the browser fails with
+      # (`trace-api`, no domain), and the browser fails with
       # ERR_NAME_NOT_RESOLVED on every request.
       #
       # It is also baked in at BUILD time, so changing it needs a redeploy of

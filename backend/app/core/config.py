@@ -14,7 +14,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def _with_scheme(value: str) -> str:
-    """``lbca-ai.onrender.com`` -> ``https://lbca-ai.onrender.com``.
+    """``trace-ai.onrender.com`` -> ``https://trace-ai.onrender.com``.
 
     These values are pasted in by hand when a blueprint is applied, and people
     reasonably paste a hostname rather than a URL. Anything that already names a
@@ -33,10 +33,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # ── Identity ──────────────────────────────────────────────────────────
-    APP_NAME: str = "LBCA Monitoring System API"
+    APP_NAME: str = "TRACE API"
     APP_VERSION: str = "2.0.0"
-    SCHOOL_NAME: str = "Lord's Blessing Christian Academy"
-    SCHOOL_SHORT_NAME: str = "LBCA"
+    # The product, not a school: one deployment serves many schools, and each
+    # school's own name lives in its settings.
+    SYSTEM_LONG_NAME: str = "Tracking and Risk Assessment for Continuous Education"
 
     # ── Database ──────────────────────────────────────────────────────────
     # SQLite by default so the project runs with zero setup.
@@ -114,7 +115,7 @@ class Settings(BaseSettings):
         This is typed in by hand at deployment time, so it is normalised
         rather than trusted:
 
-        * a bare host gets https, because ``lbca-web.onrender.com`` is the
+        * a bare host gets https, because ``trace-web.onrender.com`` is the
           obvious thing to paste;
         * a trailing slash is removed, because the browser's Origin header
           never has one and ``https://example.com/`` therefore matches

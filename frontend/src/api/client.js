@@ -11,7 +11,7 @@
  * Where the API lives, read at build time from VITE_API_URL.
  *
  * It is set by hand at deployment time, so it may arrive as a bare
- * `lbca-api.onrender.com`. A bare host is treated as https (and localhost as
+ * `trace-api.onrender.com`. A bare host is treated as https (and localhost as
  * http) rather than producing a relative path and a stream of confusing 404s.
  *
  * It must be the API's PUBLIC hostname. An internal Render hostname — the bare
@@ -28,10 +28,10 @@ function resolveApiBase(raw) {
 const API_BASE = resolveApiBase(import.meta.env.VITE_API_URL);
 
 const STORAGE = {
-  access: 'lbca.access_token',
-  refresh: 'lbca.refresh_token',
-  user: 'lbca.user',
-  device: 'lbca.device_id',
+  access: 'trace.access_token',
+  refresh: 'trace.refresh_token',
+  user: 'trace.user',
+  device: 'trace.device_id',
 };
 
 /* ── Token storage ───────────────────────────────────────────────────────── */
@@ -184,7 +184,7 @@ async function request(path, { method = 'GET', body, params, auth = true, raw = 
       response = await send();
     } else {
       tokens.clear();
-      window.dispatchEvent(new CustomEvent('lbca:session-expired'));
+      window.dispatchEvent(new CustomEvent('trace:session-expired'));
     }
   }
 

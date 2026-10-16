@@ -13,7 +13,8 @@ import {
   Users,
 } from 'lucide-react';
 import { Avatar } from '../common/ui';
-import { SCHOOL } from '../../config/images';
+import { SYSTEM } from '../../config/images';
+import TraceMark from '../common/TraceMark';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar({ collapsed, open, onNavigate, pendingCount, criticalCount }) {
@@ -98,16 +99,15 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
     >
       <div className="sidebar-head">
         <span className="sidebar-seal">
-          {isSuperAdmin ? <Building2 size={21} /> : <GraduationCap size={21} />}
+          <TraceMark size={24} />
         </span>
         <span className="sidebar-title">
-          {/* One deployment, many schools: the heading names the school the user
-              actually belongs to, falling back to the build-time name until its
-              settings arrive. The operator belongs to none. */}
-          <span className="name">
-            {isSuperAdmin ? 'System' : school?.short_name || school?.name || SCHOOL.shortName}
+          <span className="name">{SYSTEM.name}</span>
+          {/* One deployment, many schools: under the product name sits the
+              school the user actually belongs to. The operator belongs to none. */}
+          <span className="sub">
+            {isSuperAdmin ? 'Operations' : school?.short_name || school?.name || 'Monitoring'}
           </span>
-          <span className="sub">{isSuperAdmin ? 'Operations' : 'Monitoring'}</span>
         </span>
       </div>
 

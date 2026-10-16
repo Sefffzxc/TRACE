@@ -63,7 +63,7 @@ export default function LoginPage() {
               className="input"
               type="email"
               autoComplete="username"
-              placeholder="you@lbca.edu.ph"
+              placeholder="you@school.edu.ph"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required

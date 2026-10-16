@@ -1,6 +1,6 @@
 """
-LBCA Academic Risk Classification Service
-==========================================
+TRACE Final-Grade Forecast Service
+==================================
 A standalone inference service. It holds the trained model and nothing else:
 no database, no authentication of users, no business rules. The monitoring
 backend calls it over HTTP and stores whatever comes back.
@@ -101,9 +101,9 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="LBCA Academic Risk Classification Service",
+    title="TRACE Final-Grade Forecast Service",
     version=MODEL_VERSION,
-    description="Inference-only service for the LBCA monitoring system.",
+    description="Inference-only service for TRACE.",
     lifespan=lifespan,
 )
 
@@ -312,7 +312,7 @@ def predict_one(rec: StudentRecord, b: dict) -> Prediction:
 @app.get("/", tags=["Meta"])
 async def root():
     return {
-        "service": "LBCA Academic Risk Classification",
+        "service": "TRACE Final-Grade Forecast",
         "model_version": MODEL_VERSION,
         "model_loaded": STATE["bundle"] is not None,
         "docs": "/docs",

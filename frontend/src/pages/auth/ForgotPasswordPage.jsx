@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
                   id="forgot_email"
                   className="input"
                   type="email"
-                  placeholder="you@lbca.edu.ph"
+                  placeholder="you@school.edu.ph"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   required

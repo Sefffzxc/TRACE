@@ -43,8 +43,8 @@ export function AuthProvider({ children }) {
       setUser(null);
       storedUser.set(null);
     };
-    window.addEventListener('lbca:session-expired', onExpired);
-    return () => window.removeEventListener('lbca:session-expired', onExpired);
+    window.addEventListener('trace:session-expired', onExpired);
+    return () => window.removeEventListener('trace:session-expired', onExpired);
   }, []);
 
   const signIn = useCallback((tokenResponse) => {

@@ -1,4 +1,4 @@
-# LBCA Monitoring System — Web app
+# TRACE — Web app
 
 React 18 + Vite, with `react-router-dom`, `recharts` for the charts and
 `lucide-react` for icons. No UI framework — the design system is plain CSS
@@ -77,7 +77,7 @@ switches.
 `api/client.js` keeps the access and refresh tokens in `localStorage` and
 attaches the access token to every request. On a 401 it refreshes once,
 transparently, and replays the request; if the refresh fails it clears the
-session and fires a `lbca:session-expired` event that `AuthContext` listens for.
+session and fires a `trace:session-expired` event that `AuthContext` listens for.
 Parallel 401s share a single refresh call rather than stampeding.
 
 A random device id is generated per browser and sent with every sign-in — that

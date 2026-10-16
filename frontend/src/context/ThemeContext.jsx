@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const ThemeContext = createContext(null);
-const STORAGE_KEY = 'lbca.theme';
+const STORAGE_KEY = 'trace.theme';
 
 function initialTheme() {
   const saved = localStorage.getItem(STORAGE_KEY);

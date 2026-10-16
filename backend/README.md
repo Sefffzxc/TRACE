@@ -1,4 +1,4 @@
-# LBCA Monitoring System — API
+# TRACE — API
 
 FastAPI + SQLAlchemy (async). SQLite out of the box, PostgreSQL when you want it.
 

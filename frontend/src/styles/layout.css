@@ -42,8 +42,11 @@
   width: 38px;
   height: 38px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(140deg, var(--brand-500), var(--brand-700));
-  color: var(--gold-300);
+  /* The TRACE mark on its navy tile, as in the favicon: the T is white
+     (currentColor), the wing stays gold. Lifted a step from the sidebar's
+     own navy so the tile still reads. */
+  background: var(--brand-800);
+  color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 .sidebar-title { display: flex; flex-direction: column; min-width: 0; }

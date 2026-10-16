@@ -517,7 +517,7 @@ export default function RegisterPage() {
                 id="reg_email"
                 className="input"
                 type="email"
-                placeholder="you@lbca.edu.ph"
+                placeholder="you@school.edu.ph"
                 value={teacher.email}
                 onChange={setTeacherField('email')}
                 required
@@ -646,7 +646,7 @@ export default function RegisterPage() {
               <input
                 id="s_short"
                 className="input"
-                placeholder="LBCA — optional"
+                placeholder="LNHS — optional"
                 value={school.short_name}
                 onChange={setSchoolField('short_name')}
               />

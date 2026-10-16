@@ -109,7 +109,7 @@
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.28);
   backdrop-filter: blur(8px);
-  color: var(--gold-300);
+  color: #fff;
 }
 .auth-brand .brand-text { display: flex; flex-direction: column; }
 .auth-brand .brand-name {
@@ -238,8 +238,8 @@
   width: 42px;
   height: 42px;
   border-radius: var(--radius-sm);
-  background: var(--brand-600);
-  color: var(--gold-300);
+  background: #16275e;
+  color: #fff;
 }
 .auth-card .auth-mobile-brand .brand-name {
   font-size: var(--text-md);

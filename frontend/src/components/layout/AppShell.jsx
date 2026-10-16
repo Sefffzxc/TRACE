@@ -5,7 +5,7 @@ import Sidebar from './Sidebar';
 import { schoolYearApi, staffApi, warningApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 
-const COLLAPSE_KEY = 'lbca.sidebar-collapsed';
+const COLLAPSE_KEY = 'trace.sidebar-collapsed';
 
 /**
  * The signed-in frame. It also owns the two counters the chrome needs —

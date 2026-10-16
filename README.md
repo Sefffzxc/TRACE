@@ -1,4 +1,6 @@
-# LBCA Monitoring System
+# TRACE
+
+Tracking and Risk Assessment for Continuous Education.
 
 Student PACE monitoring and early-warning system for **Lord's Blessing Christian
 Academy** — rebuilt from the ground up with the same stack as the original

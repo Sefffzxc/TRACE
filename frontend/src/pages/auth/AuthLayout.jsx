@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { GraduationCap, Moon, ShieldCheck, Sun, TrendingUp, Users } from 'lucide-react';
-import { IMAGES, SCHOOL } from '../../config/images';
+import { Moon, ShieldCheck, Sun, TrendingUp, Users } from 'lucide-react';
+import { IMAGES, SYSTEM } from '../../config/images';
+import TraceMark from '../../components/common/TraceMark';
 import { useTheme } from '../../context/ThemeContext';
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -84,11 +85,11 @@ export default function AuthLayout({ children }) {
 
         <div className="auth-brand">
           <span className="brand-seal">
-            <GraduationCap size={26} />
+            <TraceMark size={30} />
           </span>
           <span className="brand-text">
-            <span className="brand-name">{SCHOOL.shortName}</span>
-            <span className="brand-sub">Monitoring System</span>
+            <span className="brand-name">{SYSTEM.name}</span>
+            <span className="brand-sub">{SYSTEM.tagline}</span>
           </span>
         </div>
 
@@ -97,12 +98,13 @@ export default function AuthLayout({ children }) {
             Every learner&rsquo;s progress, <em>seen early enough to act.</em>
           </h1>
           <p>
-            {SCHOOL.name} tracks PACE completion subject by subject and raises a flag the
-            moment a student starts falling behind — while there is still time to help.
+            TRACE reads each learner&rsquo;s class record subject by subject, forecasts their
+            final grade from the first term, and raises a flag the moment they start slipping,
+            while there is still time to help.
           </p>
           <div className="auth-highlights">
             <span>
-              <TrendingUp size={14} /> Live PACE tracking
+              <TrendingUp size={14} /> Final-grade forecast
             </span>
             <span>
               <Users size={14} /> Section &amp; adviser views
@@ -114,8 +116,8 @@ export default function AuthLayout({ children }) {
         </div>
 
         <div className="auth-foot">
-          <span>{SCHOOL.address}</span>
-          <span>&copy; {new Date().getFullYear()} {SCHOOL.shortName}</span>
+          <span>{SYSTEM.longName}</span>
+          <span>&copy; {new Date().getFullYear()} {SYSTEM.name}</span>
         </div>
       </aside>
 
@@ -123,11 +125,11 @@ export default function AuthLayout({ children }) {
         <div className="auth-card">
           <div className="auth-mobile-brand">
             <span className="brand-seal">
-              <GraduationCap size={22} />
+              <TraceMark size={26} />
             </span>
             <span>
-              <div className="brand-name">{SCHOOL.shortName}</div>
-              <div className="brand-sub">Monitoring System</div>
+              <div className="brand-name">{SYSTEM.name}</div>
+              <div className="brand-sub">{SYSTEM.tagline}</div>
             </span>
           </div>
 
