@@ -15,6 +15,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 import { Avatar } from '../common/ui';
+import { staffApi, studentApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -47,12 +48,54 @@ function useOutsideClose(onClose) {
 export default function Header({ collapsed, onToggleCollapse, onOpenMobile, alerts = [], schoolYear }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { user, signOut, unitLabel, unitLabelPlural, school, tracksUnits, passingMark } = useAuth();
+  const {
+    user, signOut, unitLabel, unitLabelPlural, school, tracksUnits, passingMark, isAdmin, isSuperAdmin,
+  } = useAuth();
   const { isDark, toggle } = useTheme();
 
   const [bellOpen, setBellOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
+
+  /* Search finds learners for a teacher and teachers for a principal — what
+     each actually works with. Matches show as the user types; Enter opens
+     the full list filtered. The directory is fetched once and filtered here,
+     so typing never waits on the network. */
+  const [directory, setDirectory] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const searchRef = useOutsideClose(() => setSearchOpen(false));
+  const searchTarget = isAdmin ? 'teachers' : 'students';
+
+  // Refreshed on every focus so a learner added a minute ago is findable;
+  // the previous list stays usable while the new one loads.
+  const loadDirectory = async () => {
+    try {
+      const rows = isAdmin ? await staffApi.list() : await studentApi.list();
+      setDirectory(rows || []);
+    } catch {
+      setDirectory((current) => current || []);
+    }
+  };
+
+  const needle = query.trim().toLowerCase();
+  const matches =
+    needle && directory
+      ? directory
+          .filter((row) =>
+            [row.full_name, row.login_id, row.email]
+              .filter(Boolean)
+              .some((text) => String(text).toLowerCase().includes(needle)),
+          )
+          .slice(0, 6)
+      : [];
+
+  const openMatch = (row) => {
+    setSearchOpen(false);
+    setQuery('');
+    if (isAdmin) navigate(`/teachers?q=${encodeURIComponent(row.full_name)}`);
+    else navigate(`/students/${row.student_id}`);
+  };
 
   const bellRef = useOutsideClose(() => setBellOpen(false));
   const menuRef = useOutsideClose(() => setMenuOpen(false));
@@ -68,8 +111,15 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
 
   const submitSearch = (event) => {
     event.preventDefault();
+    // A highlighted suggestion opens directly; otherwise the full list,
+    // filtered by what was typed.
+    if (searchOpen && matches[active]) {
+      openMatch(matches[active]);
+      return;
+    }
     if (!query.trim()) return;
-    navigate(`/students?q=${encodeURIComponent(query.trim())}`);
+    setSearchOpen(false);
+    navigate(`/${searchTarget}?q=${encodeURIComponent(query.trim())}`);
     setQuery('');
   };
 
@@ -99,17 +149,78 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
 
       {schoolYear && <span className="header-chip hide-mobile">S.Y. {schoolYear}</span>}
 
-      <form className="header-search" onSubmit={submitSearch} role="search">
-        <Search size={15} />
-        <input
-          className="input"
-          type="search"
-          placeholder="Search students…"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          aria-label="Search students"
-        />
-      </form>
+      {/* The system operator has no students or teachers to search. */}
+      {!isSuperAdmin && (
+        <form className="header-search" onSubmit={submitSearch} role="search" ref={searchRef}>
+          <Search size={15} />
+          <input
+            className="input"
+            type="search"
+            placeholder={`Search ${searchTarget}…`}
+            value={query}
+            onFocus={() => {
+              loadDirectory();
+              setSearchOpen(true);
+            }}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setActive(0);
+              setSearchOpen(true);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setActive((i) => Math.min(i + 1, Math.max(matches.length - 1, 0)));
+              } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setActive((i) => Math.max(i - 1, 0));
+              } else if (event.key === 'Escape') {
+                setSearchOpen(false);
+              }
+            }}
+            aria-label={`Search ${searchTarget}`}
+            aria-expanded={searchOpen && needle.length > 0}
+            autoComplete="off"
+          />
+          {searchOpen && needle && (
+            <div className="dropdown search-results" role="listbox">
+              {directory === null ? (
+                <div className="search-empty">Searching…</div>
+              ) : matches.length === 0 ? (
+                <div className="search-empty">No {searchTarget} match &ldquo;{query.trim()}&rdquo;</div>
+              ) : (
+                matches.map((row, index) => (
+                  <button
+                    key={row.student_id ?? row.id}
+                    type="button"
+                    role="option"
+                    aria-selected={index === active}
+                    className={`dropdown-item${index === active ? ' is-active' : ''}`}
+                    onMouseEnter={() => setActive(index)}
+                    onClick={() => openMatch(row)}
+                  >
+                    <Avatar name={row.full_name} src={row.photo} size="sm" />
+                    <span className="search-result-text">
+                      <span className="search-result-name">{row.full_name}</span>
+                      <span className="search-result-sub">
+                        {isAdmin
+                          ? row.email || row.role
+                          : [row.section_name, row.grade_level_name].filter(Boolean).join(' · ') ||
+                            'Not enrolled'}
+                      </span>
+                    </span>
+                  </button>
+                ))
+              )}
+              {matches.length > 0 && (
+                <button type="submit" className="dropdown-item search-all">
+                  See all results for &ldquo;{query.trim()}&rdquo;
+                </button>
+              )}
+            </div>
+          )}
+        </form>
+      )}
 
       <div className="header-actions">
         <button

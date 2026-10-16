@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   KeyRound,
   Lock,
@@ -33,7 +34,13 @@ export default function TeachersPage() {
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
+  // The header search opens this page filtered (?q=name).
+  const [params] = useSearchParams();
+  const urlQuery = params.get('q') || '';
+  const [search, setSearch] = useState(urlQuery);
+  useEffect(() => {
+    setSearch(urlQuery);
+  }, [urlQuery]);
   const [roleFilter, setRoleFilter] = useState('');
   const [confirm, setConfirm] = useState(null);
   const [busy, setBusy] = useState(false);

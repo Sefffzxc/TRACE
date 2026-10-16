@@ -108,6 +108,13 @@ export default function StudentsPage() {
     load();
   }, [load]);
 
+  // A search from the header while already on this page changes only the
+  // URL; take it into the search box so the list actually filters.
+  const urlQuery = params.get('q') || '';
+  useEffect(() => {
+    setSearch(urlQuery);
+  }, [urlQuery]);
+
   // Keep the URL in step with the search box so links stay shareable.
   useEffect(() => {
     const next = new URLSearchParams(params);
