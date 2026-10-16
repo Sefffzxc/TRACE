@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertOctagon,
   AlertTriangle,
@@ -85,7 +85,10 @@ export default function EarlyWarningPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [level, setLevel] = useState('all');
+  // A dashboard card can open this page already filtered: ?level=critical,
+  // or ?level=at-risk for At risk and Watch together, as the dashboard counts them.
+  const [searchParams] = useSearchParams();
+  const [level, setLevel] = useState(() => searchParams.get('level') || 'all');
   const [sectionId, setSectionId] = useState('');
   const [search, setSearch] = useState('');
   const [includeResolved, setIncludeResolved] = useState(false);
@@ -147,7 +150,9 @@ export default function EarlyWarningPage() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return warnings.filter((warning) => {
-      if (level !== 'all' && warning.risk_level !== level) return false;
+      if (level === 'at-risk') {
+        if (warning.risk_level !== 'high' && warning.risk_level !== 'moderate') return false;
+      } else if (level !== 'all' && warning.risk_level !== level) return false;
       if (sectionId && warning.section_name !== sectionId) return false;
       if (term && !(warning.student_name || '').toLowerCase().includes(term)) return false;
       return true;
@@ -325,7 +330,12 @@ export default function EarlyWarningPage() {
             <button
               key={item.key}
               type="button"
-              className={`chip ${level === item.key ? 'is-on' : ''}`}
+              className={`chip ${
+                level === item.key ||
+                (level === 'at-risk' && (item.key === 'high' || item.key === 'moderate'))
+                  ? 'is-on'
+                  : ''
+              }`}
               onClick={() => setLevel(item.key)}
             >
               {item.label}

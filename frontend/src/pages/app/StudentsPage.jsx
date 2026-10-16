@@ -76,7 +76,8 @@ export default function StudentsPage() {
   const [search, setSearch] = useState(params.get('q') || '');
   const [gradeFilter, setGradeFilter] = useState('');
   const [sectionFilter, setSectionFilter] = useState('');
-  const [riskFilter, setRiskFilter] = useState('all');
+  // A dashboard card can open this page already filtered (?risk=low).
+  const [riskFilter, setRiskFilter] = useState(() => params.get('risk') || 'all');
   const [sort, setSort] = useState({ key: 'last_name', direction: 'asc' });
   const [page, setPage] = useState(1);
 

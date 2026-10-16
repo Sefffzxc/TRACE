@@ -24,16 +24,23 @@ import { IMAGES } from '../../config/images';
  * school's set-up still needs doing.
  */
 
-function Stat({ label, value, icon, tone = '', foot }) {
+/* A figure card. With `to` it is a button that opens the page behind the
+   number. */
+function Stat({ label, value, icon, tone = '', foot, to }) {
+  const navigate = useNavigate();
+  const Tag = to ? 'button' : 'div';
   return (
-    <div className="stat">
+    <Tag
+      className={`stat${to ? ' is-link' : ''}`}
+      {...(to ? { type: 'button', onClick: () => navigate(to) } : {})}
+    >
       <div className="stat-top">
         <span className="stat-label">{label}</span>
         <span className={`stat-icon ${tone}`}>{createElement(icon, { size: 18 })}</span>
       </div>
       <div className="stat-value">{value}</div>
       {foot && <div className="stat-foot">{foot}</div>}
-    </div>
+    </Tag>
   );
 }
 
@@ -149,29 +156,29 @@ export default function AdminDashboard() {
 
       {/* ── The school at a glance ───────────────────────────────────────── */}
       <section className="grid grid-4">
-        <Stat label="Teachers" value={counts.teachers} icon={Users} foot="Approved and active" />
+        <Stat label="Teachers" value={counts.teachers} icon={Users} foot="Approved and active" to="/teachers" />
         <Stat
           label="Pending approvals"
           value={counts.pending_approvals}
           icon={UserCheck}
           tone={counts.pending_approvals > 0 ? 'warn' : ''}
-          foot={
-            counts.pending_approvals > 0 ? (
-              <button type="button" className="link-button" onClick={() => navigate('/approvals')}>
-                Review requests →
-              </button>
-            ) : (
-              'Nothing waiting'
-            )
-          }
+          foot={counts.pending_approvals > 0 ? 'Review requests →' : 'Nothing waiting'}
+          to="/approvals"
         />
         <Stat
           label="Sections"
           value={counts.sections}
           icon={Layers}
           foot={`${counts.subjects} subject${counts.subjects === 1 ? '' : 's'} offered`}
+          to="/class-management?tab=sections"
         />
-        <Stat label="Learners enrolled" value={counts.learners} icon={GraduationCap} foot="This school year" />
+        <Stat
+          label="Learners enrolled"
+          value={counts.learners}
+          icon={GraduationCap}
+          foot="This school year"
+          to="/class-management?tab=sections"
+        />
       </section>
 
       {/* ── Teachers' grading progress + what needs attention ────────────── */}

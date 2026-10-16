@@ -29,9 +29,16 @@ import { useAuth } from '../../context/AuthContext';
 import { IMAGES } from '../../config/images';
 import AdminDashboard from './AdminDashboard';
 
-function Stat({ label, value, unit, icon: Icon, tone = '', foot }) {
+/* A figure card. With `to` it is a button that opens the page behind the
+   number, already filtered to what the number counts. */
+function Stat({ label, value, unit, icon: Icon, tone = '', foot, to }) {
+  const navigate = useNavigate();
+  const Tag = to ? 'button' : 'div';
   return (
-    <div className="stat">
+    <Tag
+      className={`stat${to ? ' is-link' : ''}`}
+      {...(to ? { type: 'button', onClick: () => navigate(to) } : {})}
+    >
       <div className="stat-top">
         <span className="stat-label">{label}</span>
         <span className={`stat-icon ${tone}`}>
@@ -43,7 +50,7 @@ function Stat({ label, value, unit, icon: Icon, tone = '', foot }) {
         {unit && <span className="unit">{unit}</span>}
       </div>
       {foot && <div className="stat-foot">{foot}</div>}
-    </div>
+    </Tag>
   );
 }
 
@@ -56,7 +63,7 @@ export default function DashboardPage() {
 
 function TeacherDashboard() {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
 
   const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
@@ -186,6 +193,7 @@ function TeacherDashboard() {
           foot={
             totalRisk > 0 ? `${Math.round((stats.on_track / totalRisk) * 100)}% of all students` : '—'
           }
+          to="/students?risk=low"
         />
         <Stat
           label="At risk"
@@ -193,6 +201,7 @@ function TeacherDashboard() {
           icon={AlertTriangle}
           tone="warn"
           foot={units ? 'Behind pace' : `Near or below ${passing}`}
+          to="/early-warning?level=at-risk"
         />
         <Stat
           label="Critical"
@@ -200,41 +209,16 @@ function TeacherDashboard() {
           icon={AlertOctagon}
           tone="crit"
           foot="Needs intervention now"
+          to="/early-warning?level=critical"
         />
-        {isAdmin ? (
+        {units ? (
           <Stat
-            label="Pending approvals"
-            value={stats.pending_approvals}
-            icon={UserCheck}
-            foot={
-              stats.pending_approvals > 0 ? (
-                <button
-                  type="button"
-                  className="link-button"
-                  style={{
-                    background: 'none',
-                    border: 0,
-                    padding: 0,
-                    color: 'var(--brand-600)',
-                    cursor: 'pointer',
-                    font: 'inherit',
-                  }}
-                  onClick={() => navigate('/approvals')}
-                >
-                  Review requests →
-                </button>
-              ) : (
-                'Nothing waiting'
-              )
-            }
-          />
-        ) : units ? (
-          <Stat
-            label="Average standing"
-            value={(stats.average_standing ?? 0).toFixed(0)}
+            label="Average completion"
+            value={stats.average_pace.toFixed(0)}
             unit="%"
             icon={Activity}
-            foot="Across your sections"
+            foot={`Of the year's ${unitsPlural.toLowerCase()}`}
+            to="/pace"
           />
         ) : (
           <Stat
@@ -243,6 +227,7 @@ function TeacherDashboard() {
             icon={Activity}
             tone={belowPassing > 0 ? 'warn' : ''}
             foot={`Subject grades under ${passing} in your sections`}
+            to="/early-warning"
           />
         )}
       </section>

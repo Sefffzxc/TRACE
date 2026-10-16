@@ -41,7 +41,11 @@ const TABS = [
 export default function ClassManagementPage() {
   const toast = useToast();
 
-  const [tab, setTab] = useState('years');
+  // A dashboard card can open a tab directly (?tab=sections).
+  const [tab, setTab] = useState(() => {
+    const wanted = new URLSearchParams(window.location.search).get('tab');
+    return TABS.some((item) => item.key === wanted) ? wanted : 'years';
+  });
   const [data, setData] = useState({
     years: [],
     levels: [],

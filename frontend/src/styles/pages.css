@@ -103,6 +103,28 @@
   transition: border-color var(--fast);
 }
 .stat:hover { border-color: var(--border-strong); }
+/* A figure card that opens the page behind its number. It is a <button>, so
+   the browser's own button styling is reset to look like the plain card. */
+.stat.is-link {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--fast), box-shadow var(--fast), transform var(--fast);
+}
+.stat.is-link:hover {
+  border-color: var(--brand-400);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.stat.is-link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stat.is-link:hover { transform: none; }
+}
 
 .stat-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
 .stat-label {
