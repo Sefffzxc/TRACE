@@ -146,7 +146,7 @@ export default function ClassManagementPage() {
     <div className="page">
       <PageHead
         title="Class management"
-        subtitle="The academic structure everything else is built on."
+        subtitle="School years, grade levels, sections and subjects."
         actions={
           <button type="button" className="btn btn-primary" onClick={() => setEditing({})}>
             <Plus size={16} /> Add{' '}
@@ -206,7 +206,7 @@ export default function ClassManagementPage() {
       {deleting && (
         <ConfirmDialog
           title="Remove this record?"
-          message="Anything that depends on it will block the deletion, so nothing is silently orphaned."
+          message="This is blocked if anything still uses it."
           confirmLabel="Remove"
           busy={busy}
           onConfirm={remove}
@@ -333,7 +333,7 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
       <EmptyState
         icon={UserCheck}
         title="No teachers assigned yet"
-        description="Assign an adviser to each section so warnings show who to talk to."
+        description="Assign an adviser to each section."
       />
     );
   }

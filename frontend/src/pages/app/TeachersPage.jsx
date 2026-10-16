@@ -87,26 +87,26 @@ export default function TeachersPage() {
   const ACTIONS = {
     deactivate: {
       title: 'Deactivate this account?',
-      message: 'They will be signed out and unable to sign in again until reactivated.',
+      message: 'They will be signed out until reactivated.',
       label: 'Deactivate',
       tone: 'danger',
     },
     reactivate: {
       title: 'Reactivate this account?',
-      message: 'They will be able to sign in again immediately.',
+      message: 'They can sign in again right away.',
       label: 'Reactivate',
       tone: 'success',
     },
     unlock: {
       title: 'Unlock this account?',
-      message: 'The failed sign-in counter is cleared and any lockout is lifted.',
+      message: 'Clears failed sign-ins and any lockout.',
       label: 'Unlock',
       tone: 'primary',
     },
     force_reset: {
       title: 'Issue a temporary password?',
       message:
-        'Their current password stops working. A temporary one is generated and shown once — they must change it at next sign-in.',
+        'A temporary password is shown once. They change it at next sign-in.',
       label: 'Issue password',
       tone: 'primary',
     },
@@ -114,7 +114,7 @@ export default function TeachersPage() {
 
   return (
     <div className="page">
-      <PageHead title="Staff directory" subtitle="Teachers and administrators with access to the system." />
+      <PageHead title="Staff directory" subtitle="Everyone with access to your school." />
 
       <ErrorNote message={error} />
 

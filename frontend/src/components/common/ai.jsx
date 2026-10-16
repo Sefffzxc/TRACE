@@ -10,12 +10,7 @@
 import { AlertTriangle, Brain, CircleSlash, Info, ServerOff, Sparkles } from 'lucide-react';
 
 export const AI_HELP =
-  'Once a learner’s first term in a subject is graded, the model predicts their final grade ' +
-  'in it, a likely range, and the chance of finishing below 75. It reads the first term’s ' +
-  'grade, written works, performance tasks and examinations. If the AI service cannot ' +
-  'answer, the school rule (first-term grade plus the usual rise for the grade level) ' +
-  'answers instead and is labelled as such. It is a second opinion beside the school’s own ' +
-  'rules — not a replacement for them, and not a decision.';
+  'Predicts the final grade from the first graded period. A second opinion, not a decision.';
 
 /** "74 (72–76)", or null when the prediction carries no final grade. */
 export function finalGradeText(prediction) {
@@ -36,7 +31,7 @@ export function AiRiskBadge({ prediction, compact = false }) {
     return (
       <span
         className="badge badge-neutral badge-plain"
-        title="No forecast yet — it starts once the learner's first term is fully graded."
+        title="Starts once the first period is graded."
       >
         <CircleSlash size={12} /> No forecast yet
       </span>
@@ -63,8 +58,7 @@ export function AiRiskBadge({ prediction, compact = false }) {
       <span
         className="badge badge-neutral ai-badge is-fallback"
         title={
-          `Rule-based — the AI service did not answer, so the school rule ` +
-          `(first-term grade + the usual rise for the grade level) gave this forecast` +
+          `Rule-based: the AI service was unavailable` +
           (finalText ? `: expected final grade ${finalText}, ${percent}% chance of finishing below 75. ` : '. ') +
           `${prediction.error || ''}`
         }
@@ -99,11 +93,8 @@ export function AiRiskBadge({ prediction, compact = false }) {
           className="badge badge-moderate badge-plain"
           title={
             prediction.imputed_fields?.length
-              ? `Scored with ${prediction.imputed_fields.length} value(s) filled in from the ` +
-                `training median: ${prediction.imputed_fields.join(', ')}. Treat this as weaker ` +
-                `evidence.`
-              : 'Some inputs were not encoded and were filled in from the training median. ' +
-                'Treat this as weaker evidence.'
+              ? `Missing inputs filled with typical values: ${prediction.imputed_fields.join(', ')}.`
+              : 'Some inputs were missing and filled with typical values.'
           }
         >
           <AlertTriangle size={11} /> partial data
@@ -128,8 +119,7 @@ export function AiReason({ prediction }) {
         {prediction.suggested_action && <div className="faint">{prediction.suggested_action}</div>}
         {prediction.source === 'fallback' && (
           <div className="faint">
-            Produced by the school rule (first-term grade plus the usual rise for the grade
-            level), not the model — the AI service was unavailable.
+            From the school rule; the AI service was unavailable.
           </div>
         )}
       </div>
@@ -146,8 +136,7 @@ export function AiServiceNote({ status, onRetry, busy }) {
       <div className="alert alert-info">
         <Info size={17} />
         <span>
-          The AI classifier is switched off for this deployment. Risk levels come from the school
-          rules only.
+          AI forecasts are off. Only the school rules are used.
         </span>
       </div>
     );
@@ -158,9 +147,7 @@ export function AiServiceNote({ status, onRetry, busy }) {
       <div className="alert alert-warning">
         <ServerOff size={17} />
         <span>
-          The AI service is not answering, so new records are being scored by the school rules and
-          marked <em>rule-based</em>. On free hosting the service sleeps after 15 minutes of
-          inactivity and takes about a minute to start.
+          The AI service is asleep. Forecasts use the school rule until it wakes (about a minute).
           {status.detail ? ` (${status.detail})` : ''}
         </span>
         {onRetry && (
@@ -177,7 +164,7 @@ export function AiServiceNote({ status, onRetry, busy }) {
       <div className="alert alert-error">
         <AlertTriangle size={17} />
         <span>
-          The AI service is running but its model file did not load, so nothing can be scored.
+          The AI model failed to load.
           {status.detail ? ` (${status.detail})` : ''}
         </span>
       </div>

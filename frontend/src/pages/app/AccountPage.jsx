@@ -87,12 +87,12 @@ export default function AccountPage() {
     setPasswordError('');
 
     if (passwords.next !== passwords.confirm) {
-      setPasswordError('The two new passwords do not match.');
+      setPasswordError('Passwords do not match.');
       return;
     }
     if (strength.score < 4) {
       setPasswordError(
-        'Password must be at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.',
+        'Use 8+ characters with upper and lower case, a number and a symbol.',
       );
       return;
     }
@@ -142,8 +142,7 @@ export default function AccountPage() {
         <div className="alert alert-warning">
           <ShieldCheck size={17} />
           <span>
-            An administrator issued you a temporary password. Please set a new one before
-            carrying on.
+            Set a new password to continue.
           </span>
         </div>
       )}
@@ -414,8 +413,7 @@ export default function AccountPage() {
               <div className="alert alert-info" style={{ marginTop: '1.25rem' }}>
                 <ShieldCheck size={17} />
                 <span>
-                  Signing in from a new device asks for a six-digit code. That device is then
-                  trusted for 90 days.
+                  New devices need a 6-digit code, then stay trusted for 90 days.
                 </span>
               </div>
             </div>

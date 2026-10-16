@@ -105,9 +105,9 @@ export default function AiInsightsPage() {
       setStatus(next);
       if (next.reachable && next.model_loaded) {
         setCard(await aiApi.modelCard().catch(() => null));
-        toast.success('The AI service is awake and the model is loaded.');
+        toast.success('The AI service is awake.');
       } else {
-        toast.warning(next.detail || 'The AI service is still not answering.');
+        toast.warning('Still waking up. Try again in a minute.');
       }
     } catch (err) {
       toast.error(err.message);
@@ -123,24 +123,18 @@ export default function AiInsightsPage() {
         sectionId ? { section_id: Number(sectionId), limit: 2000 } : { limit: 2000 },
       );
       if (result.scored === 0) {
-        toast.info('No PACE records matched, so nothing was scored.');
+        toast.info('Nothing to score yet.');
       } else if (result.source === 'model') {
         toast.success(
-          `Re-scored ${result.scored} record${result.scored === 1 ? '' : 's'} with ${
-            result.model_version
-          }.`,
+          `Re-scored ${result.scored} record${result.scored === 1 ? '' : 's'}.`,
         );
       } else if (result.source === 'fallback') {
         toast.warning(
-          `The AI service did not answer, so all ${result.scored} record${
-            result.scored === 1 ? '' : 's'
-          } fell back to the PACE rules. ${result.detail || ''}`,
+          'The AI service is asleep, so the school rule was used. Try again in a minute.',
         );
       } else {
         toast.warning(
-          `${result.scored - result.fallback} scored by the model, ${
-            result.fallback
-          } by the rules.`,
+          `${result.scored - result.fallback} by the AI, ${result.fallback} by the school rule.`,
         );
       }
       load();
@@ -187,7 +181,7 @@ export default function AiInsightsPage() {
     link.download = `trace-ai-predictions-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success('Predictions exported with their provenance columns.');
+    toast.success('Predictions exported.');
   };
 
   return (
@@ -255,7 +249,7 @@ export default function AiInsightsPage() {
             </span>
           </div>
           <div className="stat-value">{summary?.from_fallback ?? 0}</div>
-          <div className="stat-foot">Scored while the model was unreachable</div>
+          <div className="stat-foot">AI was asleep</div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -265,7 +259,7 @@ export default function AiInsightsPage() {
             </span>
           </div>
           <div className="stat-value">{summary?.incomplete_input ?? 0}</div>
-          <div className="stat-foot">Missing values filled from training medians</div>
+          <div className="stat-foot">Some inputs missing</div>
         </div>
       </section>
 
@@ -273,11 +267,8 @@ export default function AiInsightsPage() {
         <div className="card">
           <div className="card-header">
             <div>
-              <h2>What is driving the flags</h2>
-              <div className="card-subtitle">
-                The largest contributing input per flagged record. This is a per-student
-                attribution, not a claim about which factor causes failure.
-              </div>
+              <h2>Main reasons flagged</h2>
+              <div className="card-subtitle">The biggest factor for each flagged learner</div>
             </div>
           </div>
           <div className="card-body">
@@ -349,11 +340,8 @@ export default function AiInsightsPage() {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2>Latest prediction per record</h2>
-            <div className="card-subtitle">
-              Newest score for each student-subject. Every row keeps the input it was made from —
-              open one to see it.
-            </div>
+            <h2>Latest forecasts</h2>
+            <div className="card-subtitle">One per learner and subject. Open a row for details.</div>
           </div>
         </div>
         <div className="card-body flush">
@@ -365,7 +353,7 @@ export default function AiInsightsPage() {
               title={rows.length === 0 ? 'Nothing scored yet' : 'No prediction matches these filters'}
               description={
                 rows.length === 0
-                  ? 'Predictions are logged automatically when PACE and assessment data are saved. You can also re-score the existing records with the button above.'
+                  ? 'Forecasts appear once a first period is graded.'
                   : 'Try widening the filters.'
               }
             />
@@ -439,12 +427,7 @@ export default function AiInsightsPage() {
       {!card && status?.reachable === false && (
         <div className="card">
           <div className="card-body">
-            <p className="faint">
-              The model card — its measured performance and its documented limitations — is read
-              from the AI service itself, so it cannot be shown while the service is unreachable.
-              Nothing on this page is cached from an earlier version on purpose: a stale accuracy
-              figure is worse than none.
-            </p>
+            <p className="faint">Model details appear when the AI service is awake.</p>
           </div>
         </div>
       )}
@@ -455,17 +438,15 @@ export default function AiInsightsPage() {
           subtitle={
             detail.source === 'model'
               ? detail.predicted_final != null
-                ? `${detail.model_version}: expected final grade ${finalGradeText(detail)}, ` +
-                  `${Math.round(detail.risk_score * 100)}% chance of finishing below 75 ` +
-                  `(flagged at ${Math.round(detail.used_threshold * 100)}%)`
+                ? `Expected final grade ${finalGradeText(detail)} · ` +
+                  `${Math.round(detail.risk_score * 100)}% chance of failing`
                 : `Scored by ${detail.model_version} at ${Math.round(
                     detail.risk_score * 100,
                   )}%, flagged above ${Math.round(detail.used_threshold * 100)}%`
               : detail.predicted_final != null
-                ? `Produced by the school rule because the AI service was unreachable: ` +
-                  `expected final grade ${finalGradeText(detail)}, ` +
-                  `${Math.round(detail.risk_score * 100)}% chance of finishing below 75`
-                : 'Produced by the school rules because the AI service was unreachable'
+                ? `School rule: expected final grade ${finalGradeText(detail)} · ` +
+                  `${Math.round(detail.risk_score * 100)}% chance of failing`
+                : 'From the school rule'
           }
           onClose={() => setDetail(null)}
         >
@@ -473,7 +454,7 @@ export default function AiInsightsPage() {
             <div className="alert alert-warning">
               <ServerOff size={17} />
               <span>
-                This row is not a model prediction. {detail.error}
+                From the school rule; the AI service was asleep.
               </span>
             </div>
           )}
@@ -481,10 +462,7 @@ export default function AiInsightsPage() {
             <div className="alert alert-warning">
               <AlertTriangle size={17} />
               <span>
-                {detail.imputed_fields?.length} of the model&rsquo;s{' '}
-                {Object.keys(detail.features || {}).length} inputs were not encoded
-                and were replaced with the median from the training data. The score is still
-                reported, but it rests on fewer facts about this student.
+                {detail.imputed_fields?.length} input(s) missing; typical values were used.
               </span>
             </div>
           )}
@@ -496,8 +474,6 @@ export default function AiInsightsPage() {
           )}
           <p className="faint" style={{ marginTop: '0.9rem', fontSize: 'var(--text-xs)' }}>
             Prediction #{detail.prediction_id}
-            {detail.latency_ms != null && ` · answered in ${detail.latency_ms} ms`}. Re-scoring adds
-            a new row rather than replacing this one, so the history stays intact.
           </p>
         </Modal>
       )}

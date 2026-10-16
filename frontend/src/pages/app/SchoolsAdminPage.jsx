@@ -107,7 +107,7 @@ export default function SchoolsAdminPage() {
     <div className="page">
       <PageHead
         title="Schools"
-        subtitle="Every school registered on this deployment, and whether it may sign in."
+        subtitle="Registered schools and their status."
         actions={
           <span className="header-chip">
             <Building2 size={13} /> {schools.length} shown
@@ -120,11 +120,7 @@ export default function SchoolsAdminPage() {
       <div className="alert alert-info" role="note">
         <ShieldCheck size={17} />
         <span>
-          This console manages <strong>schools and accounts only</strong>. It shows how many staff
-          and students a school has, never the records themselves — no student, grade, attendance or
-          progress data is reachable from here. Opening a student&rsquo;s record requires an account
-          at that school. This is deliberate: a system operator keeps the deployment running and has
-          no business reading a child&rsquo;s file.
+          You manage <strong>schools and accounts only</strong>. Student records are not visible here.
         </span>
       </div>
 
@@ -153,10 +149,7 @@ export default function SchoolsAdminPage() {
         <div className="card-header">
           <div>
             <h2>{STATUSES.find((item) => item.key === status)?.label || 'All'} schools</h2>
-            <div className="card-subtitle">
-              Approving a school lets its principal sign in and start adding staff; everything that
-              happens inside it stays inside it.
-            </div>
+            <div className="card-subtitle">Approving lets the principal sign in.</div>
           </div>
         </div>
         <div className="card-body flush">
@@ -168,8 +161,8 @@ export default function SchoolsAdminPage() {
               title={status === 'pending' ? 'Nothing waiting for review' : 'No schools to show'}
               description={
                 status === 'pending'
-                  ? 'New school registrations appear here as soon as they are submitted.'
-                  : 'Try another filter — registrations are listed by what was decided about them.'
+                  ? 'New registrations appear here.'
+                  : 'Try another filter.'
               }
             />
           ) : (
@@ -319,8 +312,8 @@ export default function SchoolsAdminPage() {
         >
           <p className="muted" style={{ marginBottom: '.75rem' }}>
             {rejecting
-              ? 'The school head is told the registration was turned down, and the reason goes with it.'
-              : 'Everyone at this school is signed out and cannot sign in again until it is restored. Its records are kept, not deleted.'}
+              ? 'The school head sees your reason.'
+              : 'Everyone at this school is signed out. Records are kept.'}
           </p>
           <div className="field">
             <label className="field-label" htmlFor="school_decision_reason">
@@ -331,8 +324,8 @@ export default function SchoolsAdminPage() {
               className="textarea"
               placeholder={
                 rejecting
-                  ? 'e.g. Could not verify this school with the division office — please re-apply with a DepEd permit number.'
-                  : 'e.g. Suspended at the principal’s request while the school year is closed.'
+                  ? 'e.g. Please re-apply with a DepEd permit number.'
+                  : 'e.g. Closed for the school year.'
               }
               value={reason}
               onChange={(event) => setReason(event.target.value)}

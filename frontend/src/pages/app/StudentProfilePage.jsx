@@ -256,8 +256,7 @@ export default function StudentProfilePage() {
                 <div className="intervention" style={{ marginTop: '1rem' }}>
                   <Lightbulb size={15} />
                   <span>
-                    This student is flagged as <strong>{student.risk_level}</strong>. Contacting the
-                    guardian early tends to be the single most effective step.
+                    Flagged <strong>{student.risk_level}</strong>. Contact the guardian early.
                   </span>
                 </div>
               )}
@@ -274,7 +273,7 @@ export default function StudentProfilePage() {
               <EmptyState
                 icon={BookOpen}
                 title={`No ${unitLabel} records yet`}
-                description={`Progress appears here once a teacher encodes this student's ${unitLabel} completion.`}
+                description={`No ${unitLabel} progress recorded yet.`}
               />
             </div>
           ) : (

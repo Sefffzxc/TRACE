@@ -285,11 +285,7 @@ export default function RosterPage({ mode = 'units' }) {
       });
 
     if (!entries.length) {
-      toast.info(
-        isRecord
-          ? 'Nothing to save yet — fill in at least one cell first.'
-          : `Nothing to save yet — type a ${unitLabel} number first.`,
-      );
+      toast.info('Nothing to save yet.');
       return;
     }
 
@@ -307,22 +303,19 @@ export default function RosterPage({ mode = 'units' }) {
       const ai = result.ai;
       if (ai?.source === 'fallback') {
         toast.warning(
-          `The AI service did not answer, so these records were scored by the ${unitLabel} rules ` +
-            `and marked rule-based. ${ai.detail || ''} Use “Re-score records” on the AI Risk Model ` +
-            `page once it is awake.`,
+          'Saved. The AI service was asleep, so the school rule was used.',
         );
       } else if (ai?.source === 'mixed') {
         toast.warning(
-          `${ai.scored - ai.fallback} record(s) scored by the model, ${ai.fallback} by the ` +
-            `${unitLabel} rules.`,
+          `${ai.scored - ai.fallback} by the AI, ${ai.fallback} by the school rule.`,
         );
       } else if (ai?.source === 'model') {
-        toast.info(`Scored by the risk model (${ai.model_version}).`);
+        toast.info('AI forecast updated.');
       }
 
       missingPace.forEach((row) =>
         toast.warning(
-          `${row.enrollment.student_name}: nothing saved — a record needs a current ${unitLabel} number.`,
+          `${row.enrollment.student_name}: enter a current ${unitLabel} number.`,
         ),
       );
 
@@ -350,8 +343,8 @@ export default function RosterPage({ mode = 'units' }) {
         title={isRecord ? 'Class record' : `${unitLabel} progress`}
         subtitle={
           isRecord
-            ? 'Attendance and assessment marks for each student — the figures the risk model reads.'
-            : `Record how far each student has reached in their ${unitLabelPlural}.`
+            ? 'Assessment marks per student.'
+            : `Each student's current ${unitLabel}.`
         }
         actions={
           dirtyCount > 0 && (
@@ -422,14 +415,12 @@ export default function RosterPage({ mode = 'units' }) {
                 ? 'Choose a subject to begin'
                 : isRecord
                   ? subject.subject_name
-                  : `${subject.subject_name} — ${subject.total_paces} ${unitLabelPlural} for the year, about ${defaultExpected} expected by today`}
+                  : `${subject.subject_name} · ${defaultExpected} of ${subject.total_paces} expected by today`}
             </div>
             {view === 'assessment' && (
               <div className="card-subtitle" style={{ marginTop: '.35rem' }}>
                 <Brain size={13} style={{ verticalAlign: '-2px', marginRight: '.3rem' }} />
-                These are the values the risk model reads. Leave a cell blank if it has not been
-                marked yet — blank is recorded as <em>not encoded</em>, never as zero, and the
-                model&rsquo;s answer will say it was working with partial data.
+                Leave unmarked cells blank, not zero.
               </div>
             )}
           </div>
@@ -442,7 +433,7 @@ export default function RosterPage({ mode = 'units' }) {
             <EmptyState
               icon={GraduationCap}
               title="No students in this section"
-              description="Enrol students into this section first, then come back to encode their progress."
+              description="Enrol students in this section first."
             />
           ) : (
             <div className="table-wrap">

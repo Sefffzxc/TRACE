@@ -8,7 +8,7 @@ export default function NotFoundPage() {
       <span className="code">404</span>
       <h1>That page doesn&rsquo;t exist</h1>
       <p className="muted" style={{ maxWidth: '42ch' }}>
-        The link may be out of date, or the record it pointed at has been removed.
+        The link may be old or the record removed.
       </p>
       <button
         type="button"

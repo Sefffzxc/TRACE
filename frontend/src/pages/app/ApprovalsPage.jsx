@@ -96,9 +96,7 @@ export default function ApprovalsPage() {
         <div className="card-header">
           <div>
             <h2>Pending requests</h2>
-            <div className="card-subtitle">
-              Approving grants immediate access with the role the person requested.
-            </div>
+            <div className="card-subtitle">Approving gives access right away.</div>
           </div>
         </div>
         <div className="card-body flush">
@@ -108,7 +106,7 @@ export default function ApprovalsPage() {
             <EmptyState
               icon={ShieldCheck}
               title="Nothing waiting for review"
-              description="New registration requests appear here as soon as they are submitted."
+              description="New requests appear here."
             />
           ) : (
             pending.map((person) => (
@@ -249,7 +247,7 @@ export default function ApprovalsPage() {
             <textarea
               id="reject_reason"
               className="textarea"
-              placeholder="e.g. Not a member of teaching staff — please apply through HR first."
+              placeholder="e.g. Please apply through HR first."
               value={reason}
               onChange={(event) => setReason(event.target.value)}
             />

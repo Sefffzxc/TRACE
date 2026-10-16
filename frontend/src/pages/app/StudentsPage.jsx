@@ -250,7 +250,7 @@ export default function StudentsPage() {
     <div className="page">
       <PageHead
         title="Students"
-        subtitle="Every learner being monitored, and what each would need across the terms that remain."
+        subtitle="Your learners and what each needs to pass."
         actions={
           <>
             <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!sorted.length}>
@@ -338,7 +338,7 @@ export default function StudentsPage() {
             <EmptyState
               icon={Users}
               title="No students match these filters"
-              description="Try clearing the search box or choosing a different section."
+              description="Try a different search or section."
               action={
                 <button
                   type="button"
@@ -456,7 +456,7 @@ export default function StudentsPage() {
                             className="faint"
                             title={
                               student.terms_done
-                                ? 'The year is complete — there are no terms left to average'
+                                ? 'Year complete'
                                 : 'No term finished yet'
                             }
                           >
@@ -481,7 +481,7 @@ export default function StudentsPage() {
                           // bring.
                           <span
                             className="faint"
-                            title="Passes this subject even with the lowest possible grades from here"
+                            title="Passes even with the lowest grades from here"
                           >
                             already safe
                           </span>
@@ -582,7 +582,7 @@ export default function StudentsPage() {
       {deleting && (
         <ConfirmDialog
           title="Remove this student?"
-          message={`${deleting.full_name} and all of their records will be permanently deleted. This cannot be undone.`}
+          message={`Delete ${deleting.full_name} and all their records? This cannot be undone.`}
           confirmLabel="Remove student"
           busy={busy}
           onConfirm={removeStudent}

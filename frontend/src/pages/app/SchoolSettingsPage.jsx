@@ -100,7 +100,7 @@ export default function SchoolSettingsPage() {
     setError('');
 
     if (form.name.trim().length < 3) {
-      setError('The school name needs at least three characters.');
+      setError('School name: at least 3 characters.');
       return;
     }
     if (form.city.trim().length < 2) {
@@ -108,22 +108,22 @@ export default function SchoolSettingsPage() {
       return;
     }
     if (form.tracks_units && (!form.unit_label_singular.trim() || !form.unit_label_plural.trim())) {
-      setError('Please say what your school calls its booklets, in both singular and plural.');
+      setError('Enter what you call your booklets (singular and plural).');
       return;
     }
     const passing = Number(form.passing_mark);
     if (!Number.isFinite(passing) || passing < 1 || passing > 100) {
-      setError('The passing mark must be a number between 1 and 100.');
+      setError('Passing mark: 1 to 100.');
       return;
     }
     const periods = Number(form.grading_periods);
     if (!Number.isInteger(periods) || periods < 1 || periods > 6) {
-      setError('A school year can have between one and six grading periods.');
+      setError('Grading periods: 1 to 6.');
       return;
     }
     const units = Number(form.default_units_per_subject);
     if (form.tracks_units && (!Number.isInteger(units) || units < 1 || units > 200)) {
-      setError('The number of units per subject must be a whole number between 1 and 200.');
+      setError('Units per subject: 1 to 200.');
       return;
     }
     if (!dirtyCount) {
@@ -156,8 +156,8 @@ export default function SchoolSettingsPage() {
               title={isSuperAdmin ? 'No school to edit' : 'School settings are not available'}
               description={
                 isSuperAdmin
-                  ? 'Your account manages schools rather than belonging to one. Open the schools list to approve or suspend a school.'
-                  : 'This account is not attached to a school yet, or its settings could not be loaded. Try again in a moment.'
+                  ? 'Your account manages schools. Open the Schools list.'
+                  : 'Could not load your school. Try again.'
               }
             />
           </div>
@@ -172,7 +172,7 @@ export default function SchoolSettingsPage() {
     <div className="page">
       <PageHead
         title="School settings"
-        subtitle="What your school is called, how it teaches, and how it grades."
+        subtitle="Your school's details and grading."
       />
 
       <form className="stack" onSubmit={save} noValidate>
@@ -183,9 +183,7 @@ export default function SchoolSettingsPage() {
           <div className="card-header">
             <div>
               <h2>School details</h2>
-              <div className="card-subtitle">
-                The name and address that appear on screens and printed reports.
-              </div>
+              <div className="card-subtitle">Name and address</div>
             </div>
           </div>
           <div className="card-body">
@@ -291,9 +289,7 @@ export default function SchoolSettingsPage() {
           <div className="card-header">
             <div>
               <h2>How your school teaches</h2>
-              <div className="card-subtitle">
-                Whether teachers track progress through numbered booklets or modules.
-              </div>
+              <div className="card-subtitle">Booklets or modules (e.g. PACEs)</div>
             </div>
           </div>
           <div className="card-body stack">
@@ -305,7 +301,7 @@ export default function SchoolSettingsPage() {
                   setForm((current) => ({ ...current, tracks_units: event.target.checked }))
                 }
               />
-              Teachers track progress through numbered booklets or modules
+              We use numbered booklets or modules
             </label>
 
             {/* Saying what the switch does, in the two states it can be in, is
@@ -315,16 +311,14 @@ export default function SchoolSettingsPage() {
               <div className="alert alert-info">
                 <BookOpen size={17} />
                 <span>
-                  Teachers will be asked to record progress in {unitPlural}, and the
-                  lesson-progress screens are available to everyone at this school.
+                  Teachers record progress in {unitPlural}.
                 </span>
               </div>
             ) : (
               <div className="alert alert-info">
                 <Info size={17} />
                 <span>
-                  The lesson-progress screens are hidden for everyone at this school. Teachers
-                  record grades and attendance only.
+                  Teachers record grades only.
                 </span>
               </div>
             )}
@@ -333,8 +327,7 @@ export default function SchoolSettingsPage() {
               <div className="alert alert-warning">
                 <Info size={17} />
                 <span>
-                  Saving this will hide the lesson-progress screens from your teachers. Progress
-                  already recorded is kept, and switching back shows it again.
+                  This hides progress screens. Saved progress is kept.
                 </span>
               </div>
             )}
@@ -382,9 +375,7 @@ export default function SchoolSettingsPage() {
                     onChange={set('default_units_per_subject')}
                     required
                   />
-                  <span className="field-hint">
-                    The figure new subjects start with; each subject can differ.
-                  </span>
+                  <span className="field-hint">Default for new subjects.</span>
                 </div>
               </div>
             )}
@@ -396,9 +387,7 @@ export default function SchoolSettingsPage() {
           <div className="card-header">
             <div>
               <h2>Grading</h2>
-              <div className="card-subtitle">
-                What counts as a pass, and how the school year is divided.
-              </div>
+              <div className="card-subtitle">Passing mark and grading periods</div>
             </div>
           </div>
           <div className="card-body">
@@ -475,10 +464,7 @@ export default function SchoolSettingsPage() {
         <div className="card-header">
           <div>
             <h2>Registration</h2>
-            <div className="card-subtitle">
-              These are set when the school registers and can only be changed by the system
-              operator.
-            </div>
+            <div className="card-subtitle">Only the system operator can change these.</div>
           </div>
         </div>
         <div className="card-body">
@@ -517,21 +503,9 @@ export default function SchoolSettingsPage() {
             </div>
           </div>
 
-          <div className="alert alert-info" style={{ marginTop: '1.25rem' }}>
-            <ShieldCheck size={17} />
-            <span>
-              Whether the school is public or private is part of how it was registered, and its
-              approval status is the operator&rsquo;s decision. Write to the system operator if
-              either needs correcting.
-            </span>
-          </div>
         </div>
       </div>
 
-      <p className="muted" style={{ fontSize: 'var(--text-sm)' }}>
-        <GraduationCap size={14} style={{ verticalAlign: '-2px', marginRight: '.35rem' }} />
-        Changes here apply to everyone at {school.name} the next time they load a screen.
-      </p>
     </div>
   );
 }

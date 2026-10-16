@@ -219,7 +219,7 @@ export default function EarlyWarningPage() {
     <div className="page">
       <PageHead
         title="Early warning"
-        subtitle="Students who need attention, ranked by how urgent the gap is."
+        subtitle="Students who need attention, most urgent first."
         actions={
           <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filtered.length}>
             <Download size={16} /> Export list
@@ -262,7 +262,7 @@ export default function EarlyWarningPage() {
           </div>
           <div className="stat-value">{counts.moderate}</div>
           <div className="stat-foot">
-            {units ? 'Slipping, but recoverable' : 'Close to the passing mark, still recoverable'}
+            {units ? 'Slipping' : 'Close to passing'}
           </div>
         </div>
         <div className="stat">
@@ -336,25 +336,8 @@ export default function EarlyWarningPage() {
           <div>
             <h2>Flagged students</h2>
             <div className="card-subtitle">
-              Two independent readings.{' '}
-              {units ? (
-                <>
-                  <strong>Pace check</strong> is the school&rsquo;s own rule, from how far the
-                  learner is behind the expected pace; it raises the flags on this page.
-                </>
-              ) : (
-                <>
-                  <strong>Grade check</strong> is the school&rsquo;s own rule, from the
-                  learner&rsquo;s current grade against the passing mark of {passing}; it raises the
-                  flags on this page. <strong>Current grade</strong> is the finished term&rsquo;s
-                  grade, the year average so far, or — marked &ldquo;so far&rdquo; — the coursework
-                  banked in a term that is not finished yet.
-                </>
-              )}{' '}
-              <strong>AI forecast</strong> is a separate estimate, made once the first term is graded,
-              of the final grade and the chance it ends below 75. It is blank until then; if the AI
-              service is down, a school rule answers in its place, labelled rule-based. Where the two
-              disagree, that is worth a closer look — neither decides anything on its own.
+              {units ? 'Pace check' : 'Grade check'} is the school rule; AI forecast predicts the
+              final grade.
             </div>
           </div>
         </div>
@@ -367,7 +350,7 @@ export default function EarlyWarningPage() {
               title="No warnings to show"
               description={
                 warnings.length === 0
-                  ? 'Every monitored student is on track. Flags appear automatically as records are encoded.'
+                  ? 'Every student is on track.'
                   : 'No flag matches these filters.'
               }
             />

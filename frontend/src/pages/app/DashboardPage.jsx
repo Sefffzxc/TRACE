@@ -143,8 +143,8 @@ function TeacherDashboard() {
             </h1>
             <p className="hero-sub">
               {stats.critical > 0
-                ? `${stats.critical} student${stats.critical === 1 ? '' : 's'} need attention today. Start with the concerns list below.`
-                : 'No students are in the critical band right now — a good day to check on the watch list.'}
+                ? `${stats.critical} student${stats.critical === 1 ? '' : 's'} need attention today.`
+                : 'No critical students today.'}
             </p>
             <div className="hero-meta">
               {stats.school_year && (
@@ -192,7 +192,7 @@ function TeacherDashboard() {
           value={stats.at_risk}
           icon={AlertTriangle}
           tone="warn"
-          foot={units ? 'Behind the expected pace' : `Near or below the passing mark of ${passing}`}
+          foot={units ? 'Behind pace' : `Near or below ${passing}`}
         />
         <Stat
           label="Critical"
@@ -255,8 +255,8 @@ function TeacherDashboard() {
               <h2>{units ? 'Completion by section' : 'Average grade by section'}</h2>
               <div className="card-subtitle">
                 {units
-                  ? `Average share of the year’s ${unitsPlural.toLowerCase()} finished`
-                  : `Mean subject grade in each section, against the passing mark of ${passing}`}
+                  ? `Share of ${unitsPlural.toLowerCase()} finished`
+                  : `Passing mark: ${passing}`}
               </div>
             </div>
           </div>
@@ -273,7 +273,7 @@ function TeacherDashboard() {
           <div className="card-header">
             <div>
               <h2>Risk distribution</h2>
-              <div className="card-subtitle">Each student counted at their weakest subject</div>
+              <div className="card-subtitle">By weakest subject</div>
             </div>
           </div>
           <div className="card-body">
@@ -305,8 +305,8 @@ function TeacherDashboard() {
               <h2>{units ? 'Actual pace vs. expected' : `Grades by ${periodLabel}`}</h2>
               <div className="card-subtitle">
                 {units
-                  ? 'Where each subject sits against the curriculum plan'
-                  : `Whether the average grade holds above the passing mark from one ${periodLabel} to the next`}
+                  ? 'Against the plan'
+                  : `Average grade per ${periodLabel}`}
               </div>
             </div>
           </div>
@@ -323,7 +323,7 @@ function TeacherDashboard() {
           <div className="card-header">
             <div>
               <h2>{units ? 'Completion by subject' : 'Average grade by subject'}</h2>
-              <div className="card-subtitle">Which subjects the school is carrying, and which are lagging</div>
+              <div className="card-subtitle">Strongest and weakest subjects</div>
             </div>
           </div>
           <div className="card-body">
@@ -342,7 +342,7 @@ function TeacherDashboard() {
           <div className="card-header">
             <div>
               <h2>Needs attention first</h2>
-              <div className="card-subtitle">Highest risk scores across every monitored subject</div>
+              <div className="card-subtitle">Highest risk first</div>
             </div>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/early-warning')}>
               All warnings <ArrowUpRight size={14} />
@@ -353,7 +353,7 @@ function TeacherDashboard() {
               <EmptyState
                 icon={CheckCircle2}
                 title={units ? 'Everyone is keeping pace' : 'No one is flagged'}
-                description="No student is currently flagged. New warnings appear here the moment records are encoded."
+                description="No student is flagged."
               />
             ) : (
               <div className="table-wrap">

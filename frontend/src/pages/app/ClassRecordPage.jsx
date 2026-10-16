@@ -92,7 +92,7 @@ export default function ClassRecordPage() {
   // How many periods a year has and what one is called come from the
   // school's settings, so this sheet says "Quarter" or "Term" as the school
   // does.
-  const { gradingPeriodCount, periodLabel, passingMark } = useAuth();
+  const { gradingPeriodCount, periodLabel } = useAuth();
   const periods = gradingPeriods(gradingPeriodCount);
   // If the school's settings shrink, do not leave the sheet on a period that
   // no longer exists.
@@ -298,7 +298,7 @@ export default function ClassRecordPage() {
     if (!subject) return;
     const changed = rows.filter((r) => r.dirty);
     if (!changed.length) {
-      toast.info('Nothing to save yet — type a score first.');
+      toast.info('Nothing to save yet.');
       return;
     }
 
@@ -329,7 +329,7 @@ export default function ClassRecordPage() {
       toast.success(`Saved ${result.saved} record${result.saved === 1 ? '' : 's'}.`);
       if (result.ai?.fallback) {
         toast.info(
-          `${result.ai.fallback} of ${result.saved} were scored by the rule, not the model.`,
+          `${result.ai.fallback} of ${result.saved} forecast by the school rule.`,
         );
       }
       (result.skipped || []).forEach((reason) => toast.error(reason));
@@ -382,7 +382,7 @@ export default function ClassRecordPage() {
       );
       setSetup({ ...setup, ...saved });
       setSetupDraft(null);
-      toast.success('Setup saved. Every grade in this record was recalculated.');
+      toast.success('Setup saved. Grades recalculated.');
       await loadRoster();
     } catch (err) {
       toast.error(err.message);
@@ -408,10 +408,7 @@ export default function ClassRecordPage() {
       <PageHead
         title="Class record"
         subtitle={
-          `The E-Class Record. Once the ${periodName(1, periodLabel).toLowerCase()} is ` +
-          'graded, the risk model reads its grade, written works, performance tasks ' +
-          'and examinations and predicts the final grade and the chance of finishing ' +
-          `below ${passingMark}. If the AI service is down, a school rule answers instead.`
+          `Enter scores by ${periodLabel.toLowerCase()}. Grades compute as you type.`
         }
       />
 
@@ -511,9 +508,7 @@ export default function ClassRecordPage() {
       <p className="cr-template-note">
         {editing ? (
           <>
-            Enter the highest possible score for each assessment, choose the record
-            type, and save. Every grade in this record is recalculated, because a
-            percentage means nothing without the total it came out of.
+            Enter the highest possible score for each assessment, then save.
           </>
         ) : (
           <>
@@ -529,7 +524,7 @@ export default function ClassRecordPage() {
       ) : !rows.length ? (
         <EmptyState
           title="No learners here yet"
-          message="Enrol learners in this section and they will appear on the class record."
+          message="No learners enrolled in this section yet."
         />
       ) : (
         <div className="card cr-card">
@@ -698,7 +693,7 @@ export default function ClassRecordPage() {
                       className="cr-derived cr-strong"
                       title={
                         row.computed.transmuted_grade != null && !row.computed.complete
-                          ? 'Provisional — some assessments are still unmarked'
+                          ? 'Provisional: some scores are missing'
                           : undefined
                       }
                     >
@@ -722,8 +717,7 @@ export default function ClassRecordPage() {
               )}
               <span className="cr-foot-note">
                 {' '}
-                · a grade marked * is provisional, computed from a record with
-                assessments still unmarked
+                · * provisional (scores missing)
               </span>
             </span>
             <button

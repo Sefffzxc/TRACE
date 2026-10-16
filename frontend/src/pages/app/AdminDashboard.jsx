@@ -121,7 +121,7 @@ export default function AdminDashboard() {
                 ? `${attentionCount} item${attentionCount === 1 ? '' : 's'} need${
                     attentionCount === 1 ? 's' : ''
                   } your attention. See the list below.`
-                : 'Your teachers are on track and the school is fully set up.'}
+                : 'Everything is on track.'}
             </p>
             <div className="hero-meta">
               {data.school_year && (
@@ -177,7 +177,7 @@ export default function AdminDashboard() {
             <div>
               <h2>Grading progress by teacher</h2>
               <div className="card-subtitle">
-                Share of each teacher&rsquo;s learners with a {termName} grade, furthest behind first
+                Furthest behind first
               </div>
             </div>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate('/teachers')}>
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
               <EmptyState
                 icon={Users}
                 title="No teachers yet"
-                description="Approved teachers appear here with their grading progress."
+                description="Approved teachers appear here."
               />
             ) : (
               <div className="table-wrap">
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
                   <div>
                     <div className="row" style={{ gap: '.4rem', fontWeight: 600 }}>
                       <AlertTriangle size={14} style={{ color: 'var(--warn-500)' }} />
-                      Not signed in for two weeks or more
+                      Inactive 2+ weeks
                     </div>
                     <div className="muted" style={{ marginTop: '.25rem' }}>
                       {attention.quiet_teachers.join(', ')}
