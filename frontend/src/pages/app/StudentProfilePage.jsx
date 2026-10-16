@@ -142,22 +142,51 @@ export default function StudentProfilePage() {
               paddingLeft: '1rem',
             }}
           >
-            <div>
-              <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, lineHeight: 1 }}>
-                {student.pace_percent.toFixed(0)}%
-              </div>
-              <div style={{ fontSize: 'var(--text-xs)', opacity: 0.75, marginTop: 4 }}>
-                Average completion
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, lineHeight: 1 }}>
-                {student.paces_behind}
-              </div>
-              <div style={{ fontSize: 'var(--text-xs)', opacity: 0.75, marginTop: 4 }}>
-                {unitLabelPlural} behind (worst subject)
-              </div>
-            </div>
+            {/* A school that tracks units reads a learner on completion; every
+                other school reads them on grades, where completion is always 0. */}
+            {tracksUnits ? (
+              <>
+                <div>
+                  <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, lineHeight: 1 }}>
+                    {student.pace_percent.toFixed(0)}%
+                  </div>
+                  <div style={{ fontSize: 'var(--text-xs)', opacity: 0.75, marginTop: 4 }}>
+                    Average completion
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, lineHeight: 1 }}>
+                    {student.paces_behind}
+                  </div>
+                  <div style={{ fontSize: 'var(--text-xs)', opacity: 0.75, marginTop: 4 }}>
+                    {unitLabelPlural} behind (worst subject)
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, lineHeight: 1 }}>
+                    {student.average_standing == null ? '—' : student.average_standing.toFixed(0)}
+                  </div>
+                  <div style={{ fontSize: 'var(--text-xs)', opacity: 0.75, marginTop: 4 }}>
+                    Average grade
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, lineHeight: 1 }}>
+                    {student.subjects_flagged ?? 0}
+                    <span style={{ fontSize: 'var(--text-lg)', opacity: 0.75 }}>
+                      {' '}
+                      of {student.subjects_tracked ?? 0}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 'var(--text-xs)', opacity: 0.75, marginTop: 4 }}>
+                    Subjects flagged
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -212,7 +241,7 @@ export default function StudentProfilePage() {
                   <span className="v">{student.subjects_tracked}</span>
                 </div>
                 <div className="detail-row">
-                  <span className="k">Average standing</span>
+                  <span className="k">Average grade</span>
                   <span className="v">
                     {student.average_standing === null ||
                     student.average_standing === undefined
