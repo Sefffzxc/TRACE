@@ -261,12 +261,10 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
       return <EmptyState icon={CalendarDays} title="No school years yet" description="Add one to start enrolling students." />;
     }
     return wrap(
-      ['School year', 'Starts', 'Ends', 'Status', 'Actions'],
+      ['School year', 'Status', 'Actions'],
       data.years.map((row) => (
         <tr key={row.school_year_id}>
           <td className="cell-strong">{row.year}</td>
-          <td>{row.start_date}</td>
-          <td>{row.end_date}</td>
           <td>
             <span className={`badge ${row.is_current ? 'badge-low' : 'badge-neutral'}`}>
               {row.is_current ? 'Current' : 'Past'}
@@ -415,20 +413,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                 onChange={set('year')}
                 required
               />
-            </div>
-            <div className="form-grid">
-              <div className="field">
-                <label className="field-label" htmlFor="y_start">
-                  Start date <span className="req">*</span>
-                </label>
-                <input id="y_start" className="input" type="date" value={form.start_date} onChange={set('start_date')} required />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="y_end">
-                  End date <span className="req">*</span>
-                </label>
-                <input id="y_end" className="input" type="date" value={form.end_date} onChange={set('end_date')} required />
-              </div>
+              <span className="field-hint">For example 2026-2027.</span>
             </div>
             <label className="checkbox">
               <input type="checkbox" checked={form.is_current} onChange={set('is_current')} />
@@ -604,7 +589,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
 
 function defaultsFor(tab, record) {
   const shapes = {
-    years: { year: '', start_date: '', end_date: '', is_current: false },
+    years: { year: '', is_current: false },
     levels: { level: '', name: '', sort_order: 0 },
     sections: { grade_level_id: '', section_code: '', name: '', room: '', capacity: 40 },
     subjects: {
@@ -624,6 +609,8 @@ function defaultsFor(tab, record) {
 }
 
 function serialise(tab, form) {
+  // The dates of a school year are worked out from its label on the server.
+  if (tab === 'years') return { year: form.year.trim(), is_current: Boolean(form.is_current) };
   if (tab === 'levels') return { ...form, sort_order: Number(form.sort_order) || 0 };
   if (tab === 'sections') {
     return {

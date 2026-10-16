@@ -24,6 +24,7 @@ from app.models.students import StudentEnrollment
 from app.services.access import class_access
 from app.schemas.academic import (
     GradeLevelCreate,
+    school_year_dates,
     GradeLevelResponse,
     GradeLevelUpdate,
     SchoolYearCreate,
@@ -111,10 +112,6 @@ async def create_school_year(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    if payload.end_date <= payload.start_date:
-        raise HTTPException(
-            status_code=400, detail="The end date must come after the start date."
-        )
     exists = (
         await db.execute(
             scoped(
@@ -127,7 +124,8 @@ async def create_school_year(
     if exists:
         raise HTTPException(status_code=409, detail="That school year already exists.")
 
-    row = SchoolYear(**payload.model_dump(), school_id=scope)
+    start, end = school_year_dates(payload.year)
+    row = SchoolYear(**payload.model_dump(), start_date=start, end_date=end, school_id=scope)
     if row.is_current:
         for other in (
             await db.execute(scoped(select(SchoolYear), SchoolYear, scope))
@@ -149,6 +147,8 @@ async def update_school_year(
 ):
     row = await get_scoped(db, SchoolYear, school_year_id, scope, "School year")
     data = payload.model_dump(exclude_unset=True)
+    if data.get("year"):
+        data["start_date"], data["end_date"] = school_year_dates(data["year"])
     if data.get("is_current"):
         for other in (
             await db.execute(scoped(select(SchoolYear), SchoolYear, scope))

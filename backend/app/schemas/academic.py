@@ -1,11 +1,12 @@
 """Pydantic models for the academic structure."""
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ORMModel(BaseModel):
@@ -13,26 +14,56 @@ class ORMModel(BaseModel):
 
 
 # ── School year ───────────────────────────────────────────────────────────────
+_YEAR_LABEL = re.compile(r"^\s*(\d{4})\s*[-–]\s*(\d{4})\s*$")
+
+
+def school_year_label(value: str) -> str:
+    """"2026 - 2027" -> "2026-2027"; anything else is refused.
+
+    A school year is the only thing a principal is asked for: its dates are
+    worked out from the label (see school_year_dates), so the label has to be
+    a real one.
+    """
+    match = _YEAR_LABEL.match(value or "")
+    if not match or int(match.group(2)) != int(match.group(1)) + 1:
+        raise ValueError("Use the format 2026-2027.")
+    return f"{match.group(1)}-{match.group(2)}"
+
+
+def school_year_dates(label: str) -> tuple[date, date]:
+    """The span stored for a school year: June 1 of its first year to May 31
+    of its second. Nothing in the system reads these beyond putting school
+    years in order, so the principal is not asked for them."""
+    first = int(label[:4])
+    return date(first, 6, 1), date(first + 1, 5, 31)
+
+
 class SchoolYearBase(BaseModel):
     year: str = Field(max_length=20, examples=["2025-2026"])
-    start_date: date
-    end_date: date
     is_current: bool = False
 
 
 class SchoolYearCreate(SchoolYearBase):
-    pass
+    @field_validator("year")
+    @classmethod
+    def _label(cls, value: str) -> str:
+        return school_year_label(value)
 
 
 class SchoolYearUpdate(BaseModel):
     year: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
     is_current: Optional[bool] = None
+
+    @field_validator("year")
+    @classmethod
+    def _label(cls, value: Optional[str]) -> Optional[str]:
+        return None if value is None else school_year_label(value)
 
 
 class SchoolYearResponse(ORMModel, SchoolYearBase):
     school_year_id: int
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
 
 
 # ── Grade level ───────────────────────────────────────────────────────────────
