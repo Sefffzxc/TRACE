@@ -220,9 +220,14 @@ export default function ClassRecordPage() {
     return enrollments
       .filter((e) => (needle ? (e.student_name || '').toLowerCase().includes(needle) : true))
       .map((enrollment) => {
+        // One record per learner, subject AND term. Matching without the
+        // term showed the same record — usually the first term's — under
+        // every term, and saving from the second term then copied it there.
         const stored = paces.find(
           (p) =>
-            p.enrollment_id === enrollment.enrollment_id && p.subject === subject?.subject_name,
+            p.enrollment_id === enrollment.enrollment_id &&
+            p.subject === subject?.subject_name &&
+            (p.grading_period ?? 1) === term,
         );
         const draft = drafts[enrollment.enrollment_id] || {};
 
@@ -259,7 +264,14 @@ export default function ClassRecordPage() {
       .sort((a, b) =>
         (a.enrollment.student_name || '').localeCompare(b.enrollment.student_name || ''),
       );
-  }, [enrollments, paces, drafts, subject, search, setup]);
+  }, [enrollments, paces, drafts, subject, search, setup, term]);
+
+  // Unsaved typing belongs to the sheet it was typed on. Without this, scores
+  // typed on one term (or subject) followed the teacher to the next one and
+  // were saved there.
+  useEffect(() => {
+    setDrafts({});
+  }, [term, subjectId]);
 
   const dirtyCount = rows.filter((r) => r.dirty).length;
 

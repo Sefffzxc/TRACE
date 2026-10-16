@@ -328,6 +328,10 @@ class PaceUpdate(AssessmentInput):
 
 class PaceResponse(ORMModel, PaceBase, AssessmentFields):
     pace_id: int
+    # Which term this record belongs to. A learner has one record per term
+    # in each subject, so a screen showing one term must be able to tell
+    # them apart.
+    grading_period: int = 1
     pace_percent: float = 0.0
     paces_behind: int = 0
     updated_at: Optional[datetime] = None
