@@ -659,6 +659,9 @@ export default function ClassRecordPage() {
 
                     <ScoreCells
                       values={row.ww}
+                      highest={setup.ww_highest}
+                      row={index}
+                      colStart={0}
                       onChange={(i, v) => setCell(row.enrollment.enrollment_id, 'ww_scores', i, v)}
                       label={`${row.enrollment.student_name} written work`}
                     />
@@ -668,6 +671,9 @@ export default function ClassRecordPage() {
 
                     <ScoreCells
                       values={row.pt}
+                      highest={setup.pt_highest}
+                      row={index}
+                      colStart={setup.ww_highest.length}
                       onChange={(i, v) => setCell(row.enrollment.enrollment_id, 'pt_scores', i, v)}
                       label={`${row.enrollment.student_name} performance task`}
                     />
@@ -677,6 +683,9 @@ export default function ClassRecordPage() {
 
                     <ScoreCells
                       values={row.exam}
+                      highest={setup.exam_highest}
+                      row={index}
+                      colStart={setup.ww_highest.length + setup.pt_highest.length}
                       onChange={(i, v) =>
                         setCell(row.enrollment.enrollment_id, 'exam_scores', i, v)
                       }
@@ -767,18 +776,50 @@ function HighestCells({ name, list, weight, editing, onChange }) {
   );
 }
 
-function ScoreCells({ values, onChange, label }) {
-  return values.map((value, i) => (
-    <td key={i} className="cr-cell">
-      <input
-        className="cr-input"
-        inputMode="decimal"
-        value={value}
-        onChange={(e) => onChange(i, e.target.value)}
-        aria-label={`${label} ${i + 1}`}
-      />
-    </td>
-  ));
+/* Spreadsheet-style movement between score cells, so a teacher can enter a
+   whole column without the mouse: Enter or Down goes to the next learner in
+   the same column, Up to the previous one. */
+function moveTo(row, col) {
+  const next = document.querySelector(`.cr-input[data-row="${row}"][data-col="${col}"]`);
+  if (next) {
+    next.focus();
+    next.select();
+  }
+}
+
+function ScoreCells({ values, highest = [], row, colStart, onChange, label }) {
+  return values.map((value, i) => {
+    const col = colStart + i;
+    const max = Number(highest[i]);
+    const score = Number(value);
+    // A score above the item's highest possible is almost always a typo.
+    const tooHigh = value !== '' && Number.isFinite(score) && max > 0 && score > max;
+    return (
+      <td key={i} className={`cr-cell${tooHigh ? ' is-invalid' : ''}`}>
+        <input
+          className="cr-input"
+          inputMode="decimal"
+          value={value}
+          data-row={row}
+          data-col={col}
+          onChange={(e) => onChange(i, e.target.value)}
+          onFocus={(e) => e.target.select()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === 'ArrowDown') {
+              e.preventDefault();
+              moveTo(row + 1, col);
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              moveTo(row - 1, col);
+            }
+          }}
+          aria-label={`${label} ${i + 1}`}
+          aria-invalid={tooHigh || undefined}
+          title={tooHigh ? `Above the highest possible score (${max})` : undefined}
+        />
+      </td>
+    );
+  });
 }
 
 function Derived({ value, strong = false }) {

@@ -854,7 +854,9 @@
 .cr-table {
   border-collapse: separate;      /* separate, so sticky cells keep their borders */
   border-spacing: 0;
-  font-size: var(--text-xs);
+  /* Sized for reading at arm's length on a classroom laptop, not for
+     fitting the most columns on screen. */
+  font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -880,10 +882,10 @@
    The offsets have to equal the heights exactly or the rows overlap once the
    grid is scrolled, so the heights are fixed here rather than left to the
    content. Nothing in the header wraps to a second line at these sizes. */
-.cr-table thead tr:nth-child(1) th { top: 0;       height: 2.9rem; }
-.cr-table thead tr:nth-child(2) th { top: 2.9rem;  height: 1.7rem; }
+.cr-table thead tr:nth-child(1) th { top: 0;       height: 3.1rem; }
+.cr-table thead tr:nth-child(2) th { top: 3.1rem;  height: 2.1rem; }
 .cr-table thead tr:nth-child(3) th,
-.cr-table thead tr:nth-child(3) td { top: 4.6rem;  height: 1.6rem; }
+.cr-table thead tr:nth-child(3) td { top: 5.2rem;  height: 2rem; }
 /* The HIGHEST POSSIBLE SCORE row is made of td, which is not sticky by
    default the way the th above it are. */
 .cr-table thead tr:nth-child(3) td { position: sticky; z-index: 2; }
@@ -902,8 +904,8 @@
   letter-spacing: 0;
 }
 
-.cr-item { min-width: 2.75rem; font-weight: 560; color: var(--text-muted); }
-.cr-derived { min-width: 3.4rem; background: var(--surface-sunken); }
+.cr-item { min-width: 3.4rem; font-weight: 600; color: var(--text-muted); }
+.cr-derived { min-width: 3.6rem; background: var(--surface-sunken); }
 .cr-out { min-width: 4.4rem; }
 
 /* The HIGHEST POSSIBLE SCORE row: the denominators every percentage uses. */
@@ -941,27 +943,43 @@
   font-variant-numeric: tabular-nums;
 }
 
-.cr-cell { padding: 0; }
+.cr-cell { padding: 3px; }
 
-/* The input fills its cell completely, so the grid reads as a spreadsheet
-   rather than as a form made of boxes. */
+/* A score cell looks like a box you can type in — its own field, edge and
+   fill — so it is never confused with the shaded figures the record
+   calculates. Large enough to hit and to read. */
 .cr-input {
+  display: block;
   width: 100%;
-  min-width: 2.75rem;
-  border: 0;
-  background: transparent;
-  padding: 0.35rem 0.25rem;
+  min-width: 3.1rem;
+  height: 2.4rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--surface-raised);
+  padding: 0 0.3rem;
   text-align: center;
   font: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-strong);
+  transition: border-color var(--fast), box-shadow var(--fast), background var(--fast);
 }
+.cr-input:hover { border-color: var(--brand-400); }
+/* The cell being typed in: a thick ring and a tinted fill, plain to see. */
 .cr-input:focus {
-  outline: 2px solid var(--brand-500);
-  outline-offset: -2px;
-  background: var(--surface-card);
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px var(--brand-400);
+  background: var(--brand-50);
   position: relative;
   z-index: 1;
+}
+/* A score above the item's highest possible — almost always a typo. */
+.cr-cell.is-invalid .cr-input {
+  border-color: var(--crit-500);
+  background: var(--crit-50);
+  color: var(--crit-500);
 }
 .cr-weight-input { min-width: 3rem; width: 3.5rem; padding: 0.15rem; }
 
@@ -969,6 +987,21 @@
 .cr-table tbody tr:hover td,
 .cr-table tbody tr:hover .cr-sticky { background: var(--surface-hover); }
 .cr-table tbody .cr-derived { background: var(--surface-sunken); color: var(--text-muted); }
+/* The learner being edited: their whole row is tinted and their name marked,
+   so it is clear whose scores are being typed however far the grid scrolls. */
+.cr-table tbody tr:focus-within td,
+.cr-table tbody tr:focus-within .cr-sticky { background: var(--brand-50); }
+.cr-table tbody tr:focus-within .cr-name {
+  color: var(--brand-600);
+  font-weight: 700;
+  box-shadow: inset 4px 0 0 var(--brand-500);
+}
+:root[data-theme="dark"] .cr-table tbody tr:focus-within .cr-name { color: var(--brand-300); }
+
+/* The highest-possible-score row sits in the sticky header, whose rows have
+   fixed heights; its inputs stay compact so the header does not grow. */
+.cr-hps .cr-cell { padding: 2px; }
+.cr-hps .cr-input { height: 1.75rem; font-size: var(--text-sm); }
 .cr-strong { color: var(--text-strong) !important; font-weight: 650; }
 
 /* A row with unsaved marks, flagged on the pinned name so it stays visible
