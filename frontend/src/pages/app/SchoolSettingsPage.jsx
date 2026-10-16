@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Building2, GraduationCap, Info, Save, ShieldCheck } from 'lucide-react';
+import AddressFields from '../../components/common/AddressFields';
 import { EmptyState, ErrorNote, PageHead } from '../../components/common/ui';
 import { schoolApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -186,7 +187,7 @@ export default function SchoolSettingsPage() {
               <div className="card-subtitle">Name and address</div>
             </div>
           </div>
-          <div className="card-body">
+          <div className="card-body stack">
             <div className="form-grid">
               <div className="field span-2">
                 <label className="field-label" htmlFor="sc_name">
@@ -212,51 +213,13 @@ export default function SchoolSettingsPage() {
                   onChange={set('short_name')}
                 />
               </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sc_address">
-                  Address
-                </label>
-                <input
-                  id="sc_address"
-                  className="input"
-                  value={form.address}
-                  onChange={set('address')}
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sc_city">
-                  City or municipality <span className="req">*</span>
-                </label>
-                <input
-                  id="sc_city"
-                  className="input"
-                  value={form.city}
-                  onChange={set('city')}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sc_province">
-                  Province
-                </label>
-                <input
-                  id="sc_province"
-                  className="input"
-                  value={form.province}
-                  onChange={set('province')}
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sc_region">
-                  Region
-                </label>
-                <input
-                  id="sc_region"
-                  className="input"
-                  value={form.region}
-                  onChange={set('region')}
-                />
-              </div>
+            </div>
+            <AddressFields
+              idPrefix="sc"
+              value={form}
+              onChange={(patch) => setForm((current) => ({ ...current, ...patch }))}
+            />
+            <div className="form-grid">
               <div className="field">
                 <label className="field-label" htmlFor="sc_contact">
                   Contact number

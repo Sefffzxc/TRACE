@@ -473,3 +473,14 @@
   .only-mobile { display: inline-flex; }
   .hide-mobile { display: none !important; }
 }
+
+/* Address pickers (components/common/AddressFields.jsx). */
+.combo { position: relative; }
+.combo-list {
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  width: auto;
+  max-height: 260px;
+}
+.combo-list .dropdown-item.is-active { background: var(--surface-hover); }

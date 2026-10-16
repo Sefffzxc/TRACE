@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import { authApi, schoolApi } from '../../api/endpoints';
+import AddressFields from '../../components/common/AddressFields';
 import { ErrorNote } from '../../components/common/ui';
 
 /* One deployment now serves many schools, so the first thing this form has to
@@ -622,57 +623,11 @@ export default function RegisterPage() {
               </div>
             </fieldset>
 
-            <div className="field">
-              <label className="field-label" htmlFor="s_address">
-                Address
-              </label>
-              <input
-                id="s_address"
-                className="input"
-                placeholder="Street and barangay"
-                value={school.address}
-                onChange={setSchoolField('address')}
-              />
-            </div>
-
-            <div className="form-grid">
-              <div className="field">
-                <label className="field-label" htmlFor="s_city">
-                  City or municipality <span className="req">*</span>
-                </label>
-                <input
-                  id="s_city"
-                  className="input"
-                  value={school.city}
-                  onChange={setSchoolField('city')}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="s_province">
-                  Province
-                </label>
-                <input
-                  id="s_province"
-                  className="input"
-                  value={school.province}
-                  onChange={setSchoolField('province')}
-                />
-              </div>
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor="s_region">
-                Region
-              </label>
-              <input
-                id="s_region"
-                className="input"
-                placeholder="Region IV-A — optional"
-                value={school.region}
-                onChange={setSchoolField('region')}
-              />
-            </div>
+            <AddressFields
+              idPrefix="s"
+              value={school}
+              onChange={(patch) => setSchool((current) => ({ ...current, ...patch }))}
+            />
 
             <div className="form-grid">
               <div className="field">
