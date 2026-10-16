@@ -66,6 +66,7 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
   const [active, setActive] = useState(0);
   const searchRef = useOutsideClose(() => setSearchOpen(false));
   const searchTarget = isAdmin ? 'teachers' : 'students';
+  const showSearch = pathname === '/dashboard' && !isSuperAdmin;
 
   // Refreshed on every focus so a learner added a minute ago is findable;
   // the previous list stays usable while the new one loads.
@@ -149,8 +150,11 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
 
       {schoolYear && <span className="header-chip hide-mobile">S.Y. {schoolYear}</span>}
 
-      {/* The system operator has no students or teachers to search. */}
-      {!isSuperAdmin && (
+      {/* Only on the dashboard: every other page has its own search, and two
+          search boxes on one screen is one too many. The system operator has
+          no students or teachers to search. */}
+      {!showSearch && <span className="header-spacer" />}
+      {showSearch && (
         <form className="header-search" onSubmit={submitSearch} role="search" ref={searchRef}>
           <Search size={15} />
           <input

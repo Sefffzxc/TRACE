@@ -259,6 +259,9 @@
   color: var(--text-faint);
   pointer-events: none;
 }
+/* Holds the header's buttons to the right on pages without the search box. */
+.header-spacer { margin-left: auto; }
+
 /* Live search suggestions under the header search box. */
 .header-search .search-results { left: 0; right: 0; width: auto; min-width: 280px; }
 .header-search .dropdown-item.is-active { background: var(--surface-hover); }
