@@ -18,7 +18,7 @@ import TraceMark from '../common/TraceMark';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar({ collapsed, open, onNavigate, pendingCount, criticalCount }) {
-  const { user, isAdmin, isSuperAdmin, school, tracksUnits, unitLabel } = useAuth();
+  const { user, isAdmin, isSuperAdmin, tracksUnits, unitLabel } = useAuth();
 
   /**
    * The nav is built from the role rather than filtered after the fact, because
@@ -103,11 +103,6 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
         </span>
         <span className="sidebar-title">
           <span className="name">{SYSTEM.name}</span>
-          {/* One deployment, many schools: under the product name sits the
-              school the user actually belongs to. The operator belongs to none. */}
-          <span className="sub">
-            {isSuperAdmin ? 'Operations' : school?.short_name || school?.name || 'Monitoring'}
-          </span>
         </span>
       </div>
 
