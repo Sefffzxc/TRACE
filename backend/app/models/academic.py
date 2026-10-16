@@ -182,6 +182,9 @@ class TeacherAssignment(Base):
 
 class ClassSchedule(Base):
     """A weekly timetable slot: teacher + subject + section + day + time."""
+    # No longer used: the timetable was removed from TRACE. The model stays so
+    # the table and any rows already in it are left alone rather than
+    # dropped; nothing reads or writes it.
 
     __tablename__ = "class_schedules"
 
@@ -233,6 +236,9 @@ class ClassSchedule(Base):
 
 class TeacherAvailability(Base):
     """Consultation / free periods a teacher publishes."""
+    # No longer used: the timetable was removed from TRACE. The model stays so
+    # the table and any rows already in it are left alone rather than
+    # dropped; nothing reads or writes it.
 
     __tablename__ = "teacher_availabilities"
 

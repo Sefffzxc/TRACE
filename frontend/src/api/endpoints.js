@@ -129,13 +129,6 @@ export const assignmentApi = {
   remove: (id) => api.delete(`/api/teacher-assignments/${id}`),
 };
 
-export const scheduleApi = {
-  list: (params) => api.get('/api/class-schedules', params),
-  create: (payload) => api.post('/api/class-schedules', payload),
-  update: (id, payload) => api.patch(`/api/class-schedules/${id}`, payload),
-  remove: (id) => api.delete(`/api/class-schedules/${id}`),
-};
-
 /* ── Students ────────────────────────────────────────────────────────────── */
 export const studentApi = {
   list: (params) => api.get('/api/students', params),
@@ -186,6 +179,8 @@ export const warningApi = {
 /* ── Dashboard ───────────────────────────────────────────────────────────── */
 export const dashboardApi = {
   load: () => api.get('/api/dashboard'),
+  /* The principal's view: the school and its teachers. */
+  admin: () => api.get('/api/dashboard/admin'),
 };
 
 /* ── AI risk classification ──────────────────────────────────────────────────

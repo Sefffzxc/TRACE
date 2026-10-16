@@ -45,7 +45,7 @@ export default function LoginPage() {
   return (
     <AuthLayout>
       <h2>Welcome back</h2>
-      <p className="auth-lede">Sign in to continue monitoring your students&rsquo; progress.</p>
+      <p className="auth-lede">Sign in to continue.</p>
 
       <form className="auth-form" onSubmit={submit} noValidate>
         <ErrorNote message={error} />

@@ -26,7 +26,6 @@ const TITLES = {
   '/teachers': 'Teachers',
   '/approvals': 'Account Approvals',
   '/class-management': 'Class Management',
-  '/schedule': 'Timetable',
   '/account': 'Account Settings',
   '/ai-risk': 'AI Risk Model',
   '/schools': 'Schools',

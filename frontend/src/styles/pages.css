@@ -585,39 +585,6 @@
   color: var(--text-faint);
 }
 
-/* Timetable -------------------------------------------------------------- */
-.timetable { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: var(--text-xs); }
-.timetable th {
-  padding: 0.5rem;
-  background: var(--surface-sunken);
-  border-radius: var(--radius-xs);
-  color: var(--text-muted);
-  font-size: var(--text-2xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.timetable td { padding: 0; vertical-align: top; }
-.timetable .slot {
-  min-height: 56px;
-  padding: 0.45rem 0.55rem;
-  border-radius: var(--radius-xs);
-  background: var(--surface-sunken);
-  border: 1px dashed var(--border-subtle);
-  color: var(--text-faint);
-  display: grid;
-  place-items: center;
-}
-.timetable .slot.filled {
-  background: var(--brand-50);
-  border: 1px solid var(--border-subtle);
-  color: var(--brand-600);
-  display: block;
-  text-align: left;
-}
-:root[data-theme="dark"] .timetable .slot.filled { color: var(--brand-300); }
-.timetable .slot .s { font-weight: 700; display: block; }
-.timetable .slot .m { color: var(--text-muted); display: block; margin-top: 1px; }
-
 /* ══════════════════════════════════════════════════════════════════════════
    Profile settings
    ══════════════════════════════════════════════════════════════════════════ */

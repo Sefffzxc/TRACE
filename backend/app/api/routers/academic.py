@@ -1,5 +1,5 @@
-"""Class management: school years, grade levels, sections, subjects,
-teacher assignments, the weekly timetable and teacher availability."""
+"""Class management: school years, grade levels, sections, subjects and
+teacher assignments."""
 from __future__ import annotations
 
 import uuid
@@ -13,22 +13,15 @@ from app.api.deps import get_current_admin, get_current_user, school_scope
 from app.api.scoping import get_scoped, get_scoped_optional, scoped
 from app.db.session import get_db
 from app.models.academic import (
-    ClassSchedule,
     GradeLevel,
     SchoolYear,
     Section,
     Subject,
     TeacherAssignment,
-    TeacherAvailability,
 )
 from app.models.staff import Staff
 from app.models.students import StudentEnrollment
 from app.schemas.academic import (
-    AvailabilityCreate,
-    AvailabilityResponse,
-    ClassScheduleCreate,
-    ClassScheduleResponse,
-    ClassScheduleUpdate,
     GradeLevelCreate,
     GradeLevelResponse,
     GradeLevelUpdate,
@@ -670,241 +663,5 @@ async def delete_assignment(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, TeacherAssignment, assignment_id, scope, "Assignment")
-    await db.delete(row)
-    await db.commit()
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Class schedules
-# ══════════════════════════════════════════════════════════════════════════════
-async def _decorate_schedules(
-    db: AsyncSession, rows, scope: int
-) -> List[ClassScheduleResponse]:
-    teachers = {
-        s.id: s.full_name
-        for s in (await db.execute(scoped(select(Staff), Staff, scope))).scalars()
-    }
-    sections = {
-        s.section_id: s.name
-        for s in (await db.execute(scoped(select(Section), Section, scope))).scalars()
-    }
-    subjects = {
-        s.subject_id: s.subject_name
-        for s in (await db.execute(scoped(select(Subject), Subject, scope))).scalars()
-    }
-    out = []
-    for row in rows:
-        item = ClassScheduleResponse.model_validate(row)
-        item.teacher_name = teachers.get(row.teacher_id)
-        item.section_name = sections.get(row.section_id)
-        item.subject_name = subjects.get(row.subject_id)
-        out.append(item)
-    return out
-
-
-async def _check_conflicts(
-    db: AsyncSession, payload, scope: int, exclude_id: int | None = None
-) -> None:
-    """A room, a teacher and a section can each only be in one place at a time."""
-    same_day = (
-        await db.execute(
-            scoped(
-                select(ClassSchedule).where(
-                    ClassSchedule.day_of_week == payload.day_of_week,
-                    ClassSchedule.school_year_id == payload.school_year_id,
-                ),
-                ClassSchedule,
-                scope,
-            )
-        )
-    ).scalars().all()
-
-    for other in same_day:
-        if exclude_id is not None and other.schedule_id == exclude_id:
-            continue
-        if not _overlaps(
-            payload.start_time, payload.end_time, other.start_time, other.end_time
-        ):
-            continue
-        if other.teacher_id == payload.teacher_id:
-            raise HTTPException(
-                status_code=409,
-                detail=f"That teacher already has a class on {payload.day_of_week} "
-                f"at {other.start_time}–{other.end_time}.",
-            )
-        if other.section_id == payload.section_id:
-            raise HTTPException(
-                status_code=409,
-                detail=f"That section already has a class on {payload.day_of_week} "
-                f"at {other.start_time}–{other.end_time}.",
-            )
-        if other.room and payload.room and other.room == payload.room:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Room {payload.room} is taken on {payload.day_of_week} "
-                f"at {other.start_time}–{other.end_time}.",
-            )
-
-
-@router.get("/api/class-schedules", response_model=List[ClassScheduleResponse])
-async def list_schedules(
-    section_id: Optional[int] = None,
-    teacher_id: Optional[uuid.UUID] = None,
-    school_year_id: Optional[int] = None,
-    _: Staff = Depends(get_current_user),
-    scope: int = Depends(school_scope),
-    db: AsyncSession = Depends(get_db),
-):
-    stmt = scoped(
-        select(ClassSchedule).order_by(
-            ClassSchedule.day_of_week, ClassSchedule.start_time
-        ),
-        ClassSchedule,
-        scope,
-    )
-    if section_id:
-        stmt = stmt.where(ClassSchedule.section_id == section_id)
-    if teacher_id:
-        stmt = stmt.where(ClassSchedule.teacher_id == teacher_id)
-    if school_year_id:
-        stmt = stmt.where(ClassSchedule.school_year_id == school_year_id)
-    rows = (await db.execute(stmt)).scalars().all()
-    return await _decorate_schedules(db, rows, scope)
-
-
-@router.post("/api/class-schedules", response_model=ClassScheduleResponse, status_code=201)
-async def create_schedule(
-    payload: ClassScheduleCreate,
-    _: Staff = Depends(get_current_admin),
-    scope: int = Depends(school_scope),
-    db: AsyncSession = Depends(get_db),
-):
-    if _to_minutes(payload.end_time) <= _to_minutes(payload.start_time):
-        raise HTTPException(status_code=400, detail="The end time must be after the start time.")
-    if await get_scoped_optional(db, SchoolYear, payload.school_year_id, scope) is None:
-        raise HTTPException(status_code=400, detail="That school year does not exist.")
-    if await get_scoped_optional(db, Section, payload.section_id, scope) is None:
-        raise HTTPException(status_code=400, detail="That section does not exist.")
-    if await get_scoped_optional(db, Subject, payload.subject_id, scope) is None:
-        raise HTTPException(status_code=400, detail="That subject does not exist.")
-    if await get_scoped_optional(db, Staff, payload.teacher_id, scope) is None:
-        raise HTTPException(status_code=400, detail="That teacher does not exist.")
-    await _check_conflicts(db, payload, scope)
-    row = ClassSchedule(**payload.model_dump(), school_id=scope)
-    db.add(row)
-    await db.commit()
-    await db.refresh(row)
-    return (await _decorate_schedules(db, [row], scope))[0]
-
-
-@router.patch("/api/class-schedules/{schedule_id}", response_model=ClassScheduleResponse)
-async def update_schedule(
-    schedule_id: int,
-    payload: ClassScheduleUpdate,
-    _: Staff = Depends(get_current_admin),
-    scope: int = Depends(school_scope),
-    db: AsyncSession = Depends(get_db),
-):
-    row = await get_scoped(db, ClassSchedule, schedule_id, scope, "Schedule")
-    data = payload.model_dump(exclude_unset=True)
-    if data.get("section_id") is not None and (
-        await get_scoped_optional(db, Section, data["section_id"], scope) is None
-    ):
-        raise HTTPException(status_code=400, detail="That section does not exist.")
-    if data.get("subject_id") is not None and (
-        await get_scoped_optional(db, Subject, data["subject_id"], scope) is None
-    ):
-        raise HTTPException(status_code=400, detail="That subject does not exist.")
-    if data.get("teacher_id") is not None and (
-        await get_scoped_optional(db, Staff, data["teacher_id"], scope) is None
-    ):
-        raise HTTPException(status_code=400, detail="That teacher does not exist.")
-
-    for field, value in data.items():
-        setattr(row, field, value)
-    if _to_minutes(row.end_time) <= _to_minutes(row.start_time):
-        raise HTTPException(status_code=400, detail="The end time must be after the start time.")
-    await _check_conflicts(db, row, scope, exclude_id=schedule_id)
-    await db.commit()
-    await db.refresh(row)
-    return (await _decorate_schedules(db, [row], scope))[0]
-
-
-@router.delete("/api/class-schedules/{schedule_id}", status_code=204)
-async def delete_schedule(
-    schedule_id: int,
-    _: Staff = Depends(get_current_admin),
-    scope: int = Depends(school_scope),
-    db: AsyncSession = Depends(get_db),
-):
-    row = await get_scoped(db, ClassSchedule, schedule_id, scope, "Schedule")
-    await db.delete(row)
-    await db.commit()
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# Teacher availability
-# ══════════════════════════════════════════════════════════════════════════════
-@router.get("/api/teacher-availabilities", response_model=List[AvailabilityResponse])
-async def list_availabilities(
-    teacher_id: Optional[uuid.UUID] = None,
-    _: Staff = Depends(get_current_user),
-    scope: int = Depends(school_scope),
-    db: AsyncSession = Depends(get_db),
-):
-    stmt = scoped(
-        select(TeacherAvailability).where(TeacherAvailability.is_active.is_(True)),
-        TeacherAvailability,
-        scope,
-    )
-    if teacher_id:
-        stmt = stmt.where(TeacherAvailability.teacher_id == teacher_id)
-    rows = (await db.execute(stmt)).scalars().all()
-    teachers = {
-        s.id: s.full_name
-        for s in (await db.execute(scoped(select(Staff), Staff, scope))).scalars()
-    }
-    out = []
-    for row in rows:
-        item = AvailabilityResponse.model_validate(row)
-        item.teacher_name = teachers.get(row.teacher_id)
-        out.append(item)
-    return out
-
-
-@router.post(
-    "/api/teacher-availabilities", response_model=AvailabilityResponse, status_code=201
-)
-async def create_availability(
-    payload: AvailabilityCreate,
-    current: Staff = Depends(get_current_user),
-    scope: int = Depends(school_scope),
-    db: AsyncSession = Depends(get_db),
-):
-    if current.role != "admin" and payload.teacher_id != current.id:
-        raise HTTPException(
-            status_code=403, detail="You can only publish your own availability."
-        )
-    if await get_scoped_optional(db, Staff, payload.teacher_id, scope) is None:
-        raise HTTPException(status_code=400, detail="That teacher does not exist.")
-    row = TeacherAvailability(**payload.model_dump(), school_id=scope)
-    db.add(row)
-    await db.commit()
-    await db.refresh(row)
-    return AvailabilityResponse.model_validate(row)
-
-
-@router.delete("/api/teacher-availabilities/{availability_id}", status_code=204)
-async def delete_availability(
-    availability_id: int,
-    current: Staff = Depends(get_current_user),
-    scope: int = Depends(school_scope),
-    db: AsyncSession = Depends(get_db),
-):
-    row = await get_scoped(
-        db, TeacherAvailability, availability_id, scope, "Availability"
-    )
-    if current.role != "admin" and row.teacher_id != current.id:
-        raise HTTPException(status_code=403, detail="That entry is not yours.")
     await db.delete(row)
     await db.commit()

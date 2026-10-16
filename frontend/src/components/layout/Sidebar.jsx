@@ -5,7 +5,6 @@ import {
   Brain,
   ClipboardList,
   Building2,
-  CalendarDays,
   GraduationCap,
   LayoutDashboard,
   Settings,
@@ -37,18 +36,31 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
       { to: '/schools', label: 'Schools', icon: Building2, group: 'Operations' },
       { to: '/account', label: 'Account', icon: UserCheck, group: 'Operations' },
     ];
+  } else if (isAdmin) {
+    /* The principal runs the school and its teachers; following individual
+       learners is the teachers' job, so no monitoring screen appears here. */
+    items = [
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
+      { to: '/teachers', label: 'Teachers', icon: Users, group: 'Administration' },
+      {
+        to: '/approvals',
+        label: 'Approvals',
+        icon: UserCheck,
+        group: 'Administration',
+        count: pendingCount,
+      },
+      { to: '/class-management', label: 'Class Management', icon: BookOpen, group: 'Administration' },
+      { to: '/school-settings', label: 'School Settings', icon: Settings, group: 'Administration' },
+    ];
   } else {
     items = [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
       { to: '/students', label: 'Students', icon: Users, group: 'Monitoring' },
-      /* Every school gets this one. Attendance and assessment marks are what
-         the risk model actually reads, and they exist whether or not a school
-         tracks lesson units — so this is never hidden. */
+      /* Every school gets this one: assessment marks are what the risk model
+         reads, and they exist whether or not a school tracks lesson units. */
       { to: '/class-record', label: 'Class Record', icon: ClipboardList, group: 'Monitoring' },
-      /* Lesson-unit progress is the part that varies, so it is the part that
-         appears conditionally, named with the school's own word for it —
-         "PACE Progress" at a School of Tomorrow school, "Module Progress"
-         elsewhere, nothing at all at a school that tracks no units. */
+      /* Lesson-unit progress appears only at a school that tracks units, named
+         with the school's own word for it ("PACE Progress", "Module Progress"). */
       ...(tracksUnits
         ? [
             {
@@ -67,26 +79,6 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
         count: criticalCount,
       },
       { to: '/ai-risk', label: 'AI Risk Model', icon: Brain, group: 'Monitoring' },
-      ...(isAdmin
-        ? [
-            { to: '/teachers', label: 'Teachers', icon: UserCheck, group: 'Administration' },
-            {
-              to: '/approvals',
-              label: 'Approvals',
-              icon: UserCheck,
-              group: 'Administration',
-              count: pendingCount,
-            },
-            {
-              to: '/class-management',
-              label: 'Class Management',
-              icon: BookOpen,
-              group: 'Administration',
-            },
-            { to: '/schedule', label: 'Timetable', icon: CalendarDays, group: 'Administration' },
-            { to: '/school-settings', label: 'School Settings', icon: Settings, group: 'Administration' },
-          ]
-        : [{ to: '/schedule', label: 'My Timetable', icon: CalendarDays, group: 'Administration' }]),
     ];
   }
 

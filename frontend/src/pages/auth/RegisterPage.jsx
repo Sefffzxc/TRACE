@@ -27,8 +27,6 @@ const BLANK_TEACHER = {
   last_name: '',
   email: '',
   contact_number: '',
-  employee_no: '',
-  department: '',
   password: '',
   confirm: '',
 };
@@ -38,7 +36,6 @@ const BLANK_TEACHER = {
    radio is an answer nobody gave. */
 const BLANK_SCHOOL = {
   name: '',
-  short_name: '',
   school_type: '',
   address: '',
   city: '',
@@ -61,7 +58,6 @@ const BLANK_ADMIN = {
   last_name: '',
   email: '',
   contact_number: '',
-  employee_no: '',
   password: '',
   confirm: '',
 };
@@ -208,8 +204,6 @@ export default function RegisterPage() {
       middle_name: teacher.middle_name.trim() || null,
       last_name: teacher.last_name.trim(),
       contact_number: teacher.contact_number.trim(),
-      employee_no: teacher.employee_no.trim() || null,
-      department: teacher.department.trim() || null,
     });
     setDone({
       kind: 'teacher',
@@ -226,7 +220,6 @@ export default function RegisterPage() {
          apart in the payload is what makes that readable on the server. */
       school: {
         name: school.name.trim(),
-        short_name: school.short_name.trim() || null,
         school_type: school.school_type,
         address: school.address.trim(),
         city: school.city.trim(),
@@ -250,7 +243,6 @@ export default function RegisterPage() {
       email: admin.email.trim(),
       contact_number: admin.contact_number.trim(),
       password: admin.password,
-      employee_no: admin.employee_no.trim() || null,
     });
     setDone({ kind: 'school', ...result, school_name: school.name.trim() });
   };
@@ -371,8 +363,8 @@ export default function RegisterPage() {
       <h2>{mode === 'school' ? 'Register your school' : 'Request a staff account'}</h2>
       <p className="auth-lede">
         {mode === 'school'
-          ? 'Tell us about the school and set up your own administrator account. The system operator reviews every new school.'
-          : 'Fill in your details. An administrator at your school approves each request before the account becomes active.'}
+          ? 'Register your school and your administrator account.'
+          : 'Your school administrator approves new accounts.'}
       </p>
 
       <form className="auth-form" onSubmit={submit} noValidate>
@@ -404,10 +396,7 @@ export default function RegisterPage() {
               A school administrator
             </label>
           </div>
-          <span className="field-hint">
-            Choose &ldquo;school administrator&rdquo; only if you are registering a school that
-            is not in the system yet. Everyone else at the school registers as a teacher.
-          </span>
+          <span className="field-hint">Administrator is only for registering a new school.</span>
         </fieldset>
 
         {mode === 'teacher' ? (
@@ -445,18 +434,11 @@ export default function RegisterPage() {
                   </option>
                 ))}
               </select>
-              <span className="field-hint">
-                Your school must already be registered here. If it is not in the list, your
-                school head needs to register it first — they should come back to this page and
-                choose &ldquo;a school administrator&rdquo; above.
-              </span>
+              <span className="field-hint">Not listed? Your school head must register it first.</span>
               {directory !== null && directory.length === 0 && !directoryError && (
                 <div className="alert alert-info">
                   <Building2 size={17} />
-                  <span>
-                    No schools have been approved yet. If yours is the first, register it with
-                    the school administrator option above.
-                  </span>
+                  <span>No schools yet. Register yours as a school administrator.</span>
                 </div>
               )}
               <ErrorNote message={directoryError} />
@@ -511,7 +493,7 @@ export default function RegisterPage() {
 
             <div className="field">
               <label className="field-label" htmlFor="reg_email">
-                School email <span className="req">*</span>
+                Email <span className="req">*</span>
               </label>
               <input
                 id="reg_email"
@@ -524,44 +506,17 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div className="form-grid">
-              <div className="field">
-                <label className="field-label" htmlFor="contact">
-                  Contact number <span className="req">*</span>
-                </label>
-                <input
-                  id="contact"
-                  className="input"
-                  placeholder="0917 000 0000"
-                  value={teacher.contact_number}
-                  onChange={setTeacherField('contact_number')}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="employee_no">
-                  Employee number
-                </label>
-                <input
-                  id="employee_no"
-                  className="input"
-                  placeholder="Optional"
-                  value={teacher.employee_no}
-                  onChange={setTeacherField('employee_no')}
-                />
-              </div>
-            </div>
-
             <div className="field">
-              <label className="field-label" htmlFor="department">
-                Department
+              <label className="field-label" htmlFor="contact">
+                Contact number <span className="req">*</span>
               </label>
               <input
-                id="department"
+                id="contact"
                 className="input"
-                placeholder="Optional"
-                value={teacher.department}
-                onChange={setTeacherField('department')}
+                placeholder="0917 000 0000"
+                value={teacher.contact_number}
+                onChange={setTeacherField('contact_number')}
+                required
               />
             </div>
 
@@ -637,20 +592,6 @@ export default function RegisterPage() {
                 onChange={setSchoolField('name')}
                 required
               />
-            </div>
-
-            <div className="field">
-              <label className="field-label" htmlFor="s_short">
-                Short name
-              </label>
-              <input
-                id="s_short"
-                className="input"
-                placeholder="LNHS — optional"
-                value={school.short_name}
-                onChange={setSchoolField('short_name')}
-              />
-              <span className="field-hint">Used in headers and on sign-in screens.</span>
             </div>
 
             <fieldset className="field" style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
@@ -741,7 +682,7 @@ export default function RegisterPage() {
                 <input
                   id="s_contact"
                   className="input"
-                  placeholder="(049) 000 0000"
+                  placeholder="(049) 000 0000 — optional"
                   value={school.contact_number}
                   onChange={setSchoolField('contact_number')}
                 />
@@ -837,21 +778,14 @@ export default function RegisterPage() {
                       }}
                       required
                     />
-                    <span className="field-hint">
-                      Filled in from the name above; correct it if that guess is wrong.
-                    </span>
+
                   </div>
                 </div>
               )}
 
               <span className="field-hint">
-                This is not the same question as public or private. Most private schools follow
-                the DepEd curriculum and answer <strong>No</strong> — grades and attendance are
-                the whole record. Answer <strong>Yes</strong> only if your curriculum is built
-                from numbered booklets a student works through one at a time, as School of
-                Tomorrow / ACE schools do, where they are called PACEs. Answering No hides the
-                lesson-progress screens for everyone at your school; you can change this later
-                in school settings.
+                Most schools answer <strong>No</strong>. Choose Yes only for booklet-based
+                schools such as School of Tomorrow (PACEs). You can change this later.
               </span>
             </fieldset>
 
@@ -906,10 +840,7 @@ export default function RegisterPage() {
                 onChange={setSchoolField('grading_period_label')}
                 required
               />
-              <span className="field-hint">
-                &ldquo;Quarter&rdquo;, &ldquo;Grading&rdquo;, &ldquo;Semester&rdquo; — whatever
-                appears on your report cards.
-              </span>
+              <span className="field-hint">As on your report cards, e.g. Quarter.</span>
             </div>
 
             {/* ── Your account ───────────────────────────────────────────── */}
@@ -968,35 +899,21 @@ export default function RegisterPage() {
                 onChange={setAdminField('email')}
                 required
               />
-              <span className="field-hint">This is the address you will sign in with.</span>
+              <span className="field-hint">You sign in with this.</span>
             </div>
 
-            <div className="form-grid">
-              <div className="field">
-                <label className="field-label" htmlFor="a_contact">
-                  Contact number <span className="req">*</span>
-                </label>
-                <input
-                  id="a_contact"
-                  className="input"
-                  placeholder="0917 000 0000"
-                  value={admin.contact_number}
-                  onChange={setAdminField('contact_number')}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="a_employee">
-                  Employee number
-                </label>
-                <input
-                  id="a_employee"
-                  className="input"
-                  placeholder="Optional"
-                  value={admin.employee_no}
-                  onChange={setAdminField('employee_no')}
-                />
-              </div>
+            <div className="field">
+              <label className="field-label" htmlFor="a_contact">
+                Contact number <span className="req">*</span>
+              </label>
+              <input
+                id="a_contact"
+                className="input"
+                placeholder="0917 000 0000"
+                value={admin.contact_number}
+                onChange={setAdminField('contact_number')}
+                required
+              />
             </div>
 
             <div className="field">

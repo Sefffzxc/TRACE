@@ -23,7 +23,6 @@ import AiInsightsPage from './pages/app/AiInsightsPage';
 import TeachersPage from './pages/app/TeachersPage';
 import ApprovalsPage from './pages/app/ApprovalsPage';
 import ClassManagementPage from './pages/app/ClassManagementPage';
-import SchedulePage from './pages/app/SchedulePage';
 import SchoolsAdminPage from './pages/app/SchoolsAdminPage';
 import SchoolSettingsPage from './pages/app/SchoolSettingsPage';
 import AccountPage from './pages/app/AccountPage';
@@ -61,6 +60,17 @@ function RequireGuest({ children }) {
   const { user, booting } = useAuth();
   if (booting) return <Splash />;
   if (user) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+/**
+ * Teacher-only routes: the monitoring screens. The principal runs the school
+ * and its teachers; following individual learners is the teachers' job, so the
+ * route itself is closed to them, not just its menu entry.
+ */
+function RequireTeacher({ children }) {
+  const { isAdmin } = useAuth();
+  if (isAdmin) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -168,24 +178,60 @@ function Router() {
             </Landing>
           }
         />
-        <Route path="/students" element={<StudentsPage />} />
-        <Route path="/students/:studentId" element={<StudentProfilePage />} />
+        <Route
+          path="/students"
+          element={
+            <RequireTeacher>
+              <StudentsPage />
+            </RequireTeacher>
+          }
+        />
+        <Route
+          path="/students/:studentId"
+          element={
+            <RequireTeacher>
+              <StudentProfilePage />
+            </RequireTeacher>
+          }
+        />
         {/* The class record exists at EVERY school: attendance and assessment
             marks are what the risk model reads, and a school that tracks no
             lesson units still has both. It used to be a tab inside the screen
             below, which meant a DepEd school could not reach it at all. */}
-        <Route path="/class-record" element={<ClassRecordPage />} />
+        <Route
+          path="/class-record"
+          element={
+            <RequireTeacher>
+              <ClassRecordPage />
+            </RequireTeacher>
+          }
+        />
         <Route
           path="/pace"
           element={
-            <RequireUnitTracking>
-              <RosterPage mode="units" />
-            </RequireUnitTracking>
+            <RequireTeacher>
+              <RequireUnitTracking>
+                <RosterPage mode="units" />
+              </RequireUnitTracking>
+            </RequireTeacher>
           }
         />
-        <Route path="/early-warning" element={<EarlyWarningPage />} />
-        <Route path="/ai-risk" element={<AiInsightsPage />} />
-        <Route path="/schedule" element={<SchedulePage />} />
+        <Route
+          path="/early-warning"
+          element={
+            <RequireTeacher>
+              <EarlyWarningPage />
+            </RequireTeacher>
+          }
+        />
+        <Route
+          path="/ai-risk"
+          element={
+            <RequireTeacher>
+              <AiInsightsPage />
+            </RequireTeacher>
+          }
+        />
         <Route path="/account" element={<AccountPage />} />
         <Route
           path="/schools"

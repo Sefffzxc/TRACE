@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, school_scope
+from app.api.deps import get_current_admin, get_current_user, school_scope
 from app.db.session import get_db
-from app.models.academic import GradeLevel, SchoolYear, Section, Subject
+from app.models.academic import GradeLevel, SchoolYear, Section, Subject, TeacherAssignment
 from app.models.staff import (
     ROLE_ADMIN,
     ROLE_TEACHER,
@@ -314,25 +314,38 @@ async def dashboard(
         for w in ranked
     ]
 
-    # ── Recent activity feed ──────────────────────────────────────────────────
-    # audit_logs carries no school_id of its own, so the feed is scoped through
-    # the actor: only actions taken by this school's own staff are shown. The
-    # super admin's school_id is NULL, so their actions never appear here.
+    stats.recent_activity = await _recent_activity(
+        db, scope, lookups, tracks_units=stats.tracks_units
+    )
+
+    stats.school_year = await _current_year(db, scope)
+    return stats
+
+
+async def _recent_activity(
+    db: AsyncSession, scope: int, lookups: Lookups, *, tracks_units: bool, limit: int = 10
+) -> list[dict]:
+    """The newest actions taken by this school's own staff.
+
+    audit_logs carries no school_id of its own, so the feed is scoped through
+    the actor: only actions taken by this school's own staff are shown. The
+    super admin's school_id is NULL, so their actions never appear here.
+    """
     school_actors = select(Staff.id).where(Staff.school_id == scope)
     logs = (
         await db.execute(
             select(AuditLog)
             .where(AuditLog.admin_id.in_(school_actors))
             .order_by(AuditLog.created_at.desc())
-            .limit(10)
+            .limit(limit)
         )
     ).scalars().all()
-    stats.recent_activity = [
+    return [
         {
             "action": log.action,
             "label": (
                 "Class record updated"
-                if log.action == "pace_recorded" and not stats.tracks_units
+                if log.action == "pace_recorded" and not tracks_units
                 else ACTIVITY_LABELS.get(log.action, log.action.replace("_", " ").title())
             ),
             "detail": log.detail,
@@ -342,6 +355,8 @@ async def dashboard(
         for log in logs
     ]
 
+
+async def _current_year(db: AsyncSession, scope: int) -> Optional[str]:
     year = (
         await db.execute(
             select(SchoolYear).where(
@@ -350,5 +365,184 @@ async def dashboard(
             )
         )
     ).scalar_one_or_none()
-    stats.school_year = year.year if year else None
-    return stats
+    return year.year if year else None
+
+
+# A teacher who has not signed in for this long is worth a word.
+QUIET_AFTER_DAYS = 14
+
+
+@router.get("/api/dashboard/admin")
+async def admin_dashboard(
+    _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    """The principal's view: the school and its teachers, not its learners.
+
+    Counts are school-wide totals. The per-teacher figures say how far each
+    teacher's classes are graded for the current term: a class is a section
+    and subject (see below for how its teacher is found), and a learner
+    counts as graded once their record for that term has a term grade.
+    """
+    school = await db.get(School, scope)
+    lookups = await Lookups.load(db, school_id=scope)
+    now = datetime.now(timezone.utc)
+
+    teachers = (
+        await db.execute(
+            select(Staff).where(
+                Staff.school_id == scope,
+                Staff.role == ROLE_TEACHER,
+                Staff.is_approved.is_(True),
+            )
+        )
+    ).scalars().all()
+    teachers = [t for t in teachers if getattr(t, "is_active", True)]
+    pending = (
+        await db.execute(
+            select(func.count()).select_from(Staff).where(
+                Staff.school_id == scope, Staff.account_status == STATUS_PENDING
+            )
+        )
+    ).scalar_one()
+    subjects = {
+        s.subject_id: s.subject_name
+        for s in (
+            await db.execute(
+                select(Subject).where(Subject.school_id == scope, Subject.is_active.is_(True))
+            )
+        ).scalars()
+    }
+    enrollments = (
+        await db.execute(
+            select(StudentEnrollment).where(
+                StudentEnrollment.school_id == scope,
+                StudentEnrollment.is_active.is_(True),
+            )
+        )
+    ).scalars().all()
+    learners_in: dict[int, set[int]] = {}
+    for e in enrollments:
+        learners_in.setdefault(e.section_id, set()).add(e.enrollment_id)
+
+    assignments = (
+        await db.execute(select(TeacherAssignment).where(TeacherAssignment.school_id == scope))
+    ).scalars().all()
+    advised = {a.section_id for a in assignments if a.is_adviser}
+
+    section_of = {e.enrollment_id: e.section_id for e in enrollments}
+    records = (
+        await db.execute(
+            select(
+                StudentPace.enrollment_id, StudentPace.subject, StudentPace.grading_period,
+                StudentPace.transmuted_grade, StudentPace.recorded_by,
+            ).where(StudentPace.school_id == scope)
+        )
+    ).all()
+    # Graded records per (enrolment, subject, term).
+    graded_set = {
+        (e, s, t or 1) for e, s, t, grade, _by in records if grade is not None
+    }
+    # The current term is the latest one anyone has started grading.
+    term = max((t for _e, _s, t in graded_set), default=1)
+
+    # A class is a section and subject. Which teacher it belongs to is taken,
+    # in order, from: an assignment naming that subject; whoever has been
+    # recording its grades; a teacher assigned to the section as a whole.
+    # Schools set assignments up both ways, and the records never lie about
+    # who did the work.
+    classes: dict[tuple, Optional[str]] = {}
+    for a in assignments:
+        if a.subject_id in subjects:
+            classes[(a.section_id, subjects[a.subject_id])] = str(a.teacher_id)
+    recorders: dict[tuple, dict[str, int]] = {}
+    for e, subject, _t, _grade, by in records:
+        section_id = section_of.get(e)
+        if section_id is None or subject not in subjects.values():
+            continue
+        tally = recorders.setdefault((section_id, subject), {})
+        if by is not None:
+            tally[str(by)] = tally.get(str(by), 0) + 1
+    section_teacher = {}
+    for a in assignments:
+        if a.subject_id is None:
+            # Prefer the adviser when a section has several general assignments.
+            if a.is_adviser or a.section_id not in section_teacher:
+                section_teacher[a.section_id] = str(a.teacher_id)
+    for key, tally in recorders.items():
+        if key in classes:
+            continue
+        classes[key] = (
+            max(tally, key=tally.get) if tally else section_teacher.get(key[0])
+        )
+
+    by_teacher: dict[str, dict] = {}
+    unstarted = []
+    for (section_id, name), teacher_id in classes.items():
+        roster = learners_in.get(section_id, set())
+        done = sum(1 for e in roster if (e, name, term) in graded_set)
+        if teacher_id is not None:
+            row = by_teacher.setdefault(teacher_id, {"classes": 0, "graded": 0, "learners": 0})
+            row["classes"] += 1
+            row["graded"] += done
+            row["learners"] += len(roster)
+        if roster and done == 0:
+            unstarted.append({
+                "teacher": lookups.staff.get(teacher_id or "", "No teacher"),
+                "section": lookups.sections.get(section_id, f"Section {section_id}"),
+                "subject": name,
+            })
+
+    teacher_rows = []
+    for t in teachers:
+        row = by_teacher.get(str(t.id), {"classes": 0, "graded": 0, "learners": 0})
+        last = t.last_login_at
+        if last is not None and last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        quiet_days = (now - last).days if last else None
+        teacher_rows.append({
+            "id": str(t.id),
+            "name": t.full_name,
+            "classes": row["classes"],
+            "learners": row["learners"],
+            "graded": row["graded"],
+            "progress": (
+                round(100 * row["graded"] / row["learners"], 1) if row["learners"] else None
+            ),
+            "last_login": _relative(last) if last else None,
+            "quiet": quiet_days is None or quiet_days >= QUIET_AFTER_DAYS,
+        })
+    # Furthest behind first, teachers with no classes last.
+    teacher_rows.sort(key=lambda r: (r["progress"] is None, r["progress"] or 0))
+
+    total_learners = sum(r["learners"] for r in teacher_rows)
+    total_graded = sum(r["graded"] for r in teacher_rows)
+
+    return {
+        "school_year": await _current_year(db, scope),
+        "term": term,
+        "term_label": (school.grading_period_label if school else None) or "Quarter",
+        "counts": {
+            "teachers": len(teachers),
+            "pending_approvals": pending,
+            "sections": len(lookups.sections),
+            "subjects": len(subjects),
+            "learners": len({e.student_id for e in enrollments}),
+        },
+        "grading_progress": (
+            round(100 * total_graded / total_learners, 1) if total_learners else None
+        ),
+        "teachers": teacher_rows,
+        "attention": {
+            "quiet_teachers": [r["name"] for r in teacher_rows if r["quiet"]],
+            "sections_without_adviser": sorted(
+                name for sid, name in lookups.sections.items() if sid not in advised
+            ),
+            "classes_not_started": unstarted[:12],
+            "classes_not_started_total": len(unstarted),
+        },
+        "recent_activity": await _recent_activity(
+            db, scope, lookups, tracks_units=bool(school and school.tracks_units)
+        ),
+    }

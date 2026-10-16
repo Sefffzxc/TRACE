@@ -27,6 +27,7 @@ import { EmptyState, ErrorNote, RiskBadge } from '../../components/common/ui';
 import { dashboardApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { IMAGES } from '../../config/images';
+import AdminDashboard from './AdminDashboard';
 
 function Stat({ label, value, unit, icon: Icon, tone = '', foot }) {
   return (
@@ -46,7 +47,14 @@ function Stat({ label, value, unit, icon: Icon, tone = '', foot }) {
   );
 }
 
+/** Teachers follow their learners; principals follow the school and its
+    teachers, so each role gets its own dashboard. */
 export default function DashboardPage() {
+  const { isAdmin } = useAuth();
+  return isAdmin ? <AdminDashboard /> : <TeacherDashboard />;
+}
+
+function TeacherDashboard() {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 

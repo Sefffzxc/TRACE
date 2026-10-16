@@ -23,7 +23,6 @@ import {
 } from '../../components/common/ui';
 import StudentFormModal from '../../components/common/StudentFormModal';
 import { gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { AiRiskBadge } from '../../components/common/ai';
 import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
@@ -61,7 +60,6 @@ export default function StudentsPage() {
   // record is complete, and the coursework banked before that. One axis for
   // both, so a part-finished term and a finished one can sit in the same
   // column without the reader having to know which is which.
-  const { isAdmin } = useAuth();
   const [params, setParams] = useSearchParams();
 
   const [students, setStudents] = useState([]);
@@ -397,7 +395,7 @@ export default function StudentsPage() {
                         AI forecast <SortIcon column="ai_risk_score" />
                       </span>
                     </th>
-                    {isAdmin && <th className="actions">Actions</th>}
+                    <th className="actions">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -529,8 +527,9 @@ export default function StudentsPage() {
                           </>
                         )}
                       </td>
-                      {isAdmin && (
-                        <td className="actions" onClick={(event) => event.stopPropagation()}>
+                      {/* Teachers manage their own learners; the server only
+                          lets a teacher remove one from a section they handle. */}
+                      <td className="actions" onClick={(event) => event.stopPropagation()}>
                           <button
                             type="button"
                             className="btn-icon"
@@ -548,7 +547,6 @@ export default function StudentsPage() {
                             <Trash2 size={15} />
                           </button>
                         </td>
-                      )}
                     </tr>
                   ))}
                 </tbody>

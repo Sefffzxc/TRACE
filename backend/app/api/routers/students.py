@@ -348,13 +348,25 @@ async def update_student(
 async def delete_student(
     student_id: int,
     request: Request,
-    admin: Staff = Depends(get_current_admin),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    """Remove a learner. Teachers manage their own learners, so a teacher may
+    remove one enrolled in a section they handle; an administrator, anyone."""
     student = await get_scoped(db, Student, student_id, scope, "Student")
+    if current.role != ROLE_ADMIN:
+        enrollment = (
+            await current_enrollments(db, [student_id], school_id=scope)
+        ).get(student_id)
+        mine = set(await sections_for_teacher(db, current.id, school_id=scope))
+        if enrollment is None or enrollment.section_id not in mine:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only remove learners enrolled in a section you handle.",
+            )
     await log_event(
-        db, Action.STUDENT_DELETED, actor_id=admin.id, detail=student.full_name,
+        db, Action.STUDENT_DELETED, actor_id=current.id, detail=student.full_name,
         request=request,
     )
     await db.delete(student)

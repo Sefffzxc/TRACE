@@ -45,8 +45,10 @@ export default function AppShell() {
       return;
     }
     try {
+      // Student warnings are the teachers' to act on; the principal's screens
+      // follow the school and its teachers, so their bell carries none.
       const [warnings, year] = await Promise.all([
-        warningApi.list({ risk_level: 'critical,high' }),
+        isAdmin ? Promise.resolve([]) : warningApi.list({ risk_level: 'critical,high' }),
         schoolYearApi.current(),
       ]);
       setAlerts(warnings || []);

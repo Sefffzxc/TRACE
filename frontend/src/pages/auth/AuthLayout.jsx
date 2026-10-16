@@ -97,11 +97,7 @@ export default function AuthLayout({ children }) {
           <h1>
             Every learner&rsquo;s progress, <em>seen early enough to act.</em>
           </h1>
-          <p>
-            TRACE reads each learner&rsquo;s class record subject by subject, forecasts their
-            final grade from the first term, and raises a flag the moment they start slipping,
-            while there is still time to help.
-          </p>
+          <p>Class records, final-grade forecasts and early warnings in one place.</p>
           <div className="auth-highlights">
             <span>
               <TrendingUp size={14} /> Final-grade forecast
