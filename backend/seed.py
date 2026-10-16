@@ -344,7 +344,7 @@ async def build_demo(db, operator_id) -> dict:
     for code, name, level_no, _adviser in SECTIONS:
         section = Section(school_id=sid, grade_level_id=levels[level_no].grade_level_id,
                           section_code=code, name=name,
-                          room=f"Room {level_no}0{len(sections) + 1}", capacity=40)
+                          capacity=40)
         db.add(section)
         sections[code] = section
     await db.flush()

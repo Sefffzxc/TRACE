@@ -295,7 +295,7 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
   if (tab === 'sections') {
     if (!data.sections.length) return <EmptyState icon={GraduationCap} title="No sections yet" />;
     return wrap(
-      ['Code', 'Section', 'Grade level', 'Adviser', 'Enrolled', 'Room', 'Actions'],
+      ['Code', 'Section', 'Grade level', 'Adviser', 'Enrolled', 'Actions'],
       data.sections.map((row) => (
         <tr key={row.section_id}>
           <td className="mono">{row.section_code}</td>
@@ -305,7 +305,6 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
           <td>
             {row.enrolled_count}/{row.capacity}
           </td>
-          <td className="muted">{row.room || '—'}</td>
           {actions(row)}
         </tr>
       )),
@@ -324,7 +323,7 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
           {tracksUnits && <td>{row.total_paces}</td>}
           <td>
             <span className={`badge ${row.is_active ? 'badge-low' : 'badge-neutral'}`}>
-              {row.is_active ? 'Active' : 'Inactive'}
+              {row.is_active ? 'In use' : 'Not in use'}
             </span>
           </td>
           {actions(row)}
@@ -436,12 +435,6 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
               </label>
               <input id="l_name" className="input" placeholder="Grade 7" value={form.name} onChange={set('name')} required />
             </div>
-            <div className="field">
-              <label className="field-label" htmlFor="l_order">
-                Sort order
-              </label>
-              <input id="l_order" className="input" type="number" value={form.sort_order} onChange={set('sort_order')} />
-            </div>
           </div>
         )}
 
@@ -472,12 +465,6 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                   Section name <span className="req">*</span>
                 </label>
                 <input id="sec_name" className="input" placeholder="Grade 7 - Faith" value={form.name} onChange={set('name')} required />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sec_room">
-                  Room
-                </label>
-                <input id="sec_room" className="input" placeholder="Room 701" value={form.room} onChange={set('room')} />
               </div>
               <div className="field">
                 <label className="field-label" htmlFor="sec_cap">
@@ -526,10 +513,16 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                 </div>
               )}
             </div>
-            <label className="checkbox">
-              <input type="checkbox" checked={form.is_active} onChange={set('is_active')} />
-              Active this school year
-            </label>
+            {/* A new subject is always in use; the switch is for retiring one later. */}
+            {record && (
+              <div className="field">
+                <label className="checkbox">
+                  <input type="checkbox" checked={form.is_active} onChange={set('is_active')} />
+                  In use
+                </label>
+                <span className="field-hint">Untick to hide this subject without deleting its grades.</span>
+              </div>
+            )}
           </>
         )}
 
@@ -590,8 +583,8 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
 function defaultsFor(tab, record) {
   const shapes = {
     years: { year: '', is_current: false },
-    levels: { level: '', name: '', sort_order: 0 },
-    sections: { grade_level_id: '', section_code: '', name: '', room: '', capacity: 40 },
+    levels: { level: '', name: '' },
+    sections: { grade_level_id: '', section_code: '', name: '', capacity: 40 },
     subjects: {
       grade_level_id: '',
       subject_name: '',
@@ -611,13 +604,12 @@ function defaultsFor(tab, record) {
 function serialise(tab, form) {
   // The dates of a school year are worked out from its label on the server.
   if (tab === 'years') return { year: form.year.trim(), is_current: Boolean(form.is_current) };
-  if (tab === 'levels') return { ...form, sort_order: Number(form.sort_order) || 0 };
+  if (tab === 'levels') return { level: form.level.trim(), name: form.name.trim() };
   if (tab === 'sections') {
     return {
       ...form,
       grade_level_id: Number(form.grade_level_id),
       capacity: Number(form.capacity) || 40,
-      room: form.room || null,
     };
   }
   if (tab === 'subjects') {

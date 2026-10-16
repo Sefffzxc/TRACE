@@ -67,10 +67,20 @@ class SchoolYearResponse(ORMModel, SchoolYearBase):
 
 
 # ── Grade level ───────────────────────────────────────────────────────────────
+def grade_level_rank(level: str) -> int:
+    """Where a grade level sits in a list: Grade 7 before Grade 10.
+
+    The level is stored as text, which would put "10" before "7", so lists
+    are ordered by its number instead. A level with no number ("Kinder")
+    goes first.
+    """
+    digits = re.search(r"[0-9]+", level or "")
+    return int(digits.group()) if digits else 0
+
+
 class GradeLevelBase(BaseModel):
     level: str = Field(max_length=10)
     name: str = Field(max_length=30)
-    sort_order: int = 0
 
 
 class GradeLevelCreate(GradeLevelBase):
@@ -80,7 +90,6 @@ class GradeLevelCreate(GradeLevelBase):
 class GradeLevelUpdate(BaseModel):
     level: Optional[str] = None
     name: Optional[str] = None
-    sort_order: Optional[int] = None
 
 
 class GradeLevelResponse(ORMModel, GradeLevelBase):
@@ -94,7 +103,6 @@ class SectionBase(BaseModel):
     grade_level_id: int
     section_code: str = Field(max_length=20)
     name: str = Field(max_length=40)
-    room: Optional[str] = Field(default=None, max_length=40)
     capacity: int = 40
 
 
@@ -106,7 +114,6 @@ class SectionUpdate(BaseModel):
     grade_level_id: Optional[int] = None
     section_code: Optional[str] = None
     name: Optional[str] = None
-    room: Optional[str] = None
     capacity: Optional[int] = None
 
 

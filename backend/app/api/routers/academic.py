@@ -24,6 +24,7 @@ from app.models.students import StudentEnrollment
 from app.services.access import class_access
 from app.schemas.academic import (
     GradeLevelCreate,
+    grade_level_rank,
     school_year_dates,
     GradeLevelResponse,
     GradeLevelUpdate,
@@ -201,14 +202,14 @@ async def list_grade_levels(
     rows = (
         await db.execute(
             scoped(
-                select(GradeLevel).order_by(
-                    GradeLevel.sort_order, GradeLevel.grade_level_id
-                ),
+                select(GradeLevel).order_by(GradeLevel.grade_level_id),
                 GradeLevel,
                 scope,
             )
         )
     ).scalars().all()
+    # By the number in the level, so Grade 10 comes after Grade 7.
+    rows = sorted(rows, key=lambda row: grade_level_rank(row.level))
 
     section_counts = dict(
         (
@@ -266,7 +267,9 @@ async def create_grade_level(
     ).scalar_one_or_none()
     if exists:
         raise HTTPException(status_code=409, detail="That grade level already exists.")
-    row = GradeLevel(**payload.model_dump(), school_id=scope)
+    row = GradeLevel(
+        **payload.model_dump(), sort_order=grade_level_rank(payload.level), school_id=scope
+    )
     db.add(row)
     await db.commit()
     await db.refresh(row)
@@ -284,6 +287,7 @@ async def update_grade_level(
     row = await get_scoped(db, GradeLevel, grade_level_id, scope, "Grade level")
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(row, field, value)
+    row.sort_order = grade_level_rank(row.level)
     await db.commit()
     await db.refresh(row)
     return GradeLevelResponse.model_validate(row)
