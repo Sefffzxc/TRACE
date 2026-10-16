@@ -201,7 +201,7 @@ function TeacherDashboard() {
           value={stats.at_risk}
           icon={AlertTriangle}
           tone="warn"
-          foot={`${levelCount('high')} at risk · ${levelCount('moderate')} watch`}
+          foot={`Students: ${levelCount('high')} at risk · ${levelCount('moderate')} watch`}
           to="/early-warning?level=at-risk"
         />
         <Stat
@@ -209,7 +209,7 @@ function TeacherDashboard() {
           value={stats.critical}
           icon={AlertOctagon}
           tone="crit"
-          foot="Needs intervention now"
+          foot="Students needing action now"
           to="/early-warning?level=critical"
         />
         {units ? (

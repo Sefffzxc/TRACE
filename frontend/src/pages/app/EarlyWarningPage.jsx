@@ -233,17 +233,24 @@ export default function EarlyWarningPage() {
     toast.success('Warning list exported.');
   };
 
-  // Tiles count students at their worst flag, as the dashboard does; the
-  // number of subject flags behind each goes underneath.
-  const counts = summary?.student_counts || { critical: 0, high: 0, moderate: 0 };
-  const flags = summary?.counts || { critical: 0, high: 0, moderate: 0 };
-  const flagText = (n) => `${n} subject flag${n === 1 ? '' : 's'}`;
+  // The tiles count the rows this page lists: open flags, one per student
+  // and subject. Underneath, how many students those flags belong to (one
+  // learner can be flagged in several subjects), which is how the dashboard
+  // counts.
+  const openFlags = warnings.filter((warning) => !warning.is_resolved);
+  const tile = (level) => {
+    const rows = level ? openFlags.filter((w) => w.risk_level === level) : openFlags;
+    return { flags: rows.length, students: new Set(rows.map((w) => w.student_id)).size };
+  };
+  const counts = { critical: tile('critical'), high: tile('high'), moderate: tile('moderate') };
+  const all = tile(null);
+  const studentText = (n) => `${n} student${n === 1 ? '' : 's'}`;
 
   return (
     <div className="page">
       <PageHead
         title="Early warning"
-        subtitle="Students who need attention, most urgent first."
+        subtitle="One row per student and subject, most urgent first."
         actions={
           <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!filtered.length}>
             <Download size={16} /> Export list
@@ -262,8 +269,8 @@ export default function EarlyWarningPage() {
               <AlertOctagon size={18} />
             </span>
           </div>
-          <div className="stat-value">{counts.critical}</div>
-          <div className="stat-foot">Students · {flagText(flags.critical)}</div>
+          <div className="stat-value">{counts.critical.flags}</div>
+          <div className="stat-foot">{studentText(counts.critical.students)}</div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -272,8 +279,8 @@ export default function EarlyWarningPage() {
               <AlertTriangle size={18} />
             </span>
           </div>
-          <div className="stat-value">{counts.high}</div>
-          <div className="stat-foot">Students · {flagText(flags.high)}</div>
+          <div className="stat-value">{counts.high.flags}</div>
+          <div className="stat-foot">{studentText(counts.high.students)}</div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -282,18 +289,18 @@ export default function EarlyWarningPage() {
               <Eye size={18} />
             </span>
           </div>
-          <div className="stat-value">{counts.moderate}</div>
-          <div className="stat-foot">Students · {flagText(flags.moderate)}</div>
+          <div className="stat-value">{counts.moderate.flags}</div>
+          <div className="stat-foot">{studentText(counts.moderate.students)}</div>
         </div>
         <div className="stat">
           <div className="stat-top">
-            <span className="stat-label">Students flagged</span>
+            <span className="stat-label">All flags</span>
             <span className="stat-icon">
               <ShieldCheck size={18} />
             </span>
           </div>
-          <div className="stat-value">{summary?.students_flagged ?? 0}</div>
-          <div className="stat-foot">{flagText(summary?.total_flagged ?? 0)} in all</div>
+          <div className="stat-value">{all.flags}</div>
+          <div className="stat-foot">{studentText(all.students)}</div>
         </div>
       </section>
 
