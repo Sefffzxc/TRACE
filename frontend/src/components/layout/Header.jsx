@@ -47,7 +47,7 @@ function useOutsideClose(onClose) {
 export default function Header({ collapsed, onToggleCollapse, onOpenMobile, alerts = [], schoolYear }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { user, signOut, unitLabel, school } = useAuth();
+  const { user, signOut, unitLabel, unitLabelPlural, school, tracksUnits, passingMark } = useAuth();
   const { isDark, toggle } = useTheme();
 
   const [bellOpen, setBellOpen] = useState(false);
@@ -163,8 +163,19 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
                     <span className="notice-body">
                       <span className="notice-title">{alert.student_name}</span>
                       <span className="notice-text">
-                        {alert.subject} — {alert.paces_behind} PACE
-                        {alert.paces_behind === 1 ? '' : 's'} behind
+                        {/* Each kind of school in its own terms: booklets behind,
+                            or the current grade against the passing mark. */}
+                        {tracksUnits
+                          ? `${alert.subject} — ${alert.paces_behind} ${
+                              alert.paces_behind === 1 ? unitLabel : unitLabelPlural
+                            } behind`
+                          : alert.standing == null
+                            ? alert.subject
+                            : `${alert.subject} — ${Math.round(alert.standing)}${
+                                alert.standing < passingMark
+                                  ? ` (${Math.round(passingMark - alert.standing)} below ${passingMark})`
+                                  : ''
+                              }`}
                       </span>
                       <span className="notice-time">{alert.section || '—'}</span>
                     </span>

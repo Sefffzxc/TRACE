@@ -112,9 +112,14 @@ export default function EarlyWarningPage() {
 
   // The model's opinion is loaded separately and on purpose: if it is slow or
   // down, this screen still renders in full, because the flags staff act on
-  // come from the PACE rules and do not depend on the model at all.
+  // come from the school rule and do not depend on the model at all. A school
+  // that tracks units has no AI forecast, so nothing is fetched.
   useEffect(() => {
     let cancelled = false;
+    if (units) {
+      setPredictions([]);
+      return undefined;
+    }
     (async () => {
       try {
         const rows = await aiApi.predictions({ latest_only: true, limit: 1000 });
@@ -126,7 +131,7 @@ export default function EarlyWarningPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [units]);
 
   // Keyed by student + subject, which is how a warning row identifies itself.
   const predictionFor = useMemo(() => {
@@ -169,9 +174,14 @@ export default function EarlyWarningPage() {
         ? ['Behind', 'Completion %', 'Trend']
         : ['Current grade', 'Grade type', `Gap to passing (${passing})`]),
       'Action',
-      // Carried through so the export can be checked, not just read.
-      'AI expected final grade', 'AI range low', 'AI range high', 'AI chance of failing',
-      'AI level', 'AI source', 'AI model version', 'AI inputs imputed',
+      // Carried through so the export can be checked, not just read. A school
+      // that tracks units has no AI forecast, so it gets no AI columns.
+      ...(units
+        ? []
+        : [
+            'AI expected final grade', 'AI range low', 'AI range high', 'AI chance of failing',
+            'AI level', 'AI source', 'AI model version', 'AI inputs imputed',
+          ]),
     ];
     const lines = filtered.map((warning) => {
       const prediction = predictionFor.get(`${warning.student_id}::${warning.subject}`);
@@ -189,14 +199,18 @@ export default function EarlyWarningPage() {
               warning.standing == null ? '' : Math.round(warning.standing - passing),
             ]),
         warning.intervention || '',
-        prediction?.predicted_final ?? '',
-        prediction?.range_low ?? '',
-        prediction?.range_high ?? '',
-        prediction ? prediction.risk_score : '',
-        prediction ? prediction.risk_level : 'not scored',
-        prediction ? prediction.source : '',
-        prediction ? prediction.model_version : '',
-        prediction ? (prediction.imputed_fields || []).join('; ') : '',
+        ...(units
+          ? []
+          : [
+              prediction?.predicted_final ?? '',
+              prediction?.range_low ?? '',
+              prediction?.range_high ?? '',
+              prediction ? prediction.risk_score : '',
+              prediction ? prediction.risk_level : 'not scored',
+              prediction ? prediction.source : '',
+              prediction ? prediction.model_version : '',
+              prediction ? (prediction.imputed_fields || []).join('; ') : '',
+            ]),
       ]
         .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
         .join(',');
@@ -336,8 +350,9 @@ export default function EarlyWarningPage() {
           <div>
             <h2>Flagged students</h2>
             <div className="card-subtitle">
-              {units ? 'Pace check' : 'Grade check'} is the school rule; AI forecast predicts the
-              final grade.
+              {units
+                ? 'Pace check is the school rule.'
+                : 'Grade check is the school rule; AI forecast predicts the final grade.'}
             </div>
           </div>
         </div>
@@ -375,7 +390,7 @@ export default function EarlyWarningPage() {
                         <th>Grade check</th>
                       </>
                     )}
-                    <th>AI forecast</th>
+                    {!units && <th>AI forecast</th>}
                     <th className="actions">Action</th>
                   </tr>
                 </thead>
@@ -455,14 +470,16 @@ export default function EarlyWarningPage() {
                       <td>
                         <RiskBadge level={warning.risk_level} />
                       </td>
-                      <td>
-                        <AiRiskBadge
-                          prediction={predictionFor.get(
-                            `${warning.student_id}::${warning.subject}`,
-                          )}
-                          compact
-                        />
-                      </td>
+                      {!units && (
+                        <td>
+                          <AiRiskBadge
+                            prediction={predictionFor.get(
+                              `${warning.student_id}::${warning.subject}`,
+                            )}
+                            compact
+                          />
+                        </td>
+                      )}
                       <td className="actions">
                         {warning.is_resolved ? (
                           <span className="badge badge-low">Handled</span>

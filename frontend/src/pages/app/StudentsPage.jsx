@@ -23,6 +23,7 @@ import {
 } from '../../components/common/ui';
 import StudentFormModal from '../../components/common/StudentFormModal';
 import { gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { AiRiskBadge } from '../../components/common/ai';
 import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
@@ -54,6 +55,10 @@ const RISK_FILTERS = [
 ];
 
 export default function StudentsPage() {
+  /* A school that tracks units reads a learner on booklets behind and
+     completion; every other school on grades, the passing mark and the AI
+     forecast. Each sees only its own columns. */
+  const { tracksUnits: units, unitLabel, unitLabelPlural } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   // Standing is a grade, or a grade-shaped figure: the term grade once a
@@ -187,16 +192,20 @@ export default function StudentsPage() {
       'Grade level',
       'Section',
       'Weakest subject',
-      'Weakest subject grade now',
-      'Grade type',
-      'Needs to pass',
-      'Subjects flagged',
-      'Subjects tracked',
-      'Grade check',
-      'AI forecast subject',
-      'AI forecast final grade',
-      'AI chance of failing',
-      'AI source',
+      ...(units
+        ? [`${unitLabelPlural} behind`, 'Completion %', 'Subjects flagged', 'Subjects tracked', 'Pace check']
+        : [
+            'Weakest subject grade now',
+            'Grade type',
+            'Needs to pass',
+            'Subjects flagged',
+            'Subjects tracked',
+            'Grade check',
+            'AI forecast subject',
+            'AI forecast final grade',
+            'AI chance of failing',
+            'AI source',
+          ]),
     ];
     const lines = sorted.map((student) =>
       [
@@ -206,16 +215,26 @@ export default function StudentsPage() {
         student.grade_level_name || '',
         student.section_name || '',
         student.weakest_subject ?? '',
-        student.weakest_standing ?? '',
-        BASIS_LABEL[student.weakest_basis] || student.weakest_basis || '',
-        student.needs_to_pass ?? '',
-        student.subjects_flagged ?? 0,
-        student.subjects_tracked ?? 0,
-        student.risk_level,
-        student.ai_subject ?? '',
-        student.ai_predicted_final ?? '',
-        student.ai_risk_score ?? '',
-        student.ai_source ?? '',
+        ...(units
+          ? [
+              student.paces_behind ?? 0,
+              student.pace_percent ?? 0,
+              student.subjects_flagged ?? 0,
+              student.subjects_tracked ?? 0,
+              student.risk_level,
+            ]
+          : [
+              student.weakest_standing ?? '',
+              BASIS_LABEL[student.weakest_basis] || student.weakest_basis || '',
+              student.needs_to_pass ?? '',
+              student.subjects_flagged ?? 0,
+              student.subjects_tracked ?? 0,
+              student.risk_level,
+              student.ai_subject ?? '',
+              student.ai_predicted_final ?? '',
+              student.ai_risk_score ?? '',
+              student.ai_source ?? '',
+            ]),
       ]
         .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
         .join(','),
@@ -250,7 +269,7 @@ export default function StudentsPage() {
     <div className="page">
       <PageHead
         title="Students"
-        subtitle="Your learners and what each needs to pass."
+        subtitle={units ? `Your learners and their ${unitLabel} progress.` : "Your learners and what each needs to pass."}
         actions={
           <>
             <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!sorted.length}>
@@ -368,18 +387,30 @@ export default function StudentsPage() {
                     {/* The weakest subject, not an average. A learner doing
                         well in three subjects and failing the fourth still
                         needs the conversation, and a mean would hide them. */}
-                    <th className="sortable" onClick={() => toggleSort('weakest_standing')}>
+                    <th
+                      className="sortable"
+                      onClick={() => toggleSort(units ? 'paces_behind' : 'weakest_standing')}
+                    >
                       <span className="th-inner">
-                        Weakest subject <SortIcon column="weakest_standing" />
+                        Weakest subject{' '}
+                        <SortIcon column={units ? 'paces_behind' : 'weakest_standing'} />
                       </span>
                     </th>
                     {/* The number a teacher can say out loud. "At risk"
                         is not advice; "needs 78 to pass" is. */}
-                    <th className="right sortable" onClick={() => toggleSort('needs_to_pass')}>
-                      <span className="th-inner">
-                        Needs to pass <SortIcon column="needs_to_pass" />
-                      </span>
-                    </th>
+                    {units ? (
+                      <th className="sortable" onClick={() => toggleSort('pace_percent')}>
+                        <span className="th-inner">
+                          Completion <SortIcon column="pace_percent" />
+                        </span>
+                      </th>
+                    ) : (
+                      <th className="right sortable" onClick={() => toggleSort('needs_to_pass')}>
+                        <span className="th-inner">
+                          Needs to pass <SortIcon column="needs_to_pass" />
+                        </span>
+                      </th>
+                    )}
                     <th className="right sortable" onClick={() => toggleSort('subjects_flagged')}>
                       <span className="th-inner">
                         Subjects flagged <SortIcon column="subjects_flagged" />
@@ -387,14 +418,16 @@ export default function StudentsPage() {
                     </th>
                     <th className="sortable" onClick={() => toggleSort('risk_score')}>
                       <span className="th-inner">
-                        Grade check <SortIcon column="risk_score" />
+                        {units ? 'Pace check' : 'Grade check'} <SortIcon column="risk_score" />
                       </span>
                     </th>
-                    <th className="sortable" onClick={() => toggleSort('ai_risk_score')}>
-                      <span className="th-inner">
-                        AI forecast <SortIcon column="ai_risk_score" />
-                      </span>
-                    </th>
+                    {!units && (
+                      <th className="sortable" onClick={() => toggleSort('ai_risk_score')}>
+                        <span className="th-inner">
+                          AI forecast <SortIcon column="ai_risk_score" />
+                        </span>
+                      </th>
+                    )}
                     <th className="actions">Actions</th>
                   </tr>
                 </thead>
@@ -423,6 +456,24 @@ export default function StudentsPage() {
                       {/* The weakest subject with its own grade, so the
                           number always belongs to the subject named beside it.
                           A grade from a term still in progress says so. */}
+                      {units ? (
+                        <td>
+                          {student.weakest_subject ? (
+                            <>
+                              <div>{student.weakest_subject}</div>
+                              <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
+                                {student.paces_behind
+                                  ? `${student.paces_behind} ${
+                                      student.paces_behind === 1 ? unitLabel : unitLabelPlural
+                                    } behind`
+                                  : 'on pace'}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="faint">—</span>
+                          )}
+                        </td>
+                      ) : (
                       <td title={BASIS_HINT[student.weakest_basis] || ''}>
                         {student.weakest_subject ? (
                           <>
@@ -447,8 +498,26 @@ export default function StudentsPage() {
                           <span className="faint">—</span>
                         )}
                       </td>
+                      )}
                       {/* What the weakest subject needs, on average, over the
-                          terms still to come to finish at the passing mark. */}
+                          terms still to come to finish at the passing mark;
+                          at a unit-tracking school, how far through the year's
+                          booklets the learner is. */}
+                      {units ? (
+                        <td style={{ minWidth: 130 }}>
+                          <div className="progress-row">
+                            <div className="progress">
+                              <div
+                                className={`progress-fill is-${student.risk_level}`}
+                                style={{ width: `${student.pace_percent || 0}%` }}
+                              />
+                            </div>
+                            <span className="progress-value">
+                              {(student.pace_percent || 0).toFixed(0)}%
+                            </span>
+                          </div>
+                        </td>
+                      ) : (
                       <td className="right">
                         {student.needs_to_pass === null ||
                         student.needs_to_pass === undefined ? (
@@ -498,6 +567,7 @@ export default function StudentsPage() {
                           </span>
                         )}
                       </td>
+                      )}
                       <td className="right">
                         {student.subjects_flagged ? (
                           <span className="cell-strong">
@@ -512,21 +582,23 @@ export default function StudentsPage() {
                       <td>
                         <RiskBadge level={student.risk_level} />
                       </td>
-                      <td>
-                        {/* The same badge as every other screen, with the
-                            subject above it: this row covers all of a
-                            learner's subjects, so it has to say which one. */}
-                        {student.ai_predicted_final == null ? (
-                          <AiRiskBadge prediction={null} compact />
-                        ) : (
-                          <>
-                            <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
-                              {student.ai_subject}
-                            </div>
-                            <AiRiskBadge prediction={aiOfStudent(student)} compact />
-                          </>
-                        )}
-                      </td>
+                      {!units && (
+                        <td>
+                          {/* The same badge as every other screen, with the
+                              subject above it: this row covers all of a
+                              learner's subjects, so it has to say which one. */}
+                          {student.ai_predicted_final == null ? (
+                            <AiRiskBadge prediction={null} compact />
+                          ) : (
+                            <>
+                              <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
+                                {student.ai_subject}
+                              </div>
+                              <AiRiskBadge prediction={aiOfStudent(student)} compact />
+                            </>
+                          )}
+                        </td>
+                      )}
                       {/* Teachers manage their own learners; the server only
                           lets a teacher remove one from a section they handle. */}
                       <td className="actions" onClick={(event) => event.stopPropagation()}>

@@ -53,14 +53,13 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
       { to: '/school-settings', label: 'School Settings', icon: Settings, group: 'Administration' },
     ];
   } else {
+    /* The two kinds of school keep different records. A school that tracks
+       units (PACE booklets) records progress through them; every other school
+       keeps the DepEd class record, which is also what the AI forecast reads.
+       Each sees only its own. */
     items = [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
       { to: '/students', label: 'Students', icon: Users, group: 'Monitoring' },
-      /* Every school gets this one: assessment marks are what the risk model
-         reads, and they exist whether or not a school tracks lesson units. */
-      { to: '/class-record', label: 'Class Record', icon: ClipboardList, group: 'Monitoring' },
-      /* Lesson-unit progress appears only at a school that tracks units, named
-         with the school's own word for it ("PACE Progress", "Module Progress"). */
       ...(tracksUnits
         ? [
             {
@@ -70,7 +69,7 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
               group: 'Monitoring',
             },
           ]
-        : []),
+        : [{ to: '/class-record', label: 'Class Record', icon: ClipboardList, group: 'Monitoring' }]),
       {
         to: '/early-warning',
         label: 'Early Warning',
@@ -78,7 +77,9 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
         group: 'Monitoring',
         count: criticalCount,
       },
-      { to: '/ai-risk', label: 'AI Risk Model', icon: Brain, group: 'Monitoring' },
+      ...(tracksUnits
+        ? []
+        : [{ to: '/ai-risk', label: 'AI Risk Model', icon: Brain, group: 'Monitoring' }]),
     ];
   }
 

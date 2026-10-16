@@ -117,6 +117,18 @@ function RequireUnitTracking({ children }) {
   return children;
 }
 
+/**
+ * The class record and the AI forecast belong to schools that grade by class
+ * record. A school that tracks units records booklet progress instead and has
+ * no grades for the model to read, so the routes close for it, not just the
+ * menu entries. Decided only once the school's settings have arrived.
+ */
+function RequireGradeRecord({ children }) {
+  const { school, tracksUnits } = useAuth();
+  if (school && tracksUnits) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 function Router() {
   return (
     <Routes>
@@ -202,7 +214,9 @@ function Router() {
           path="/class-record"
           element={
             <RequireTeacher>
-              <ClassRecordPage />
+              <RequireGradeRecord>
+                <ClassRecordPage />
+              </RequireGradeRecord>
             </RequireTeacher>
           }
         />
@@ -228,7 +242,9 @@ function Router() {
           path="/ai-risk"
           element={
             <RequireTeacher>
-              <AiInsightsPage />
+              <RequireGradeRecord>
+                <AiInsightsPage />
+              </RequireGradeRecord>
             </RequireTeacher>
           }
         />

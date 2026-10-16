@@ -46,7 +46,7 @@ function progressTone(percent) {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, unitLabel } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -99,6 +99,10 @@ export default function AdminDashboard() {
 
   const { counts, attention } = data;
   const termName = `${data.term_label} ${data.term}`;
+  // A school that tracks units keeps no term grades; its progress figure is
+  // booklet progress recorded recently instead.
+  const updated = data.measure === 'updated';
+  const progressLabel = updated ? `Updated in ${data.recent_days} days` : `${termName} graded`;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const attentionCount =
@@ -130,7 +134,7 @@ export default function AdminDashboard() {
                 </span>
               )}
               <span>
-                <ClipboardCheck size={13} /> Grading {termName}
+                <ClipboardCheck size={13} /> {updated ? `${unitLabel} progress` : `Grading ${termName}`}
               </span>
             </div>
           </div>
@@ -138,7 +142,7 @@ export default function AdminDashboard() {
             <span className="v">
               {data.grading_progress == null ? '—' : `${data.grading_progress.toFixed(0)}%`}
             </span>
-            <span className="l">{termName} graded</span>
+            <span className="l">{progressLabel}</span>
           </div>
         </div>
       </section>
@@ -198,7 +202,7 @@ export default function AdminDashboard() {
                     <tr>
                       <th>Teacher</th>
                       <th className="right">Classes</th>
-                      <th>{termName} graded</th>
+                      <th>{progressLabel}</th>
                       <th>Last sign-in</th>
                     </tr>
                   </thead>
@@ -213,7 +217,7 @@ export default function AdminDashboard() {
                           ) : (
                             <div
                               className="progress-row"
-                              title={`${teacher.graded} of ${teacher.learners} learners graded`}
+                              title={`${teacher.graded} of ${teacher.learners} learners ${updated ? "updated" : "graded"}`}
                             >
                               <div className="progress">
                                 <div
@@ -270,7 +274,10 @@ export default function AdminDashboard() {
                   <div>
                     <div className="row" style={{ gap: '.4rem', fontWeight: 600 }}>
                       <ClipboardCheck size={14} style={{ color: 'var(--warn-500)' }} />
-                      No {termName} grades yet ({attention.classes_not_started_total})
+                      {updated
+                        ? `No updates in ${data.recent_days} days`
+                        : `No ${termName} grades yet`}{' '}
+                      ({attention.classes_not_started_total})
                     </div>
                     <ul className="muted" style={{ margin: '.25rem 0 0', paddingLeft: '1.1rem' }}>
                       {attention.classes_not_started.map((item) => (

@@ -398,7 +398,7 @@ export default function AiInsightsPage() {
                       <td className="faint">{row.primary_factor || '—'}</td>
                       <td>
                         <div style={{ fontSize: 'var(--text-2xs)' }}>
-                          <div>{row.source === 'model' ? row.model_version : 'PACE rules'}</div>
+                          <div>{row.source === 'model' ? row.model_version : 'School rule'}</div>
                           <div className="faint">
                             {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
                           </div>

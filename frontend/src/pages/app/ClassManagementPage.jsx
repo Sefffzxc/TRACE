@@ -25,6 +25,7 @@ import {
   staffApi,
   subjectApi,
 } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 const TABS = [
@@ -219,6 +220,8 @@ export default function ClassManagementPage() {
 
 /* ── Tables ──────────────────────────────────────────────────────────────── */
 function SetupTable({ tab, data, onEdit, onDelete }) {
+  // Booklets per subject only mean something at a school that tracks units.
+  const { tracksUnits, unitLabelPlural } = useAuth();
   const wrap = (headers, rows) => (
     <div className="table-wrap">
       <table className="table">
@@ -310,13 +313,13 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
   if (tab === 'subjects') {
     if (!data.subjects.length) return <EmptyState icon={BookOpen} title="No subjects yet" />;
     return wrap(
-      ['Code', 'Subject', 'Grade level', 'PACEs', 'Status', 'Actions'],
+      ['Code', 'Subject', 'Grade level', ...(tracksUnits ? [unitLabelPlural] : []), 'Status', 'Actions'],
       data.subjects.map((row) => (
         <tr key={row.subject_id}>
           <td className="mono">{row.subject_code}</td>
           <td className="cell-strong">{row.subject_name}</td>
           <td>{row.grade_level_name}</td>
-          <td>{row.total_paces}</td>
+          {tracksUnits && <td>{row.total_paces}</td>}
           <td>
             <span className={`badge ${row.is_active ? 'badge-low' : 'badge-neutral'}`}>
               {row.is_active ? 'Active' : 'Inactive'}
@@ -357,6 +360,7 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
 
 /* ── Forms ───────────────────────────────────────────────────────────────── */
 function SetupModal({ tab, record, data, busy, onSave, onClose }) {
+  const { tracksUnits, unitLabelPlural } = useAuth();
   const [form, setForm] = useState(() => defaultsFor(tab, record));
   const set = (field) => (event) => {
     const value =
@@ -524,12 +528,14 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                 </label>
                 <input id="sub_code" className="input" placeholder="MATH7" value={form.subject_code} onChange={set('subject_code')} required />
               </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sub_paces">
-                  PACE booklets per year
-                </label>
-                <input id="sub_paces" className="input" type="number" min="1" value={form.total_paces} onChange={set('total_paces')} />
-              </div>
+              {tracksUnits && (
+                <div className="field">
+                  <label className="field-label" htmlFor="sub_paces">
+                    {unitLabelPlural} per year
+                  </label>
+                  <input id="sub_paces" className="input" type="number" min="1" value={form.total_paces} onChange={set('total_paces')} />
+                </div>
+              )}
             </div>
             <label className="checkbox">
               <input type="checkbox" checked={form.is_active} onChange={set('is_active')} />

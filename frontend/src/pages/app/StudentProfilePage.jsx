@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   BookOpen,
-  Brain,
   CalendarDays,
   GraduationCap,
   Lightbulb,
@@ -16,7 +15,9 @@ import {
   Users,
 } from 'lucide-react';
 import { Avatar, EmptyState, ErrorNote, ProgressBar, RiskBadge } from '../../components/common/ui';
-import { AI_HELP, AiReason, AiRiskBadge } from '../../components/common/ai';
+import { AiReason, AiRiskBadge } from '../../components/common/ai';
+import { gradingPeriods, periodName } from '../../lib/grading';
+import { BASIS_LABEL } from '../../lib/standing';
 import { studentApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { IMAGES } from '../../config/images';
@@ -30,7 +31,7 @@ function TrendIcon({ trend }) {
 export default function StudentProfilePage() {
   const { studentId } = useParams();
   const navigate = useNavigate();
-  const { tracksUnits, unitLabel, unitLabelPlural } = useAuth();
+  const { tracksUnits, unitLabel, unitLabelPlural, gradingPeriodCount, periodLabel } = useAuth();
 
   /* A school that does not track lesson units has no unit progress to show, so
      the tab is not there at all — the student still has subjects and grades,
@@ -39,7 +40,11 @@ export default function StudentProfilePage() {
      landing tab either way. */
   const tabs = [
     { key: 'overview', label: 'Overview' },
-    ...(tracksUnits ? [{ key: 'pace', label: `${unitLabel} progress` }] : []),
+    /* Each kind of school keeps its own record: booklet progress at a school
+       that tracks units, grades by period everywhere else. */
+    tracksUnits
+      ? { key: 'pace', label: `${unitLabel} progress` }
+      : { key: 'grades', label: 'Grades' },
     { key: 'history', label: 'Enrolment history' },
   ];
 
@@ -94,6 +99,31 @@ export default function StudentProfilePage() {
   }
 
   const { student, subjects, enrollment_history: history } = data;
+
+  /* The Grades tab: one card per subject, with each period's grade. The
+     record list holds one row per subject per period; the latest graded row
+     gives the current standing, and the AI forecast is the same on every row
+     of a subject. */
+  const periods = gradingPeriods(gradingPeriodCount);
+  const bySubject = new Map();
+  subjects.forEach((row) => {
+    const entry = bySubject.get(row.subject) || { subject: row.subject, grades: {}, rows: [] };
+    entry.rows.push(row);
+    if (row.term_grade != null) entry.grades[row.grading_period || 1] = row.term_grade;
+    bySubject.set(row.subject, entry);
+  });
+  const gradeSubjects = [...bySubject.values()].map((entry) => {
+    const ordered = [...entry.rows].sort((a, b) => (b.grading_period || 1) - (a.grading_period || 1));
+    const current = ordered.find((row) => row.standing != null) || ordered[0];
+    return {
+      ...entry,
+      standing: current.standing,
+      basis: current.basis,
+      risk_level: current.risk_level,
+      intervention: current.intervention,
+      ai: entry.rows.find((row) => row.ai)?.ai || null,
+    };
+  });
   const guardianName = [student.guardian_first_name, student.guardian_last_name]
     .filter(Boolean)
     .join(' ');
@@ -307,10 +337,6 @@ export default function StudentProfilePage() {
             </div>
           ) : (
             <>
-              <div className="alert alert-info no-print" style={{ marginBottom: '1rem' }}>
-                <Brain size={17} />
-                <span>{AI_HELP}</span>
-              </div>
               <div className="grid grid-3">
               {subjects.map((subject) => (
                 <article className="subject-card" key={subject.pace_id}>
@@ -333,35 +359,8 @@ export default function StudentProfilePage() {
                       <span className="v">{subject.expected_pace}</span>
                     </div>
                     <div>
-                      <span className="k">Standing</span>
-                      <span className="v">
-                        {subject.standing === null || subject.standing === undefined
-                          ? '—'
-                          : subject.standing.toFixed(0)}
-                        {subject.basis === 'coursework' && (
-                          <span className="faint" title="Coursework so far; no term grade yet">
-                            {' '}*
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="k">Absences</span>
-                      <span className="v">
-                        {subject.absences == null ? '—' : subject.absences}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="k">Written Work</span>
-                      <span className="v">
-                        {subject.ww_percent == null ? '—' : `${subject.ww_percent.toFixed(0)}%`}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="k">Perf. Tasks</span>
-                      <span className="v">
-                        {subject.pt_percent == null ? '—' : `${subject.pt_percent.toFixed(0)}%`}
-                      </span>
+                      <span className="k">Completion</span>
+                      <span className="v">{subject.pace_percent.toFixed(0)}%</span>
                     </div>
                     <div>
                       <span className="k">Avg. score</span>
@@ -376,7 +375,57 @@ export default function StudentProfilePage() {
                     </div>
                   )}
 
-                  {/* The model's separate reading of the same subject. */}
+                </article>
+              ))}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {/* ── Grades by period ─────────────────────────────────────────────── */}
+      {tab === 'grades' && !tracksUnits && (
+        <section>
+          {gradeSubjects.length === 0 ? (
+            <div className="card">
+              <EmptyState icon={BookOpen} title="No grades recorded yet" />
+            </div>
+          ) : (
+            <div className="grid grid-3">
+              {gradeSubjects.map((subject) => (
+                <article className="subject-card" key={subject.subject}>
+                  <div className="sc-head">
+                    <div>
+                      <div className="sc-name">{subject.subject}</div>
+                      <div className="sc-sub">
+                        {subject.standing == null
+                          ? 'No grade yet'
+                          : `Now ${subject.standing.toFixed(0)} · ${
+                              BASIS_LABEL[subject.basis] || 'grade'
+                            }`}
+                      </div>
+                    </div>
+                    <RiskBadge level={subject.risk_level} />
+                  </div>
+
+                  <div className="sc-figures">
+                    {periods.map((period) => (
+                      <div key={period}>
+                        <span className="k">{periodName(period, periodLabel)}</span>
+                        <span className="v">
+                          {subject.grades[period] == null ? '—' : subject.grades[period]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {subject.risk_level !== 'low' && subject.intervention && (
+                    <div className="intervention">
+                      <Lightbulb size={14} />
+                      <span>{subject.intervention}</span>
+                    </div>
+                  )}
+
                   <div className="sc-ai">
                     <span className="k">AI forecast</span>
                     <AiRiskBadge prediction={subject.ai} />
@@ -384,8 +433,7 @@ export default function StudentProfilePage() {
                   <AiReason prediction={subject.ai} />
                 </article>
               ))}
-              </div>
-            </>
+            </div>
           )}
         </section>
       )}

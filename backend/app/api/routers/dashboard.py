@@ -1,7 +1,7 @@
 """Everything the dashboard draws, computed server-side in one request."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends
@@ -370,6 +370,9 @@ async def _current_year(db: AsyncSession, scope: int) -> Optional[str]:
 
 # A teacher who has not signed in for this long is worth a word.
 QUIET_AFTER_DAYS = 14
+# At a school that tracks units, booklet progress counts as current when it
+# was recorded within this many days.
+RECENT_DAYS = 30
 
 
 @router.get("/api/dashboard/admin")
@@ -437,15 +440,34 @@ async def admin_dashboard(
             select(
                 StudentPace.enrollment_id, StudentPace.subject, StudentPace.grading_period,
                 StudentPace.transmuted_grade, StudentPace.recorded_by,
+                StudentPace.updated_at,
             ).where(StudentPace.school_id == scope)
         )
     ).all()
+    # A school that tracks units keeps no term grades: its teachers' work is
+    # keeping each learner's booklet progress current, so a learner counts as
+    # done once their record was updated in the last RECENT_DAYS days. Every
+    # other school counts a learner once they have a grade for the term.
+    units = bool(school and school.tracks_units)
+    since = now - timedelta(days=RECENT_DAYS)
+
+    def _aware(when):
+        return when.replace(tzinfo=timezone.utc) if when and when.tzinfo is None else when
+
+    recent_set = {
+        (e, s) for e, s, _t, _g, _by, at in records if at and _aware(at) >= since
+    }
     # Graded records per (enrolment, subject, term).
     graded_set = {
-        (e, s, t or 1) for e, s, t, grade, _by in records if grade is not None
+        (e, s, t or 1) for e, s, t, grade, _by, _at in records if grade is not None
     }
     # The current term is the latest one anyone has started grading.
     term = max((t for _e, _s, t in graded_set), default=1)
+
+    def is_done(enrollment_id, subject_name):
+        if units:
+            return (enrollment_id, subject_name) in recent_set
+        return (enrollment_id, subject_name, term) in graded_set
 
     # A class is a section and subject. Which teacher it belongs to is taken,
     # in order, from: an assignment naming that subject; whoever has been
@@ -457,7 +479,7 @@ async def admin_dashboard(
         if a.subject_id in subjects:
             classes[(a.section_id, subjects[a.subject_id])] = str(a.teacher_id)
     recorders: dict[tuple, dict[str, int]] = {}
-    for e, subject, _t, _grade, by in records:
+    for e, subject, _t, _grade, by, _at in records:
         section_id = section_of.get(e)
         if section_id is None or subject not in subjects.values():
             continue
@@ -481,7 +503,7 @@ async def admin_dashboard(
     unstarted = []
     for (section_id, name), teacher_id in classes.items():
         roster = learners_in.get(section_id, set())
-        done = sum(1 for e in roster if (e, name, term) in graded_set)
+        done = sum(1 for e in roster if is_done(e, name))
         if teacher_id is not None:
             row = by_teacher.setdefault(teacher_id, {"classes": 0, "graded": 0, "learners": 0})
             row["classes"] += 1
@@ -522,6 +544,10 @@ async def admin_dashboard(
     return {
         "school_year": await _current_year(db, scope),
         "term": term,
+        # What the progress figures count: "graded" (a grade for the term) or
+        # "updated" (booklet progress recorded in the last RECENT_DAYS days).
+        "measure": "updated" if units else "graded",
+        "recent_days": RECENT_DAYS,
         "term_label": (school.grading_period_label if school else None) or "Quarter",
         "counts": {
             "teachers": len(teachers),
