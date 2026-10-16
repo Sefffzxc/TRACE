@@ -7,7 +7,6 @@ import {
   Clock,
   Eye,
   EyeOff,
-  Search,
   UserPlus,
 } from 'lucide-react';
 import AuthLayout from './AuthLayout';
@@ -123,7 +122,6 @@ export default function RegisterPage() {
      yet and the only sensible path is the administrator one. */
   const [directory, setDirectory] = useState(null);
   const [directoryError, setDirectoryError] = useState('');
-  const [schoolFilter, setSchoolFilter] = useState('');
 
   /* Once the singular has been typed into by hand, stop overwriting it. */
   const [singularTouched, setSingularTouched] = useState(false);
@@ -167,24 +165,13 @@ export default function RegisterPage() {
     setError('');
   };
 
-  const visibleSchools = useMemo(() => {
-    const term = schoolFilter.trim().toLowerCase();
-    const rows = (directory || []).filter((row) =>
-      term ? `${row.name} ${row.city}`.toLowerCase().includes(term) : true,
-    );
-    return rows.sort((a, b) => a.name.localeCompare(b.name));
-  }, [directory, schoolFilter]);
+  const schoolOptions = useMemo(
+    () => [...(directory || [])].sort((a, b) => a.name.localeCompare(b.name)),
+    [directory],
+  );
 
   const chosenSchool =
     (directory || []).find((row) => String(row.school_id) === String(teacher.school_id)) || null;
-
-  /* Keep an already-chosen school in the dropdown even when the filter no
-     longer matches it, so narrowing the search never silently loses the
-     answer somebody already gave. */
-  const schoolOptions =
-    chosenSchool && !visibleSchools.some((row) => row.school_id === chosenSchool.school_id)
-      ? [chosenSchool, ...visibleSchools]
-      : visibleSchools;
 
   const setPlural = (event) => {
     const value = event.target.value;
@@ -412,28 +399,15 @@ export default function RegisterPage() {
         {mode === 'teacher' ? (
           <>
             <div className="field">
-              <label className="field-label" htmlFor="school_filter">
+              <label className="field-label" htmlFor="school_id">
                 Your school <span className="req">*</span>
               </label>
-              <div className="input-group">
-                <span className="input-icon">
-                  <Search size={16} />
-                </span>
-                <input
-                  id="school_filter"
-                  className="input"
-                  placeholder="Search by name or city"
-                  value={schoolFilter}
-                  onChange={(event) => setSchoolFilter(event.target.value)}
-                />
-              </div>
               <select
                 id="school_id"
                 className="select"
                 value={teacher.school_id}
                 onChange={setTeacherField('school_id')}
                 required
-                aria-label="Your school"
               >
                 <option value="">
                   {directory === null ? 'Loading schools…' : 'Choose your school…'}
@@ -452,13 +426,6 @@ export default function RegisterPage() {
                 </div>
               )}
               <ErrorNote message={directoryError} />
-              {schoolFilter.trim() && directory !== null && (
-                <span className="field-hint">
-                  {visibleSchools.length}{' '}
-                  {visibleSchools.length === 1 ? 'school matches' : 'schools match'}{' '}
-                  &ldquo;{schoolFilter.trim()}&rdquo;.
-                </span>
-              )}
             </div>
 
             <div className="form-grid">
