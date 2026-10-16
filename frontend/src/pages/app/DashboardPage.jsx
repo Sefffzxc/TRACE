@@ -126,6 +126,7 @@ function TeacherDashboard() {
     critical: colors.critical,
   };
   const totalRisk = stats.risk_distribution.reduce((sum, row) => sum + row.value, 0);
+  const levelCount = (key) => stats.risk_distribution.find((row) => row.key === key)?.value ?? 0;
   /* A school that tracks units (PACE booklets) is read on completion; every
      other school is read on its class record. The answer comes with the
      figures, so the page never draws one kind of school with the other's
@@ -200,7 +201,7 @@ function TeacherDashboard() {
           value={stats.at_risk}
           icon={AlertTriangle}
           tone="warn"
-          foot={units ? 'Behind pace' : `Near or below ${passing}`}
+          foot={`${levelCount('high')} at risk · ${levelCount('moderate')} watch`}
           to="/early-warning?level=at-risk"
         />
         <Stat

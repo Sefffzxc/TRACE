@@ -973,10 +973,14 @@ async def list_warnings(
 
 @router.get("/api/early-warnings/summary")
 async def warning_summary(
-    _: Staff = Depends(get_current_user),
+    mine: bool = Query(default=False),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    """Open flags, counted two ways: ``counts`` per subject flag, and
+    ``student_counts`` per student at their worst flag, the way the dashboard
+    counts. ``mine`` narrows both to the sections the teacher handles."""
     rows = (
         await db.execute(
             scoped(
@@ -986,10 +990,30 @@ async def warning_summary(
             )
         )
     ).scalars().all()
+    if mine and current.role != ROLE_ADMIN:
+        allowed = set(await sections_for_teacher(db, current.id, school_id=scope))
+        section_of = {
+            e.enrollment_id: e.section_id
+            for e in (
+                await db.execute(
+                    scoped(select(StudentEnrollment), StudentEnrollment, scope)
+                )
+            ).scalars()
+        }
+        rows = [r for r in rows if section_of.get(r.enrollment_id) in allowed]
 
     counts = {"critical": 0, "high": 0, "moderate": 0, "low": 0}
     for row in rows:
         counts[row.risk_level] = counts.get(row.risk_level, 0) + 1
+
+    rank = {"low": 0, "moderate": 1, "high": 2, "critical": 3}
+    worst: dict[int, str] = {}
+    for row in rows:
+        if rank.get(row.risk_level, 0) > rank.get(worst.get(row.student_id, "low"), 0):
+            worst[row.student_id] = row.risk_level
+    student_counts = {"critical": 0, "high": 0, "moderate": 0}
+    for level in worst.values():
+        student_counts[level] += 1
 
     by_subject: dict[str, int] = {}
     for row in rows:
@@ -997,6 +1021,7 @@ async def warning_summary(
 
     return {
         "counts": counts,
+        "student_counts": student_counts,
         "total_flagged": len(rows),
         "students_flagged": len({row.student_id for row in rows}),
         "by_subject": [

@@ -172,7 +172,7 @@ export const classRecordApi = {
 
 export const warningApi = {
   list: (params) => api.get('/api/early-warnings', params),
-  summary: () => api.get('/api/early-warnings/summary'),
+  summary: (params) => api.get('/api/early-warnings/summary', params),
   update: (id, payload) => api.patch(`/api/early-warnings/${id}`, payload),
 };
 

@@ -48,7 +48,9 @@ export default function AppShell() {
       // Student warnings are the teachers' to act on; the principal's screens
       // follow the school and its teachers, so their bell carries none.
       const [warnings, year] = await Promise.all([
-        isAdmin ? Promise.resolve([]) : warningApi.list({ risk_level: 'critical,high' }),
+        isAdmin
+          ? Promise.resolve([])
+          : warningApi.list({ risk_level: 'critical,high', mine: true }),
         schoolYearApi.current(),
       ]);
       setAlerts(warnings || []);
@@ -72,8 +74,10 @@ export default function AppShell() {
     return () => clearInterval(timer);
   }, [loadChrome]);
 
+  // Critical STUDENTS, as on the dashboard and Early Warning tiles, not
+  // critical subject flags: one learner failing two subjects counts once.
   const criticalCount = useMemo(
-    () => alerts.filter((alert) => alert.risk_level === 'critical').length,
+    () => new Set(alerts.filter((a) => a.risk_level === 'critical').map((a) => a.student_id)).size,
     [alerts],
   );
 

@@ -99,8 +99,9 @@ export default function EarlyWarningPage() {
     setError('');
     try {
       const [rows, stats, sectionRows] = await Promise.all([
-        warningApi.list({ include_resolved: includeResolved }),
-        warningApi.summary(),
+        // The teacher's own sections, as on their dashboard, so the two agree.
+        warningApi.list({ include_resolved: includeResolved, mine: true }),
+        warningApi.summary({ mine: true }),
         sectionApi.list(),
       ]);
       setWarnings(rows || []);
@@ -232,7 +233,11 @@ export default function EarlyWarningPage() {
     toast.success('Warning list exported.');
   };
 
-  const counts = summary?.counts || { critical: 0, high: 0, moderate: 0 };
+  // Tiles count students at their worst flag, as the dashboard does; the
+  // number of subject flags behind each goes underneath.
+  const counts = summary?.student_counts || { critical: 0, high: 0, moderate: 0 };
+  const flags = summary?.counts || { critical: 0, high: 0, moderate: 0 };
+  const flagText = (n) => `${n} subject flag${n === 1 ? '' : 's'}`;
 
   return (
     <div className="page">
@@ -258,9 +263,7 @@ export default function EarlyWarningPage() {
             </span>
           </div>
           <div className="stat-value">{counts.critical}</div>
-          <div className="stat-foot">
-            {units ? 'Furthest behind, needs escalating' : 'Well below passing, needs escalating'}
-          </div>
+          <div className="stat-foot">Students · {flagText(flags.critical)}</div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -270,7 +273,7 @@ export default function EarlyWarningPage() {
             </span>
           </div>
           <div className="stat-value">{counts.high}</div>
-          <div className="stat-foot">Needs a plan this week</div>
+          <div className="stat-foot">Students · {flagText(flags.high)}</div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -280,9 +283,7 @@ export default function EarlyWarningPage() {
             </span>
           </div>
           <div className="stat-value">{counts.moderate}</div>
-          <div className="stat-foot">
-            {units ? 'Slipping' : 'Close to passing'}
-          </div>
+          <div className="stat-foot">Students · {flagText(flags.moderate)}</div>
         </div>
         <div className="stat">
           <div className="stat-top">
@@ -292,10 +293,7 @@ export default function EarlyWarningPage() {
             </span>
           </div>
           <div className="stat-value">{summary?.students_flagged ?? 0}</div>
-          <div className="stat-foot">
-            Across {summary?.total_flagged ?? 0} subject flag
-            {summary?.total_flagged === 1 ? '' : 's'}
-          </div>
+          <div className="stat-foot">{flagText(summary?.total_flagged ?? 0)} in all</div>
         </div>
       </section>
 

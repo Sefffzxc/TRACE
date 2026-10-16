@@ -177,17 +177,22 @@ async def dashboard(
         stats.average_standing = round(sum(v for _, v in graded) / len(graded), 1)
 
     # ── Risk distribution, one entry per student (worst subject wins) ─────────
-    per_student: dict[int, float] = {}
-    for pace, ev in evaluated:
-        per_student[pace.student_id] = max(
-            per_student.get(pace.student_id, 0.0), ev["risk_score"]
-        )
+    # Counted from the open early-warning flags themselves, so these figures
+    # always equal the Early Warning page's: same flags, same judgement (the
+    # year so far, as the final grade is computed), and a flag marked handled
+    # leaves both. A student with no open flag is on track.
+    rank = {"moderate": 1, "high": 2, "critical": 3}
+    worst: dict[int, str] = {}
+    for w in warnings:
+        if w.student_id not in student_ids or w.risk_level not in rank:
+            continue
+        if rank[w.risk_level] > rank.get(worst.get(w.student_id), 0):
+            worst[w.student_id] = w.risk_level
 
     buckets = {"critical": 0, "high": 0, "moderate": 0, "low": 0}
-    for score in per_student.values():
-        buckets[risk.risk_level(score)] += 1
-    # Students with no PACE record yet count as on track.
-    buckets["low"] += max(0, len(student_ids) - len(per_student))
+    for level in worst.values():
+        buckets[level] += 1
+    buckets["low"] = len(student_ids) - len(worst)
 
     stats.critical = buckets["critical"]
     stats.at_risk = buckets["high"] + buckets["moderate"]
