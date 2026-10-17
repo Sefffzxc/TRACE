@@ -128,17 +128,9 @@ export default function ApprovalsPage() {
                 <div className="facts">
                   <div>
                     <span className="k">Requested role</span>
-                    <span className="v" style={{ textTransform: 'capitalize' }}>
-                      {person.role}
+                    <span className="v">
+                      {person.role === 'admin' ? 'Administrator' : 'Teacher'}
                     </span>
-                  </div>
-                  <div>
-                    <span className="k">Employee no.</span>
-                    <span className="v">{person.employee_no || '—'}</span>
-                  </div>
-                  <div>
-                    <span className="k">Department</span>
-                    <span className="v">{person.department || '—'}</span>
                   </div>
                   <div>
                     <span className="k">Submitted</span>

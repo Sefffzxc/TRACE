@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, GraduationCap, RotateCcw, Save, Search } from 'lucide-react';
+import { GraduationCap, RotateCcw, Save, Search } from 'lucide-react';
 import {
   Avatar,
   EmptyState,
@@ -9,52 +9,9 @@ import {
   RiskBadge,
   TableSkeleton,
 } from '../../components/common/ui';
-import { AiRiskBadge, AiServiceNote } from '../../components/common/ai';
-import { aiApi, enrollmentApi, paceApi, sectionApi, subjectApi } from '../../api/endpoints';
+import { enrollmentApi, paceApi, sectionApi, subjectApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-
-/**
- * The columns of the DepEd class record the risk model reads.
- *
- * They live on the same screen as unit progress but behind a separate view, so
- * the everyday encoding task stays as narrow as it was. Every one is optional:
- * a blank cell is saved as "not encoded", the model substitutes its training
- * median, and the prediction is marked as resting on partial data. Blank never
- * means zero.
- */
-const ASSESSMENT_COLUMNS = [
-  { key: 'absences', label: 'Absences', max: 200, hint: 'Days absent this quarter' },
-  { key: 'ww_percent', label: 'WW %', max: 100, hint: 'Written Work percentage score' },
-  { key: 'ww_total_raw', label: 'WW raw', max: 1000, hint: 'Written Work raw total' },
-  { key: 'pt_percent', label: 'PT %', max: 100, hint: 'Performance Tasks percentage score' },
-  { key: 'pt_total_raw', label: 'PT raw', max: 1000, hint: 'Performance Tasks raw total' },
-  { key: 'missed_ww_items', label: 'Missed WW', max: 100, hint: 'Written Work items not submitted' },
-  { key: 'missed_pt_items', label: 'Missed PT', max: 100, hint: 'Performance Tasks not submitted' },
-  { key: 'extracurricular_count', label: 'Activities', max: 50, hint: 'Extracurricular activities joined' },
-];
-
-/**
- * Reshape the flat `ai_*` fields on a progress row into the object AiRiskBadge
- * expects. Returns null when the record has never been scored, so an unscored
- * row reads as "not scored" rather than as a zero-risk one.
- */
-function aiOf(pace) {
-  if (!pace || !pace.ai_risk_level) return null;
-  return {
-    risk_score: pace.ai_risk_score,
-    risk_level: pace.ai_risk_level,
-    source: pace.ai_source,
-    used_threshold: pace.ai_used_threshold,
-    model_version: pace.ai_model_version,
-    used_baseline_defaults: pace.ai_used_baseline_defaults,
-    primary_factor: pace.ai_primary_factor,
-    predicted_final: pace.ai_predicted_final,
-    range_low: pace.ai_range_low,
-    range_high: pace.ai_range_high,
-    imputed_fields: [],
-  };
-}
 
 /**
  * The teacher's main workflow: pick a section and a subject, type in how far
@@ -62,9 +19,8 @@ function aiOf(pace) {
  *
  * Everything derived — percentage, units behind, risk band — is recomputed on
  * the server so the numbers on screen always match the early-warning list.
- * Saving also sends the record to the risk classifier and logs what it said;
- * if that service is asleep or down the save still succeeds and the row is
- * scored by the progress rules instead, marked as such.
+ * Only schools that track units see this page; their grades and the AI
+ * forecast live on the class record instead.
  *
  * Every word the teacher reads here is the school's own word for a unit —
  * "PACE" at a School of Tomorrow school, "Module" elsewhere — so the same
@@ -72,19 +28,10 @@ function aiOf(pace) {
  * variables and API fields keep their original `pace` names; only the labels
  * change.
  */
-export default function RosterPage({ mode = 'units' }) {
+export default function RosterPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { unitLabel, unitLabelPlural } = useAuth();
-
-  // Which grid this is showing is decided by the route, not by a control on
-  // the page. That matters: the class record has to exist at a school that
-  // tracks no units at all, and while it was a tab inside the unit-progress
-  // screen it inherited that screen's visibility — so a DepEd school had
-  // nowhere to enter attendance or assessment marks, and every prediction it
-  // made ran on training medians instead of its own students' data.
-  const isRecord = mode === 'record';
-  const view = isRecord ? 'assessment' : 'pace';
 
   const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -96,8 +43,6 @@ export default function RosterPage({ mode = 'units' }) {
   const [search, setSearch] = useState('');
 
   const [drafts, setDrafts] = useState({});
-  const [aiStatus, setAiStatus] = useState(null);
-  const [waking, setWaking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -120,26 +65,6 @@ export default function RosterPage({ mode = 'units' }) {
       }
     })();
   }, []);
-
-  // Warm the model service up while the teacher is still choosing a section, so
-  // the first save is scored by the model rather than falling back.
-  useEffect(() => {
-    aiApi
-      .status(true)
-      .then(setAiStatus)
-      .catch(() => setAiStatus(null));
-  }, []);
-
-  const wakeAi = async () => {
-    setWaking(true);
-    try {
-      setAiStatus(await aiApi.status(true));
-    } catch {
-      /* the note already says it is unreachable */
-    } finally {
-      setWaking(false);
-    }
-  };
 
   const section = useMemo(
     () => sections.find((item) => String(item.section_id) === sectionId),
@@ -215,15 +140,6 @@ export default function RosterPage({ mode = 'units' }) {
         );
         const draft = drafts[enrollment.enrollment_id] || {};
 
-        // Assessment cells: the draft wins, then whatever is stored, then
-        // blank. Stored nulls stay blank rather than becoming 0.
-        const assessment = {};
-        ASSESSMENT_COLUMNS.forEach(({ key }) => {
-          const stored = existing?.[key];
-          assessment[key] =
-            draft[key] ?? (stored === null || stored === undefined ? '' : String(stored));
-        });
-
         return {
           enrollment,
           existing,
@@ -232,9 +148,6 @@ export default function RosterPage({ mode = 'units' }) {
           expected:
             draft.expected ??
             String(existing ? existing.expected_pace : defaultExpected),
-          attendance:
-            draft.attendance ?? String(existing ? existing.attendance : '100'),
-          assessment,
           dirty: Object.keys(draft).length > 0,
         };
       })
@@ -253,36 +166,22 @@ export default function RosterPage({ mode = 'units' }) {
     if (!subject) return;
     const dirty = rows.filter((row) => row.dirty);
 
-    // A unit number is required only on the unit-progress screen, where it is
-    // the whole point of the entry. On the class record it must NOT be: a
-    // school that tracks no units will never have one, and demanding it would
-    // silently discard every attendance and assessment mark the teacher typed.
-    const missingPace = isRecord ? [] : dirty.filter((row) => row.current === '');
+    // The current unit is the whole point of the entry, so a row without one
+    // is not saved.
+    const missingPace = dirty.filter((row) => row.current === '');
 
     const entries = dirty
-      .filter((row) => isRecord || row.current !== '')
-      .map((row) => {
-        const entry = {
-          student_id: row.enrollment.student_id,
-          enrollment_id: row.enrollment.enrollment_id,
-          subject: subject.subject_name,
-          current_pace: Number(row.current) || 0,
-          expected_pace: Number(row.expected) || 0,
-          total_paces: subject.total_paces,
-          attendance: Number(row.attendance) || 0,
-          average_score: row.existing?.average_score ?? 0,
-        };
-        // A blank cell is omitted entirely, so the server keeps whatever is
-        // already stored and the model is told the value is unknown. Sending 0
-        // would be inventing a fact about the student.
-        ASSESSMENT_COLUMNS.forEach(({ key }) => {
-          const raw = row.assessment[key];
-          if (raw !== '' && raw !== null && raw !== undefined && !Number.isNaN(Number(raw))) {
-            entry[key] = Number(raw);
-          }
-        });
-        return entry;
-      });
+      .filter((row) => row.current !== '')
+      .map((row) => ({
+        student_id: row.enrollment.student_id,
+        enrollment_id: row.enrollment.enrollment_id,
+        subject: subject.subject_name,
+        current_pace: Number(row.current) || 0,
+        expected_pace: Number(row.expected) || 0,
+        total_paces: subject.total_paces,
+        attendance: row.existing?.attendance ?? 100,
+        average_score: row.existing?.average_score ?? 0,
+      }));
 
     if (!entries.length) {
       toast.info('Nothing to save yet.');
@@ -299,19 +198,6 @@ export default function RosterPage({ mode = 'units' }) {
       );
       result.skipped?.forEach((message) => toast.warning(message));
 
-      // Say plainly which engine scored the save.
-      const ai = result.ai;
-      if (ai?.source === 'fallback') {
-        toast.warning(
-          'Saved. The AI service was asleep, so the school rule was used.',
-        );
-      } else if (ai?.source === 'mixed') {
-        toast.warning(
-          `${ai.scored - ai.fallback} by the AI, ${ai.fallback} by the school rule.`,
-        );
-      } else if (ai?.source === 'model') {
-        toast.info('AI forecast updated.');
-      }
 
       missingPace.forEach((row) =>
         toast.warning(
@@ -340,12 +226,8 @@ export default function RosterPage({ mode = 'units' }) {
   return (
     <div className="page">
       <PageHead
-        title={isRecord ? 'Class record' : `${unitLabel} progress`}
-        subtitle={
-          isRecord
-            ? 'Assessment marks per student.'
-            : `Each student's current ${unitLabel}.`
-        }
+        title={`${unitLabel} progress`}
+        subtitle={`Each student's current ${unitLabel}.`}
         actions={
           dirtyCount > 0 && (
             <button type="button" className="btn btn-secondary" onClick={() => setDrafts({})}>
@@ -382,7 +264,7 @@ export default function RosterPage({ mode = 'units' }) {
           {subjectOptions.map((item) => (
             <option key={item.subject_id} value={item.subject_id}>
               {item.subject_name}
-              {isRecord ? '' : ` (${item.total_paces} ${unitLabelPlural})`}
+              {` (${item.total_paces} ${unitLabelPlural})`}
             </option>
           ))}
         </select>
@@ -404,8 +286,6 @@ export default function RosterPage({ mode = 'units' }) {
         </span>
       </div>
 
-      {view === 'assessment' && <AiServiceNote status={aiStatus} onRetry={wakeAi} busy={waking} />}
-
       <div className="card pace-grid">
         <div className="card-header">
           <div>
@@ -413,16 +293,8 @@ export default function RosterPage({ mode = 'units' }) {
             <div className="card-subtitle">
               {!subject
                 ? 'Choose a subject to begin'
-                : isRecord
-                  ? subject.subject_name
-                  : `${subject.subject_name} · ${defaultExpected} of ${subject.total_paces} expected by today`}
+                : `${subject.subject_name} · ${defaultExpected} of ${subject.total_paces} expected by today`}
             </div>
-            {view === 'assessment' && (
-              <div className="card-subtitle" style={{ marginTop: '.35rem' }}>
-                <Brain size={13} style={{ verticalAlign: '-2px', marginRight: '.3rem' }} />
-                Leave unmarked cells blank, not zero.
-              </div>
-            )}
           </div>
         </div>
 
@@ -441,24 +313,10 @@ export default function RosterPage({ mode = 'units' }) {
                 <thead>
                   <tr>
                     <th>Student</th>
-                    {view === 'pace' ? (
-                      <>
-                        <th style={{ width: 110 }}>Current {unitLabel}</th>
-                        <th style={{ width: 110 }}>Expected</th>
-                        <th style={{ width: 110 }}>Attendance</th>
-                        <th>Completion</th>
-                        <th>Standing</th>
-                      </>
-                    ) : (
-                      <>
-                        {ASSESSMENT_COLUMNS.map((column) => (
-                          <th key={column.key} style={{ width: 96 }} title={column.hint}>
-                            {column.label}
-                          </th>
-                        ))}
-                        <th>AI forecast</th>
-                      </>
-                    )}
+                    <th style={{ width: 110 }}>Current {unitLabel}</th>
+                    <th style={{ width: 110 }}>Expected</th>
+                    <th>Completion</th>
+                    <th>Standing</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -494,8 +352,6 @@ export default function RosterPage({ mode = 'units' }) {
                             </button>
                           </div>
                         </td>
-                        {view === 'pace' ? (
-                          <>
                             <td>
                               <input
                                 className={`pace-input ${row.dirty ? 'dirty' : ''}`}
@@ -521,18 +377,6 @@ export default function RosterPage({ mode = 'units' }) {
                                 }
                               />
                             </td>
-                            <td>
-                              <input
-                                className={`pace-input ${row.dirty ? 'dirty' : ''}`}
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={row.attendance}
-                                onChange={(event) =>
-                                  setDraft(row.enrollment.enrollment_id, 'attendance', event.target.value)
-                                }
-                              />
-                            </td>
                             <td style={{ minWidth: 140 }}>
                               <div className="progress-row">
                                 <div className="progress">
@@ -551,35 +395,6 @@ export default function RosterPage({ mode = 'units' }) {
                                 <RiskBadge level={level} />
                               )}
                             </td>
-                          </>
-                        ) : (
-                          <>
-                            {ASSESSMENT_COLUMNS.map((column) => (
-                              <td key={column.key}>
-                                <input
-                                  className={`pace-input ${row.dirty ? 'dirty' : ''}`}
-                                  type="number"
-                                  min="0"
-                                  max={column.max}
-                                  step="any"
-                                  placeholder="—"
-                                  aria-label={`${column.hint} for ${row.enrollment.student_name}`}
-                                  value={row.assessment[column.key]}
-                                  onChange={(event) =>
-                                    setDraft(
-                                      row.enrollment.enrollment_id,
-                                      column.key,
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              </td>
-                            ))}
-                            <td>
-                              <AiRiskBadge prediction={aiOf(row.existing)} compact />
-                            </td>
-                          </>
-                        )}
                       </tr>
                     );
                   })}

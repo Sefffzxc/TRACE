@@ -225,7 +225,7 @@ function Router() {
           element={
             <RequireTeacher>
               <RequireUnitTracking>
-                <RosterPage mode="units" />
+                <RosterPage />
               </RequireUnitTracking>
             </RequireTeacher>
           }

@@ -388,10 +388,6 @@ export default function StudentProfilePage() {
                       <span className="k">Completion</span>
                       <span className="v">{subject.pace_percent.toFixed(0)}%</span>
                     </div>
-                    <div>
-                      <span className="k">Avg. score</span>
-                      <span className="v">{subject.average_score.toFixed(0)}</span>
-                    </div>
                   </div>
 
                   {subject.risk_level !== 'low' && (
@@ -482,7 +478,6 @@ export default function StudentProfilePage() {
                       <th>Grade level</th>
                       <th>Section</th>
                       <th>Status</th>
-                      <th>End of year</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -496,7 +491,6 @@ export default function StudentProfilePage() {
                             {row.is_active ? 'Active' : 'Closed'}
                           </span>
                         </td>
-                        <td className="muted">{row.end_of_year_status || '—'}</td>
                       </tr>
                     ))}
                   </tbody>

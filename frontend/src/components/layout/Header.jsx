@@ -108,7 +108,7 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
     TITLES[pathname] ||
     (pathname.startsWith('/students/')
       ? 'Student Profile'
-      : school?.short_name || school?.name || 'Monitoring');
+      : school?.name || 'Monitoring');
 
   const submitSearch = (event) => {
     event.preventDefault();

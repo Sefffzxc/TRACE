@@ -40,7 +40,6 @@ export default function AccountPage() {
     middle_name: '',
     last_name: '',
     contact_number: '',
-    department: '',
   });
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileError, setProfileError] = useState('');
@@ -59,7 +58,6 @@ export default function AccountPage() {
       middle_name: user.middle_name || '',
       last_name: user.last_name || '',
       contact_number: user.contact_number || '',
-      department: user.department || '',
     });
   }, [user]);
 
@@ -71,7 +69,6 @@ export default function AccountPage() {
       await staffApi.updateMe({
         ...profile,
         middle_name: profile.middle_name || null,
-        department: profile.department || null,
       });
       await refreshProfile();
       toast.success('Profile updated.');
@@ -257,17 +254,6 @@ export default function AccountPage() {
                   />
                 </div>
                 <div className="field">
-                  <label className="field-label" htmlFor="p_dept">
-                    Department
-                  </label>
-                  <input
-                    id="p_dept"
-                    className="input"
-                    value={profile.department}
-                    onChange={(event) => setProfile((c) => ({ ...c, department: event.target.value }))}
-                  />
-                </div>
-                <div className="field">
                   <label className="field-label" htmlFor="p_email">
                     Email (cannot be changed here)
                   </label>
@@ -382,19 +368,19 @@ export default function AccountPage() {
               <div className="detail-list">
                 <div className="detail-row">
                   <span className="k">Role</span>
-                  <span className="v" style={{ textTransform: 'capitalize' }}>
-                    {user?.role}
+                  <span className="v">
+                    {{ super_admin: 'System administrator', admin: 'Administrator', teacher: 'Teacher' }[
+                      user?.role
+                    ] || user?.role}
                   </span>
                 </div>
                 <div className="detail-row">
                   <span className="k">Status</span>
                   <span className="v">
-                    <span className="badge badge-low">{user?.account_status}</span>
+                    <span className="badge badge-low" style={{ textTransform: 'capitalize' }}>
+                      {user?.account_status}
+                    </span>
                   </span>
-                </div>
-                <div className="detail-row">
-                  <span className="k">Employee number</span>
-                  <span className="v">{user?.employee_no || '—'}</span>
                 </div>
                 <div className="detail-row">
                   <span className="k">Last sign-in</span>

@@ -18,7 +18,6 @@ const STATUS_BADGE = {
 /* Fields the server stores as NULL rather than an empty string: blanking one
    out has to clear it, not write "" into a column that means "unknown". */
 const NULLABLE = new Set([
-  'short_name',
   'province',
   'region',
   'contact_number',
@@ -32,7 +31,6 @@ const NUMERIC = new Set(['default_units_per_subject', 'passing_mark', 'grading_p
 function formFromSchool(school) {
   return {
     name: school?.name || '',
-    short_name: school?.short_name || '',
     address: school?.address || '',
     city: school?.city || '',
     province: school?.province || '',
@@ -199,18 +197,6 @@ export default function SchoolSettingsPage() {
                   value={form.name}
                   onChange={set('name')}
                   required
-                />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sc_short">
-                  Short name
-                </label>
-                <input
-                  id="sc_short"
-                  className="input"
-                  placeholder="Used in headers"
-                  value={form.short_name}
-                  onChange={set('short_name')}
                 />
               </div>
             </div>

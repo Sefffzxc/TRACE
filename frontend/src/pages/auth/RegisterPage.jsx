@@ -651,7 +651,7 @@ export default function RegisterPage() {
                     checked={school.tracks_units === false}
                     onChange={() => setSchool((current) => ({ ...current, tracks_units: false }))}
                   />
-                  No — we record grades and attendance only
+                  No — we use the DepEd class record
                 </label>
                 <label className="checkbox">
                   <input
