@@ -13,7 +13,9 @@ lbca/
 ├── ai-service/   the trained risk model, as its own inference service
 ├── render.yaml   one-click deployment of all four pieces
 ├── DEPLOYMENT.md how to put it online, and the free-tier traps
-└── MULTI_SCHOOL.md  many schools in one deployment, and the operator boundary
+├── MULTI_SCHOOL.md  many schools in one deployment, and the operator boundary
+├── SYSTEM_GUIDE.md  how the system works: every rule, threshold and model
+└── AI_CONTEXT.md    code map and house rules to paste into an AI assistant
 ```
 
 Three tiers, and the model is its own tier on purpose: it can be retrained and

@@ -107,8 +107,8 @@
       "precision": 0.7573,
       "precision_sd": 0.0869,
       "specificity": 0.9574,
-      "roc_auc": NaN,
-      "pr_auc": NaN,
+      "roc_auc": null,
+      "pr_auc": null,
       "false_pos": 12.1,
       "false_neg": 13.6
     },
