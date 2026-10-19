@@ -35,6 +35,13 @@ const STATUS_LABEL = {
   deactivated: 'Deactivated',
 };
 
+const COLUMNS = [
+  { key: 'approved', label: 'Approved', color: 'var(--ok-500)' },
+  { key: 'pending', label: 'Pending', color: 'var(--warn-500)' },
+  { key: 'rejected', label: 'Rejected', color: 'var(--crit-500)' },
+  { key: 'deactivated', label: 'Deactivated', color: 'var(--text-faint)' },
+];
+
 export default function TeachersPage() {
   const toast = useToast();
 
@@ -77,6 +84,19 @@ export default function TeachersPage() {
       return `${person.first_name} ${person.last_name} ${person.email}`.toLowerCase().includes(term);
     });
   }, [staff, search]);
+
+  // Group the filtered teachers into one board column per account status.
+  const columns = useMemo(
+    () =>
+      COLUMNS.map((col) => ({
+        ...col,
+        people: filtered.filter((person) => {
+          const known = COLUMNS.some((c) => c.key === person.account_status);
+          return (known ? person.account_status : 'deactivated') === col.key;
+        }),
+      })),
+    [filtered],
+  );
 
   const runAction = async () => {
     const { person, action } = confirm;
@@ -150,60 +170,50 @@ export default function TeachersPage() {
         </span>
       </div>
 
-      <div className="card">
-        <div className="card-body flush">
-          {loading ? (
+      {loading ? (
+        <div className="card">
+          <div className="card-body flush">
             <TableSkeleton rows={6} columns={4} />
-          ) : filtered.length === 0 ? (
+          </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="card">
+          <div className="card-body flush">
             <EmptyState icon={UserCheck} title={search.trim() ? 'No teachers match' : 'No teachers yet'} />
-          ) : (
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Contact</th>
-                    <th>Status</th>
-                    <th className="actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((person) => (
-                    <tr key={person.id}>
-                      <td>
-                        <div className="cell-name">
-                          <Avatar
-                            name={`${person.first_name} ${person.last_name}`}
-                            src={person.profile_pic}
-                            size="sm"
-                          />
-                          <div className="cell-strong">
-                            {person.first_name} {person.last_name}
-                          </div>
+          </div>
+        </div>
+      ) : (
+        <div className="tboard">
+          {columns.map((col) => (
+            <section key={col.key} className="tboard-col">
+              <header className="tboard-col-head">
+                <span className="tboard-dot" style={{ background: col.color }} />
+                <span className="tboard-col-title">{col.label}</span>
+                <span className="tboard-count">
+                  {col.people.length} Teacher{col.people.length === 1 ? '' : 's'}
+                </span>
+              </header>
+
+              <div className="tboard-list">
+                {col.people.length === 0 && <div className="tboard-empty">No teachers</div>}
+                {col.people.map((person) => (
+                  <article key={person.id} className="tcard">
+                    <div className="tcard-top">
+                      <Avatar
+                        name={`${person.first_name} ${person.last_name}`}
+                        src={person.profile_pic}
+                        size="lg"
+                      />
+                      <div className="tcard-id">
+                        <div className="tcard-name">
+                          {person.first_name} {person.last_name}
                         </div>
-                      </td>
-                      <td>
-                        <div className="row" style={{ gap: '.35rem', fontSize: 'var(--text-xs)' }}>
-                          <Mail size={12} className="faint" /> {person.email}
+                        <div className="tcard-sub">
+                          Joined{' '}
+                          {person.created_at ? new Date(person.created_at).toLocaleDateString() : '—'}
                         </div>
-                        <div
-                          className="row faint"
-                          style={{ gap: '.35rem', fontSize: 'var(--text-2xs)' }}
-                        >
-                          <Phone size={11} /> {person.contact_number}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`badge ${STATUS_BADGE[person.account_status] || 'badge-neutral'}`}>
-                          {STATUS_LABEL[person.account_status] || person.account_status}
-                        </span>
-                        {person.permanent_lock && (
-                          <span className="badge badge-critical" style={{ marginLeft: 4 }}>
-                            Locked
-                          </span>
-                        )}
-                      </td>
-                      <td className="actions">
+                      </div>
+                      <div className="tcard-actions">
                         {person.permanent_lock && (
                           <button
                             type="button"
@@ -241,15 +251,29 @@ export default function TeachersPage() {
                             <ShieldCheck size={15} />
                           </button>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      </div>
+                    </div>
+
+                    <div className="tcard-line">
+                      <Phone size={14} /> {person.contact_number || '—'}
+                    </div>
+                    <div className="tcard-line">
+                      <Mail size={14} /> <span className="tcard-email">{person.email}</span>
+                    </div>
+
+                    <div className="tcard-tags">
+                      <span className={`badge ${STATUS_BADGE[person.account_status] || 'badge-neutral'}`}>
+                        {STATUS_LABEL[person.account_status] || person.account_status}
+                      </span>
+                      {person.permanent_lock && <span className="badge badge-critical">Locked</span>}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
-      </div>
+      )}
 
       {confirm && (
         <ConfirmDialog
