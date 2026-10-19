@@ -35,13 +35,6 @@ const STATUS_LABEL = {
   deactivated: 'Deactivated',
 };
 
-const COLUMNS = [
-  { key: 'approved', label: 'Approved', color: 'var(--ok-500)' },
-  { key: 'pending', label: 'Pending', color: 'var(--warn-500)' },
-  { key: 'rejected', label: 'Rejected', color: 'var(--crit-500)' },
-  { key: 'deactivated', label: 'Deactivated', color: 'var(--text-faint)' },
-];
-
 export default function TeachersPage() {
   const toast = useToast();
 
@@ -55,6 +48,7 @@ export default function TeachersPage() {
   useEffect(() => {
     setSearch(urlQuery);
   }, [urlQuery]);
+  const [statusFilter, setStatusFilter] = useState('all');
   const [confirm, setConfirm] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -85,17 +79,12 @@ export default function TeachersPage() {
     });
   }, [staff, search]);
 
-  // Group the filtered teachers into one board column per account status.
-  const columns = useMemo(
+  const visible = useMemo(
     () =>
-      COLUMNS.map((col) => ({
-        ...col,
-        people: filtered.filter((person) => {
-          const known = COLUMNS.some((c) => c.key === person.account_status);
-          return (known ? person.account_status : 'deactivated') === col.key;
-        }),
-      })),
-    [filtered],
+      statusFilter === 'all'
+        ? filtered
+        : filtered.filter((person) => person.account_status === statusFilter),
+    [filtered, statusFilter],
   );
 
   const runAction = async () => {
@@ -164,9 +153,21 @@ export default function TeachersPage() {
             onChange={(event) => setSearch(event.target.value)}
           />
         </div>
+        <select
+          className="select"
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+        >
+          <option value="all">All Status</option>
+          {Object.entries(STATUS_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
         <span className="spacer" />
         <span className="result-count">
-          {filtered.length} teacher{filtered.length === 1 ? '' : 's'}
+          {visible.length} teacher{visible.length === 1 ? '' : 's'}
         </span>
       </div>
 
@@ -176,101 +177,86 @@ export default function TeachersPage() {
             <TableSkeleton rows={6} columns={4} />
           </div>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="card">
           <div className="card-body flush">
-            <EmptyState icon={UserCheck} title={search.trim() ? 'No teachers match' : 'No teachers yet'} />
+            <EmptyState icon={UserCheck} title={search.trim() || statusFilter !== 'all' ? 'No teachers match' : 'No teachers yet'} />
           </div>
         </div>
       ) : (
-        <div className="tboard">
-          {columns.map((col) => (
-            <section key={col.key} className="tboard-col">
-              <header className="tboard-col-head">
-                <span className="tboard-dot" style={{ background: col.color }} />
-                <span className="tboard-col-title">{col.label}</span>
-                <span className="tboard-count">
-                  {col.people.length} Teacher{col.people.length === 1 ? '' : 's'}
-                </span>
-              </header>
-
-              <div className="tboard-list">
-                {col.people.length === 0 && <div className="tboard-empty">No teachers</div>}
-                {col.people.map((person) => (
-                  <article key={person.id} className="tcard">
-                    <div className="tcard-top">
-                      <Avatar
-                        name={`${person.first_name} ${person.last_name}`}
-                        src={person.profile_pic}
-                        size="lg"
-                      />
-                      <div className="tcard-id">
-                        <div className="tcard-name">
-                          {person.first_name} {person.last_name}
-                        </div>
-                        <div className="tcard-sub">
-                          Joined{' '}
-                          {person.created_at ? new Date(person.created_at).toLocaleDateString() : '—'}
-                        </div>
-                      </div>
-                      <div className="tcard-actions">
-                        {person.permanent_lock && (
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            title="Unlock account"
-                            onClick={() => setConfirm({ person, action: 'unlock' })}
-                          >
-                            <Lock size={15} />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          className="btn-icon"
-                          title="Issue temporary password"
-                          onClick={() => setConfirm({ person, action: 'force_reset' })}
-                        >
-                          <KeyRound size={15} />
-                        </button>
-                        {person.is_active ? (
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            title="Deactivate account"
-                            onClick={() => setConfirm({ person, action: 'deactivate' })}
-                          >
-                            <UserX size={15} />
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            title="Reactivate account"
-                            onClick={() => setConfirm({ person, action: 'reactivate' })}
-                          >
-                            <ShieldCheck size={15} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="tcard-line">
-                      <Phone size={14} /> {person.contact_number || '—'}
-                    </div>
-                    <div className="tcard-line">
-                      <Mail size={14} /> <span className="tcard-email">{person.email}</span>
-                    </div>
-
-                    <div className="tcard-tags">
-                      <span className={`badge ${STATUS_BADGE[person.account_status] || 'badge-neutral'}`}>
-                        {STATUS_LABEL[person.account_status] || person.account_status}
-                      </span>
-                      {person.permanent_lock && <span className="badge badge-critical">Locked</span>}
-                    </div>
-                  </article>
-                ))}
+        <div className="tgrid">
+          {visible.map((person) => (
+            <article key={person.id} className="tcard">
+              <div className="tcard-top">
+                <Avatar
+                  name={`${person.first_name} ${person.last_name}`}
+                  src={person.profile_pic}
+                  size="lg"
+                />
+                <div className="tcard-id">
+                  <div className="tcard-name">
+                    {person.first_name} {person.last_name}
+                  </div>
+                  <div className="tcard-sub">
+                    Joined{' '}
+                    {person.created_at ? new Date(person.created_at).toLocaleDateString() : '—'}
+                  </div>
+                </div>
+                <div className="tcard-actions">
+                  {person.permanent_lock && (
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      title="Unlock account"
+                      onClick={() => setConfirm({ person, action: 'unlock' })}
+                    >
+                      <Lock size={15} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    title="Issue temporary password"
+                    onClick={() => setConfirm({ person, action: 'force_reset' })}
+                  >
+                    <KeyRound size={15} />
+                  </button>
+                  {person.is_active ? (
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      title="Deactivate account"
+                      onClick={() => setConfirm({ person, action: 'deactivate' })}
+                    >
+                      <UserX size={15} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      title="Reactivate account"
+                      onClick={() => setConfirm({ person, action: 'reactivate' })}
+                    >
+                      <ShieldCheck size={15} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </section>
+
+              <div className="tcard-line">
+                <Phone size={14} /> {person.contact_number || '—'}
+              </div>
+              <div className="tcard-line">
+                <Mail size={14} /> <span className="tcard-email">{person.email}</span>
+              </div>
+
+              <div className="tcard-tags">
+                <span className={`badge ${STATUS_BADGE[person.account_status] || 'badge-neutral'}`}>
+                  {STATUS_LABEL[person.account_status] || person.account_status}
+                </span>
+                {person.permanent_lock && <span className="badge badge-critical">Locked</span>}
+              </div>
+            </article>
           ))}
         </div>
       )}
