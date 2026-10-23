@@ -69,6 +69,14 @@ class Student(Base):
     warnings = relationship(
         "EarlyWarning", back_populates="student", cascade="all, delete-orphan"
     )
+    # These rows require a student_id. Delete them with the learner instead
+    # of letting the ORM try to detach them by setting that column to NULL.
+    ai_predictions = relationship(
+        "AIRiskPrediction", back_populates="student", cascade="all, delete-orphan"
+    )
+    quality_logs = relationship(
+        "DataQualityLog", back_populates="student", cascade="all, delete-orphan"
+    )
 
     @property
     def full_name(self) -> str:
@@ -141,6 +149,9 @@ class StudentEnrollment(Base):
     )
     warnings = relationship(
         "EarlyWarning", back_populates="enrollment", cascade="all, delete-orphan"
+    )
+    ai_predictions = relationship(
+        "AIRiskPrediction", back_populates="enrollment", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -448,8 +459,8 @@ class AIRiskPrediction(Base):
 
     created_at = Column(DateTime(timezone=True), default=_utcnow, index=True)
 
-    student = relationship("Student", backref="ai_predictions")
-    enrollment = relationship("StudentEnrollment", backref="ai_predictions")
+    student = relationship("Student", back_populates="ai_predictions")
+    enrollment = relationship("StudentEnrollment", back_populates="ai_predictions")
 
     __table_args__ = (
         Index("ix_ai_pred_pace_created", "pace_id", "created_at"),
@@ -486,5 +497,5 @@ class DataQualityLog(Base):
     created_at = Column(DateTime(timezone=True), default=_utcnow)
     updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
-    student = relationship("Student", backref="quality_logs")
+    student = relationship("Student", back_populates="quality_logs")
     teacher = relationship("Staff", backref="quality_logs")
