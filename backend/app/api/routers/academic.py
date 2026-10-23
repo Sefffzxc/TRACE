@@ -381,7 +381,11 @@ async def list_sections(
     db: AsyncSession = Depends(get_db),
 ):
     stmt = scoped(
-        select(Section).order_by(Section.grade_level_id, Section.name), Section, scope
+        select(Section)
+        .join(GradeLevel, GradeLevel.grade_level_id == Section.grade_level_id)
+        .order_by(GradeLevel.sort_order, GradeLevel.grade_level_id, Section.name),
+        Section,
+        scope,
     )
     if grade_level_id:
         stmt = stmt.where(Section.grade_level_id == grade_level_id)
@@ -476,7 +480,9 @@ async def list_subjects(
     db: AsyncSession = Depends(get_db),
 ):
     stmt = scoped(
-        select(Subject).order_by(Subject.grade_level_id, Subject.subject_name),
+        select(Subject)
+        .join(GradeLevel, GradeLevel.grade_level_id == Subject.grade_level_id)
+        .order_by(GradeLevel.sort_order, GradeLevel.grade_level_id, Subject.subject_name),
         Subject,
         scope,
     )
