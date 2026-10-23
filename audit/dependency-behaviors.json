@@ -1,0 +1,35 @@
+{
+  "urlencoded_max_fields": {
+    "requested_max_fields": 1,
+    "parsed_fields": 5
+  },
+  "range_parser_bounded_timing": [
+    {
+      "input_bytes": 1008,
+      "seconds": 0.003329
+    },
+    {
+      "input_bytes": 2008,
+      "seconds": 0.024176
+    },
+    {
+      "input_bytes": 4008,
+      "seconds": 0.079061
+    },
+    {
+      "input_bytes": 8008,
+      "seconds": 0.374878
+    }
+  ],
+  "multipart_oversized_part_header": {
+    "header_value_bytes": 32768,
+    "accepted_callback_bytes": 32768
+  },
+  "multipart_extended_name": {
+    "parsed_name": "role"
+  },
+  "windows_static_unc_resolution_intercepted": {
+    "unc_resolver_calls_blocked": 1,
+    "outbound_smb_attempted": false
+  }
+}

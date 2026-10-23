@@ -1,0 +1,83 @@
+﻿id,severity,finding,status,report,heading_line
+SA-01,Critical,Critical — Anonymous password reset exposes the secret needed to take over an account,Open,security-auth.md,21
+SA-02,High,"High — Logout, password reset, forced reset, and refresh rotation do not revoke bearer credentials",Open,security-auth.md,31
+SA-03,High,High — Turning off OTP disclosure leaves sign-in and password recovery with no delivery mechanism,Open,security-auth.md,41
+SA-04,High,High — Password-reset OTPs have no per-code attempt limit,Open,security-auth.md,51
+SA-05,High,High — A caller-controlled forwarding header bypasses authentication rate limits,Open,security-auth.md,61
+SA-06,Medium,Medium — OTP consumption is not atomic and older codes become valid again,Open,security-auth.md,71
+SA-07,High,"High, configuration-dependent — Public default JWT signing key is accepted",Open,security-auth.md,81
+SA-08,Medium,Medium — Mandatory password change is only a UI suggestion,Open,security-auth.md,91
+SA-09,Medium,Medium — Principal registration bypasses the advertised password policy,Open,security-auth.md,101
+SA-10,Medium,Medium — Passwords are silently truncated to the first 72 UTF-8 bytes,Open,security-auth.md,111
+SA-11,Medium,Medium — School administrators cannot see important security audit events,Open,security-auth.md,121
+SA-12,Medium,Medium — Teacher can bypass the stated restriction on viewing administrators,Open,security-auth.md,131
+SA-13,Medium,Medium — Duplicate signup identifiers can crash instead of returning a conflict,Open,security-auth.md,141
+SA-14,Medium,Medium — Explicit null school settings reach non-null database columns,Open,security-auth.md,151
+SA-15,Medium,Medium — Profile upload trusts a claimed image MIME type and reads the entire body before limiting size,Open,security-auth.md,161
+SA-16,Medium,Medium — Profile photos are stored on the deployed service's ephemeral filesystem,Open,security-auth.md,171
+SA-17,High,High — Provided database plan expires and has no configured recoverable backups,Open,security-auth.md,181
+SA-18,Low,Low — Login responses reveal whether an address is registered,Open,security-auth.md,191
+SA-19,Low,Low — Profile validation permits empty required names,Open,security-auth.md,201
+SA-20,High,High — Concurrent incorrect passwords bypass the account lockout counter,Open,security-auth.md,211
+BD-01,High,High — Teacher can write a subject they are not assigned to teach,Open,backend-data-ai.md,17
+BD-02,High,High — Student and enrollment identity can disagree on saved grades,Open,backend-data-ai.md,25
+BD-03,High,High — Data-quality endpoints bypass class privacy and allow author spoofing,Open,backend-data-ai.md,33
+BD-04,High,High — Student PATCH response reveals grades hidden by GET permissions,Open,backend-data-ai.md,43
+BD-05,High,High — Invalid profile update commits data that permanently breaks learner reads,Open,backend-data-ai.md,51
+BD-06,High,High — Changing grade headers leaves warning/dashboard/AI state stale,Open,backend-data-ai.md,61
+BD-07,High,High — Editing a single PACE's scores ignores its saved class header,Open,backend-data-ai.md,71
+BD-08,High,High — Incomplete exams are treated as a finished term and sent to the AI model,Open,backend-data-ai.md,79
+BD-09,High,High — Historical grades contaminate current-year risk summaries,Open,backend-data-ai.md,89
+BD-10,High,High — Import silently attaches one learner's scores to another same-name learner,Open,backend-data-ai.md,99
+BD-11,High,High — Failed multi-term import leaves partially committed learners and grades,Open,backend-data-ai.md,109
+BD-12,High,High — Ordinary class saves wait for AI cold-start retries before committing,Open,backend-data-ai.md,119
+BD-13,Medium,Medium — Simultaneous first saves race into unhandled 500 errors,Open,backend-data-ai.md,129
+BD-14,High,High — Learners with AI predictions cannot be deleted,Open,backend-data-ai.md,137
+BD-15,High,High — Renaming a subject hides existing grades from its assigned teacher,Open,backend-data-ai.md,147
+BD-16,Medium,"Medium — Invalid headers and grading periods are accepted, corrupting calculations or causing 500s",Open,backend-data-ai.md,157
+BD-17,Medium,Medium — Class-record setup accepts another school's section ID,Open,backend-data-ai.md,167
+BD-18,Medium,Medium — Section capacity enforcement differs across enrollment flows,Open,backend-data-ai.md,175
+BD-19,Medium,Medium — SQLite foreign-key enforcement is enabled on only one connection,Open,backend-data-ai.md,185
+BD-20,Medium,Medium — Duplicate academic updates produce unhandled database errors,Open,backend-data-ai.md,193
+BD-21,High,High — Missing earlier terms cause an edited term to be counted twice in saved warnings,Open,backend-data-ai.md,203
+BD-22,Medium,Medium — School term-count settings are inconsistently honored,Open,backend-data-ai.md,213
+BF-01,High,High if repository/artifacts are shared outside authorized recipients — Committed pseudonymous grade datasets are dictionary-linkable,Open,backend-followup.md,61
+BF-02,Medium,Medium — Advertised five cross-validation repeats reproduce the same partitions,Open,backend-followup.md,73
+BF-03,High,"High — Client preview and server disagree on term grades, including pass/fail",Open,backend-followup.md,97
+FE-01,High,High: PACE drafts migrate to a different subject,Open,frontend-flows.md,17
+FE-02,High,High: saving a filtered roster silently deletes hidden learners' drafts,Open,frontend-flows.md,25
+FE-03,High,High: class-record setup edits follow the user to another class/subject/period,Open,frontend-flows.md,33
+FE-04,High,High: section-load response races can put the wrong roster under the selected section,Open,frontend-flows.md,41
+FE-05,High,High: missing written/performance assessments are treated as a complete record,Open,frontend-flows.md,49
+FE-06,Medium,Medium: a normal cold reload discards a usable refresh session,Open,frontend-flows.md,57
+FE-07,Medium,Medium: network requests have no timeout/cancellation; sign-out can hang,Open,frontend-flows.md,65
+FE-08,Medium,Medium: school-settings outage leaves Early Warning permanently loading,Open,frontend-flows.md,73
+FE-09,Medium,Medium: blocked browser storage crashes the entire application,Open,frontend-flows.md,81
+FE-10,Medium,"Medium: no complete UI for re-enrolling, transferring or closing an existing learner's enrollment",Open,frontend-flows.md,89
+FE-11,Medium,Medium: default expected PACE progress resets in January and ignores the selected school year,Open,frontend-flows.md,97
+FE-12,Medium,Medium: PACE offers subjects the teacher is not assigned to grade,Open,frontend-flows.md,105
+FE-13,Medium,Medium: exported CSV text can be interpreted as spreadsheet formulas,Open,frontend-flows.md,113
+FE-14,Medium,Medium: account Security link changes the URL but leaves the Profile tab open,Open,frontend-flows.md,121
+FE-15,Medium,Medium: the UI accepts blank first and last names for the signed-in account,Open,frontend-flows.md,129
+FE-16,Medium,Medium: modal dialogs do not manage keyboard focus or prevent background interaction,Open,frontend-flows.md,137
+FE-17,Medium,Medium: mobile layouts do not consistently collapse to a usable column,Open,frontend-flows.md,145
+FE-18,Medium,Medium: section and subject charts omit their passing-mark reference line,Open,frontend-flows.md,153
+FE-19,Medium,"Medium: forecasts beyond the first 1,000 records silently disappear",Open,frontend-flows.md,161
+FE-20,Medium,Medium: address-data failures are silently cached and prevent school registration recovery,Open,frontend-flows.md,169
+FE-21,Medium,Medium: a student-profile error persists after a successful retry/context change,Open,frontend-flows.md,177
+FE-22,Low,Low: temporary password is visible only in a disappearing toast,Open,frontend-flows.md,185
+FE-23,Low,Low: the mobile drawer cannot be closed with Escape,Open,frontend-flows.md,193
+FE-24,Low,Low: teacher-only route guard admits the system operator,Open,frontend-flows.md,201
+FE-25,Low,Low: several list/navigation controls are inaccessible from the keyboard,Open,frontend-flows.md,207
+FE-26,Low,Low: section filters match names instead of stable IDs,Open,frontend-flows.md,215
+RT-01,Medium,Medium - Readiness returns successful health with a known incompatible database schema,Open,browser-runtime.md,32
+RT-02,Low,"Low - Quick-start instructions, demo accounts, and route list are stale",Open,browser-runtime.md,42
+RT-03,Medium,"Medium - Automated accessibility checks find missing names, invalid ARIA, and insufficient contrast",Open,browser-runtime.md,52
+DEP-01,High,High — Unauthenticated static-file requests reach vulnerable Range processing,Open,python-dependencies.md,27
+DEP-02,High,High — Upload endpoints use known vulnerable multipart/form parsers,Open,python-dependencies.md,37
+DEP-03,High,High on Windows — StaticFiles resolves attacker-controlled UNC paths before containment checking,Open,python-dependencies.md,66
+DEP-04,Medium,Medium maintenance risk — Obsolete JOSE library and transitive ECDSA advisory,Open,python-dependencies.md,84
+DEP-05,Low,Low in current app — python-dotenv local symlink overwrite match,Open,python-dependencies.md,97
+DEP-06,Medium,Medium build-tool risk — Both environments use pip 24.0,Open,python-dependencies.md,103
+DEP-07,Medium,Medium — Current framework pin prevents compatible security-only transitive updates,Open,python-dependencies.md,118
+ND-01,Medium,Medium maintenance risk - Installed React Router has an open-redirect advisory,Open,frontend-dependencies.md,7

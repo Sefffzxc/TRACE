@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-20",
+  "browser": "installed Chrome, headless",
+  "routes": [],
+  "scenarios": [
+    {
+      "name": "real UI login teacher",
+      "landed": "/dashboard",
+      "issuedAccess": true,
+      "errors": []
+    },
+    {
+      "name": "real UI login admin",
+      "landed": "/dashboard",
+      "issuedAccess": true,
+      "errors": []
+    },
+    {
+      "name": "real UI login operator",
+      "landed": "/schools",
+      "issuedAccess": true,
+      "errors": []
+    },
+    {
+      "name": "cold reload with invalid access and valid refresh",
+      "refreshEndpointStatus": 200,
+      "landed": "/login",
+      "refreshCalls": 0,
+      "refreshCleared": true
+    },
+    {
+      "name": "school settings outage on early warning",
+      "skeletons": 56,
+      "messageShown": false,
+      "body": "S.Y. 2026-2027\n9+\nAR\nAna Reyes\nTeacher\nEarly warning\nOne row per student and subject, most urgent first.\nExport list\nCRITICAL\n6\n3 students\nAT RISK\n5\n4 students\nWATCH\n5\n4 students\nALL FLAGS\n16\n7 students\nAll sections\nGrade 7 - Rosal\nGrade 7 - Sampaguita\nGrade 8 - Narra\nAudit Section 29997526\nAll flags\nCritical\nAt risk\nWatch\nShow handled\nFlagged students\nGrade check is the school rule; AI forecast predicts the final grade.\nWhere the flags are concentrated\nSubjects generating the most warnings right now\nMathematics\n5\nFilipino\n4\nScience\n4\nEnglish\n3"
+    },
+    {
+      "name": "students offline API",
+      "errorShown": true,
+      "body": "TRACE\nOVERVIEW\nDashboard\nMONITORING\nStudents\nClass Record\nEarly Warning\n3\nAI Risk Model\nAR\nAna Reyes\nTEACHER\nStudents\nS.Y. 2026-2027\n9+\nAR\nAna Reyes\nTeacher\nStudents\nYour learners and what each needs to pass.\nExport CSV\nAdd student\nCannot reach the server. Check that the API is running and try again.\nAll grade levels\nAll sections\nAll\n0\nCritical\n0\nAt risk\n0\nWatch\n0\nOn track\n0\nNo students match these filters\n\nTry a different search or section.\n\nClear filters"
+    },
+    {
+      "name": "stalled session request",
+      "observedMs": 2200,
+      "body": "Restoring your session…"
+    },
+    {
+      "name": "class record saving with hidden drafts",
+      "nameA": "Jenny Rose Lumabao",
+      "nameB": "Kyla Marie Dagohoy",
+      "capturedEntryCount": 1,
+      "payloadKeys": [
+        "entries",
+        "section_id",
+        "subject_id",
+        "grading_period"
+      ],
+      "rowBValueAfterSave": "20",
+      "expectedDraft": "4"
+    },
+    {
+      "name": "PACE switching subjects after draft",
+      "selectedSubject": "Mathematics (0 Modules)",
+      "value": "7",
+      "draftRetained": true
+    },
+    {
+      "name": "browser storage denied",
+      "bodyEmpty": true,
+      "errors": [
+        "Audit storage denied",
+        "Audit storage denied",
+        "Audit storage denied"
+      ]
+    },
+    {
+      "name": "registration directory delayed 1200ms",
+      "pageVisible": true,
+      "errors": []
+    }
+  ],
+  "errors": [
+    {
+      "role": "teacher",
+      "errors": []
+    },
+    {
+      "role": "admin",
+      "errors": []
+    },
+    {
+      "role": "operator",
+      "errors": []
+    }
+  ]
+}

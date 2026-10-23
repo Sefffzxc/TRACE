@@ -1,0 +1,87 @@
+{
+  "dependency_override_count": 0,
+  "unauthenticated_students_status": 401,
+  "unassigned_student_status": 404,
+  "teacher_admin_write_status": 403,
+  "BD04_read_patch": {
+    "get_status": 200,
+    "get_lowest_grade": 100,
+    "patch_status": 200,
+    "patch_lowest_grade": 60,
+    "patch_weakest_subject": "Science"
+  },
+  "BF03_persisted_grading_parity": {
+    "setup_status": 200,
+    "save_status": 200,
+    "readback_status": 200,
+    "fixture": {
+      "row": {
+        "ww_scores": [
+          24.625
+        ],
+        "pt_scores": [
+          100
+        ],
+        "exam_scores": [
+          50.25,
+          50.25,
+          50.25
+        ]
+      },
+      "setup": {
+        "template": "core",
+        "ww_highest": [
+          100
+        ],
+        "pt_highest": [
+          100
+        ],
+        "exam_highest": [
+          100,
+          100,
+          100
+        ],
+        "ww_weight": 20,
+        "pt_weight": 50,
+        "ex_weight": 30,
+        "exam_subweights": [
+          30,
+          30,
+          40
+        ]
+      }
+    },
+    "frontend": {
+      "ww_total": 24.63,
+      "initial_grade": 70,
+      "term_grade": 75,
+      "descriptor": "Connecting",
+      "complete": true
+    },
+    "backend": {
+      "ww_total": 24.62,
+      "initial_grade": 70.0,
+      "term_grade": 74,
+      "descriptor": "Developing",
+      "complete": true
+    },
+    "database_persisted_term_grade": 74
+  },
+  "BD01_unassigned_subject_rename": {
+    "status": 200,
+    "subject": "History"
+  },
+  "BD02_mismatch": {
+    "status": 201,
+    "student_id": 2,
+    "enrollment_id": 1
+  },
+  "BD03_quality_private_case": {
+    "status": 200,
+    "unassigned_student_case_visible": true
+  },
+  "BD05_persistent_invalid_profile": {
+    "patch_status": 500,
+    "subsequent_read_status": 500
+  }
+}

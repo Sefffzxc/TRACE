@@ -1,0 +1,26 @@
+{
+  "status": 200,
+  "body": {
+    "status": "ok",
+    "allowed_origins": [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:4173",
+      "http://127.0.0.1:4173",
+      "http://localhost:3000"
+    ],
+    "schema": {
+      "up_to_date": false,
+      "missing_tables": [
+        "audit_missing_table"
+      ],
+      "missing_columns": {
+        "staff": [
+          "audit_missing_column"
+        ]
+      },
+      "fix": "run: python add_missing_columns.py --apply",
+      "why": "create_all adds missing tables but never adds a column to a table that already exists, so redeploying does not clear this."
+    }
+  }
+}

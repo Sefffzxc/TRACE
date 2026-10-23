@@ -1,0 +1,245 @@
+{
+  "all_get_routes_without_auth": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/staff/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/staff",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/staff/teachers",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/staff/pending",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/staff/audit-logs",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/staff/{staff_id}",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/school-years",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/school-years/current",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/grade-levels",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/sections",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/subjects",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/teacher-assignments",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/my-classes",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/students",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/students/{student_id}",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/students/{student_id}/profile",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/enrollments",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/paces",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/class-record/setup",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/early-warnings",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/early-warnings/summary",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/data-quality-logs",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/admin",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/status",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/model-card",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/predictions",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/predictions/{prediction_id}",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/summary",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/schools/directory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/schools/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/schools",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "status": 200
+    }
+  ],
+  "http_login": {
+    "login_status": 201,
+    "access_issued": true
+  },
+  "concurrent_reads": {
+    "requests": 100,
+    "concurrency": 25,
+    "seconds": 4.387,
+    "statuses": {
+      "200": 100
+    },
+    "p50_ms": 700.23,
+    "p95_ms": 3040.49,
+    "max_ms": 3994.08,
+    "errors": []
+  },
+  "cors_preflight": [
+    {
+      "origin": "http://127.0.0.1:5173",
+      "status": 200,
+      "allow_origin": "http://127.0.0.1:5173"
+    },
+    {
+      "origin": "https://evil.example.com",
+      "status": 400,
+      "allow_origin": null
+    }
+  ],
+  "search_inputs": [
+    {
+      "query": "' OR 1=1--",
+      "input_length": 10,
+      "status": 200,
+      "content_type": "application/json"
+    },
+    {
+      "query": "<script>alert(1)</script>",
+      "input_length": 25,
+      "status": 200,
+      "content_type": "application/json"
+    },
+    {
+      "query": "%",
+      "input_length": 1,
+      "status": 200,
+      "content_type": "application/json"
+    },
+    {
+      "query": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "input_length": 5000,
+      "status": 200,
+      "content_type": "application/json"
+    }
+  ],
+  "personal_data_response_headers": {
+    "cache-control": null,
+    "pragma": null,
+    "x-content-type-options": null,
+    "content-security-policy": null,
+    "referrer-policy": null,
+    "strict-transport-security": null
+  },
+  "static_address_json": {
+    "files_parsed": 83,
+    "invalid": []
+  }
+}

@@ -107,6 +107,30 @@ export default function ClassManagementPage() {
   }[tab];
 
   const save = async (payload, existing) => {
+    // Several assignments at once: create them one by one and stop at the
+    // first problem, telling the form how many went through.
+    if (Array.isArray(payload)) {
+      setBusy(true);
+      let created = 0;
+      try {
+        for (const item of payload) {
+          await apiFor.create(item);
+          created += 1;
+        }
+        toast.success(created === 1 ? 'Created.' : `${created} assignments created.`);
+        setEditing(null);
+      } catch (err) {
+        toast.error(
+          created
+            ? `${created} created, but the next one failed: ${err.message} Fix the remaining rows and try again.`
+            : err.message,
+        );
+      } finally {
+        setBusy(false);
+        load();
+      }
+      return created;
+    }
     setBusy(true);
     try {
       if (existing) {
@@ -369,10 +393,41 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
-    onSave(serialise(tab, form), record);
+    const payload = serialise(tab, form);
+    const created = await onSave(payload, record);
+    // If only some assignments were saved, keep just the ones still to do.
+    if (Array.isArray(payload) && created > 0 && created < payload.length) {
+      setForm((current) => ({ ...current, rows: current.rows.slice(created) }));
+    }
   };
+
+  const setRow = (key, patch) =>
+    setForm((current) => ({
+      ...current,
+      rows: current.rows.map((row) => (row.key === key ? { ...row, ...patch } : row)),
+    }));
+
+  const sectionOf = (sectionId) =>
+    data.sections.find((section) => String(section.section_id) === String(sectionId));
+
+  // Picking another section clears the subject if it belongs to a different grade.
+  const changeSection = (row) => (event) => {
+    const section = sectionOf(event.target.value);
+    const subject = data.subjects.find((item) => String(item.subject_id) === String(row.subject_id));
+    const keep = subject && section && subject.grade_level_id === section.grade_level_id;
+    setRow(row.key, { section_id: event.target.value, subject_id: keep ? row.subject_id : '' });
+  };
+
+  const addRow = () =>
+    setForm((current) => ({ ...current, rows: [...current.rows, newAssignmentRow()] }));
+
+  const removeRow = (key) =>
+    setForm((current) => ({ ...current, rows: current.rows.filter((row) => row.key !== key) }));
+
+  const assignmentCount = tab === 'assignments' ? form.rows.length : 0;
+  const lastRow = tab === 'assignments' ? form.rows[form.rows.length - 1] : null;
 
   const titles = {
     years: 'school year',
@@ -392,7 +447,13 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
             Cancel
           </button>
           <button type="submit" form="setup-form" className="btn btn-primary" disabled={busy}>
-            {busy ? 'Saving…' : record ? 'Save changes' : 'Create'}
+            {busy
+              ? 'Saving…'
+              : record
+                ? 'Save changes'
+                : assignmentCount > 1
+                  ? `Create ${assignmentCount} assignments`
+                  : 'Create'}
           </button>
         </>
       }
@@ -541,43 +602,118 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                 ))}
               </select>
             </div>
-            <div className="field">
-              <label className="field-label" htmlFor="a_section">
-                Section <span className="req">*</span>
-              </label>
-              <select id="a_section" className="select" value={form.section_id} onChange={set('section_id')} required>
-                <option value="">Choose…</option>
-                {data.sections.map((section) => (
-                  <option key={section.section_id} value={section.section_id}>
-                    {section.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label className="field-label" htmlFor="a_subject">
-                Subject
-              </label>
-              <select id="a_subject" className="select" value={form.subject_id} onChange={set('subject_id')}>
-                <option value="">All subjects in this section</option>
-                {data.subjects.map((subject) => (
-                  <option key={subject.subject_id} value={subject.subject_id}>
-                    {subject.subject_name} — {subject.grade_level_name}
-                  </option>
-                ))}
-              </select>
-              <span className="field-hint">The teacher grades only the subjects assigned here.</span>
-            </div>
-            <label className="checkbox">
-              <input type="checkbox" checked={form.is_adviser} onChange={set('is_adviser')} />
-              This teacher is the section adviser
-            </label>
+
+            {form.rows.map((row, index) => {
+              const section = sectionOf(row.section_id);
+              const subjects = section
+                ? data.subjects.filter((subject) => subject.grade_level_id === section.grade_level_id)
+                : data.subjects;
+              return (
+                <div
+                  key={row.key}
+                  className="stack"
+                  style={
+                    form.rows.length > 1
+                      ? {
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '0.9rem',
+                          background: 'var(--surface-sunken)',
+                        }
+                      : undefined
+                  }
+                >
+                  {form.rows.length > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--text-strong)' }}>
+                        Assignment {index + 1}
+                      </strong>
+                      <button
+                        type="button"
+                        className="btn-icon"
+                        title="Remove this assignment"
+                        onClick={() => removeRow(row.key)}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  )}
+                  <div className="field">
+                    <label className="field-label" htmlFor={`a_section_${row.key}`}>
+                      Section <span className="req">*</span>
+                    </label>
+                    <select
+                      id={`a_section_${row.key}`}
+                      className="select"
+                      value={row.section_id}
+                      onChange={changeSection(row)}
+                      required
+                    >
+                      <option value="">Choose…</option>
+                      {data.sections.map((item) => (
+                        <option key={item.section_id} value={item.section_id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label className="field-label" htmlFor={`a_subject_${row.key}`}>
+                      Subject
+                    </label>
+                    <select
+                      id={`a_subject_${row.key}`}
+                      className="select"
+                      value={row.subject_id}
+                      onChange={(event) => setRow(row.key, { subject_id: event.target.value })}
+                    >
+                      <option value="">All subjects in this section</option>
+                      {subjects.map((subject) => (
+                        <option key={subject.subject_id} value={subject.subject_id}>
+                          {section
+                            ? subject.subject_name
+                            : `${subject.subject_name} — ${subject.grade_level_name}`}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="field-hint">The teacher grades only the subjects assigned here.</span>
+                  </div>
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={row.is_adviser}
+                      onChange={(event) => setRow(row.key, { is_adviser: event.target.checked })}
+                    />
+                    This teacher is the adviser of this section
+                  </label>
+                </div>
+              );
+            })}
+
+            {/* Only worth adding more once a specific subject is picked: "All subjects"
+                already covers the whole section. */}
+            {lastRow && lastRow.subject_id && (
+              <div>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={addRow}>
+                  <Plus size={14} /> Add another subject
+                </button>
+                <span className="field-hint" style={{ display: 'block', marginTop: '0.4rem' }}>
+                  For teachers who handle other subjects or grade levels.
+                </span>
+              </div>
+            )}
             <span className="field-hint">An adviser also sees every subject of this section.</span>
           </>
         )}
       </form>
     </Modal>
   );
+}
+
+let assignmentRowKey = 0;
+function newAssignmentRow() {
+  assignmentRowKey += 1;
+  return { key: assignmentRowKey, section_id: '', subject_id: '', is_adviser: false };
 }
 
 function defaultsFor(tab, record) {
@@ -592,7 +728,7 @@ function defaultsFor(tab, record) {
       total_paces: 12,
       is_active: true,
     },
-    assignments: { teacher_id: '', section_id: '', subject_id: '', is_adviser: false },
+    assignments: { teacher_id: '', rows: [newAssignmentRow()] },
   };
   const base = shapes[tab];
   if (!record) return base;
@@ -620,12 +756,13 @@ function serialise(tab, form) {
     };
   }
   if (tab === 'assignments') {
-    return {
+    // One request per row; the teacher is shared by all of them.
+    return form.rows.map((row) => ({
       teacher_id: form.teacher_id,
-      section_id: Number(form.section_id),
-      subject_id: form.subject_id ? Number(form.subject_id) : null,
-      is_adviser: form.is_adviser,
-    };
+      section_id: Number(row.section_id),
+      subject_id: row.subject_id ? Number(row.subject_id) : null,
+      is_adviser: row.is_adviser,
+    }));
   }
   return form;
 }

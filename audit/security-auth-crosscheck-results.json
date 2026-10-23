@@ -1,0 +1,150 @@
+{
+  "database": "security-auth-86a6072b7baa4008826c8f01d0ad09fc.sqlite",
+  "isolation": "fresh audit-only DB",
+  "results": {
+    "anonymous_reset_takeover": {
+      "otp_exposed": true,
+      "exchange_status": 200,
+      "reset_status": 200,
+      "victim_account_login_succeeded": true
+    },
+    "logout_reset_revocation": {
+      "logout_status": 204,
+      "logged_out_access_status": 200,
+      "logged_out_refresh_status": 200,
+      "pre_reset_access_status": 200,
+      "pre_reset_refresh_status": 200
+    },
+    "reset_attempt_limit": {
+      "wrong_attempt_statuses": [
+        400,
+        400,
+        400,
+        400,
+        400,
+        400,
+        400,
+        400,
+        400,
+        400,
+        400,
+        400
+      ],
+      "correct_code_after_12_failures_status": 200
+    },
+    "rate_limit_forwarding_spoof": {
+      "statuses_same_claimed_ip": [
+        401,
+        401,
+        401,
+        401,
+        401,
+        401,
+        401,
+        401,
+        401,
+        401,
+        429
+      ],
+      "changed_claimed_ip_status": 401
+    },
+    "forced_password_change_gate": {
+      "force_reset_status": 200,
+      "requires_password_change": true,
+      "protected_data_before_password_change_status": 200,
+      "pre_force_reset_access_status": 200
+    },
+    "refresh_rotation": {
+      "first_refresh_status": 200,
+      "old_refresh_replayed_status": 200
+    },
+    "concurrent_login_otp_replay": {
+      "statuses": [
+        201,
+        201,
+        201,
+        201
+      ],
+      "tokens_issued": 4
+    },
+    "concurrent_reset_otp_replay": {
+      "statuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "reset_tokens_issued": 4
+    },
+    "old_login_otp_resurrection": {
+      "newest_code_status": 201,
+      "previous_code_after_new_code_used_status": 201
+    },
+    "boundary_checks": {
+      "anonymous_staff_status": 401,
+      "teacher_admin_mutation_status": 403,
+      "admin_other_school_profile_status": 404,
+      "operator_students_status": 403,
+      "teacher_admin_directory_status": 200,
+      "teacher_admin_profile_status": 200
+    },
+    "principal_weak_password": {
+      "weak_password_registration_status": 201
+    },
+    "case_duplicate_registration": {
+      "duplicate_status": 500,
+      "error_type": "IntegrityError"
+    },
+    "null_school_setting": {
+      "null_passing_mark_status": 500,
+      "error_type": "IntegrityError"
+    },
+    "invalid_image_and_public_upload": {
+      "invalid_image_upload_status": 200,
+      "anonymous_upload_read_status": 200
+    },
+    "bcrypt_truncation": {
+      "distinct_long_password_accepted": true
+    },
+    "security_events_hidden_from_admin": {
+      "stored_reset_request_events": 3,
+      "reset_request_events_visible_to_admin": 0
+    },
+    "settings_audit_missing_actor": {
+      "update_status": 200,
+      "settings_events_visible_to_admin": 0
+    },
+    "default_signing_key": {
+      "known_default_key_forged_access_status": 200,
+      "precondition": "SECRET_KEY left at source default; not the generated Render key"
+    },
+    "login_account_enumeration": {
+      "known_status": 401,
+      "unknown_status": 401,
+      "response_messages_differ": true
+    },
+    "empty_profile_name": {
+      "empty_name_update_status": 200,
+      "stored_first_name_is_empty": true
+    },
+    "concurrent_failed_login_accounting": {
+      "bad_password_responses": [
+        401,
+        401,
+        401,
+        401,
+        401,
+        401
+      ],
+      "stored_failed_attempts": 1,
+      "stored_lockouts": 0,
+      "temporarily_locked": false,
+      "permanently_locked": false
+    },
+    "non_debug_reset_delivery": {
+      "response_status": 202,
+      "debug_otp_present": false,
+      "note": "Source has print() only; no mail transport is invoked."
+    }
+  }
+}

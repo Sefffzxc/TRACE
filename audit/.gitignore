@@ -1,0 +1,14 @@
+# Keep audit reports, scripts, and sanitized JSON evidence reviewable.
+# Exclude local services, invented-data fixtures, credentials, and tooling.
+runtime/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+uploads*/
+security-auth-uploads-*/
+backend-data-ai-*/
+.venv/
+__pycache__/
+*.log

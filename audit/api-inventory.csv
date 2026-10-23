@@ -1,0 +1,89 @@
+service,method,path,router,function,source_line,guard,direct_dependencies
+ai-service,GET,/,ai-service/main.py,root,313,Public (no auth dependency declared),
+ai-service,GET,/health,ai-service/main.py,health,323,Public (no auth dependency declared),
+ai-service,GET,/model-card,ai-service/main.py,model_card,335,Public (no auth dependency declared),
+ai-service,POST,/predict,ai-service/main.py,predict,384,Shared AI service token; optional when AI_SERVICE_TOKEN empty,require_token
+ai-service,POST,/predict/batch,ai-service/main.py,predict_batch,390,Shared AI service token; optional when AI_SERVICE_TOKEN empty,require_token
+ai-service,POST,/reload,ai-service/main.py,reload_model,403,Shared AI service token; optional when AI_SERVICE_TOKEN empty,require_token
+backend,GET,/,backend/app/main.py,root,192,Public (no auth dependency declared),
+backend,GET,/api/ai/model-card,backend/app/api/routers/ai.py,ai_model_card,74,Access JWT,get_current_user
+backend,GET,/api/ai/predictions,backend/app/api/routers/ai.py,list_predictions,98,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/ai/predictions/{prediction_id},backend/app/api/routers/ai.py,get_prediction,189,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/ai/rescore,backend/app/api/routers/ai.py,rescore,263,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/ai/status,backend/app/api/routers/ai.py,ai_status,54,Access JWT,get_current_user
+backend,GET,/api/ai/summary,backend/app/api/routers/ai.py,prediction_summary,206,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/auth/forgot-password,backend/app/api/routers/auth.py,forgot_password,514,Public (no auth dependency declared),get_db; limit_password_reset
+backend,POST,/api/auth/login,backend/app/api/routers/auth.py,login,199,Public (no auth dependency declared),get_db; limit_login
+backend,POST,/api/auth/logout,backend/app/api/routers/auth.py,logout,488,Access JWT,get_current_user; get_db
+backend,GET,/api/auth/me,backend/app/api/routers/auth.py,whoami,672,Access JWT,get_current_user
+backend,POST,/api/auth/refresh,backend/app/api/routers/auth.py,refresh_session,461,Refresh JWT,get_user_from_refresh_token; get_db
+backend,POST,/api/auth/register,backend/app/api/routers/auth.py,register,117,Public (no auth dependency declared),get_db; limit_register
+backend,POST,/api/auth/reset-password,backend/app/api/routers/auth.py,reset_password,618,Public (no auth dependency declared),get_db
+backend,POST,/api/auth/verify-otp,backend/app/api/routers/auth.py,verify_otp,375,Public (no auth dependency declared),get_db; limit_otp
+backend,POST,/api/auth/verify-reset-otp,backend/app/api/routers/auth.py,verify_reset_otp,572,Public (no auth dependency declared),get_db; limit_otp
+backend,POST,/api/class-record/import,backend/app/api/routers/class_import.py,import_class_record,79,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/class-record/setup,backend/app/api/routers/pace.py,get_class_record_setup,827,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,PUT,/api/class-record/setup,backend/app/api/routers/pace.py,put_class_record_setup,853,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/dashboard,backend/app/api/routers/dashboard.py,dashboard,72,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/dashboard/admin,backend/app/api/routers/dashboard.py,admin_dashboard,391,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/data-quality-logs,backend/app/api/routers/pace.py,list_quality_logs,1114,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/data-quality-logs,backend/app/api/routers/pace.py,create_quality_log,1143,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,PATCH,/api/data-quality-logs/{log_id},backend/app/api/routers/pace.py,resolve_quality_log,1174,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/early-warnings,backend/app/api/routers/pace.py,list_warnings,956,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/early-warnings/summary,backend/app/api/routers/pace.py,warning_summary,1025,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,PATCH,/api/early-warnings/{warning_id},backend/app/api/routers/pace.py,update_warning,1087,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/enrollments,backend/app/api/routers/students.py,list_enrollments,412,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/enrollments,backend/app/api/routers/students.py,create_enrollment,459,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,DELETE,/api/enrollments/{enrollment_id},backend/app/api/routers/students.py,delete_enrollment,565,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,PATCH,/api/enrollments/{enrollment_id},backend/app/api/routers/students.py,update_enrollment,525,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/grade-levels,backend/app/api/routers/academic.py,list_grade_levels,197,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/grade-levels,backend/app/api/routers/academic.py,create_grade_level,253,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,DELETE,/api/grade-levels/{grade_level_id},backend/app/api/routers/academic.py,delete_grade_level,297,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,PATCH,/api/grade-levels/{grade_level_id},backend/app/api/routers/academic.py,update_grade_level,280,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/my-classes,backend/app/api/routers/academic.py,my_classes,679,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/paces,backend/app/api/routers/pace.py,list_paces,413,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/paces,backend/app/api/routers/pace.py,create_pace,493,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/paces/bulk,backend/app/api/routers/pace.py,bulk_upsert_paces,601,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,DELETE,/api/paces/{pace_id},backend/app/api/routers/pace.py,delete_pace,941,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,PATCH,/api/paces/{pace_id},backend/app/api/routers/pace.py,update_pace,559,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/school-years,backend/app/api/routers/academic.py,list_school_years,60,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/school-years,backend/app/api/routers/academic.py,create_school_year,110,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/school-years/current,backend/app/api/routers/academic.py,current_school_year,78,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,DELETE,/api/school-years/{school_year_id},backend/app/api/routers/academic.py,delete_school_year,166,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,PATCH,/api/school-years/{school_year_id},backend/app/api/routers/academic.py,update_school_year,142,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/schools,backend/app/api/routers/schools.py,list_schools,237,Authenticated super_admin,get_super_admin; get_db
+backend,GET,/api/schools/directory,backend/app/api/routers/schools.py,school_directory,70,Public (no auth dependency declared),get_db
+backend,GET,/api/schools/me,backend/app/api/routers/schools.py,my_school,187,Access JWT,get_current_user; get_db
+backend,PATCH,/api/schools/me,backend/app/api/routers/schools.py,update_my_school,205,Authenticated school admin; school scope,school_admin_scope; get_db
+backend,POST,/api/schools/register,backend/app/api/routers/schools.py,register_school,102,Public (no auth dependency declared),get_db; limit_register
+backend,PATCH,/api/schools/{school_id},backend/app/api/routers/schools.py,decide_school,300,Authenticated super_admin,get_super_admin; get_db
+backend,GET,/api/sections,backend/app/api/routers/academic.py,list_sections,377,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/sections,backend/app/api/routers/academic.py,create_section,393,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,DELETE,/api/sections/{section_id},backend/app/api/routers/academic.py,delete_section,441,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,PATCH,/api/sections/{section_id},backend/app/api/routers/academic.py,update_section,420,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/staff,backend/app/api/routers/staff.py,list_staff,175,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/staff/audit-logs,backend/app/api/routers/staff.py,list_audit_logs,274,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/staff/me,backend/app/api/routers/staff.py,read_me,71,Access JWT,get_current_user
+backend,PATCH,/api/staff/me,backend/app/api/routers/staff.py,update_me,76,Access JWT,get_current_user; get_db
+backend,POST,/api/staff/me/password,backend/app/api/routers/staff.py,change_own_password,90,Access JWT,get_current_user; get_db
+backend,DELETE,/api/staff/me/photo,backend/app/api/routers/staff.py,remove_photo,153,Access JWT,get_current_user; get_db
+backend,POST,/api/staff/me/photo,backend/app/api/routers/staff.py,upload_photo,113,Access JWT,get_current_user; get_db
+backend,GET,/api/staff/pending,backend/app/api/routers/staff.py,list_pending,255,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/staff/teachers,backend/app/api/routers/staff.py,list_teachers,208,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,DELETE,/api/staff/{staff_id},backend/app/api/routers/staff.py,delete_staff,447,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/staff/{staff_id},backend/app/api/routers/staff.py,read_staff,316,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,PATCH,/api/staff/{staff_id},backend/app/api/routers/staff.py,admin_update_staff,343,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/students,backend/app/api/routers/students.py,list_students,107,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/students,backend/app/api/routers/students.py,create_student,295,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,DELETE,/api/students/{student_id},backend/app/api/routers/students.py,delete_student,380,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/students/{student_id},backend/app/api/routers/students.py,read_student,159,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,PATCH,/api/students/{student_id},backend/app/api/routers/students.py,update_student,351,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/students/{student_id}/profile,backend/app/api/routers/students.py,student_profile,178,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,GET,/api/subjects,backend/app/api/routers/academic.py,list_subjects,471,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/subjects,backend/app/api/routers/academic.py,create_subject,504,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,DELETE,/api/subjects/{subject_id},backend/app/api/routers/academic.py,delete_subject,552,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,PATCH,/api/subjects/{subject_id},backend/app/api/routers/academic.py,update_subject,531,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/api/teacher-assignments,backend/app/api/routers/academic.py,list_assignments,567,Access JWT; school scope,get_current_user; school_scope; get_db
+backend,POST,/api/teacher-assignments,backend/app/api/routers/academic.py,create_assignment,607,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,DELETE,/api/teacher-assignments/{assignment_id},backend/app/api/routers/academic.py,delete_assignment,664,Authenticated school admin; school scope,get_current_admin; school_scope; get_db
+backend,GET,/health,backend/app/main.py,health,202,Public (no auth dependency declared),

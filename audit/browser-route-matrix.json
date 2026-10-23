@@ -1,0 +1,2857 @@
+{
+  "date": "2026-10-20",
+  "browser": "installed Chrome, headless",
+  "routes": [
+    {
+      "role": "guest",
+      "route": "/login",
+      "landed": "/login",
+      "heading": [
+        "Every learner\u00e2\u20ac\u2122s progress, seen early enough to act.",
+        "Welcome back"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                ".faint"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.15 (foreground color: #677184, background color: #e8ecf4, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".auth-divider"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.15 (foreground color: #677184, background color: #e8ecf4, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "guest",
+      "route": "/register",
+      "landed": "/register",
+      "heading": [
+        "Every learner\u00e2\u20ac\u2122s progress, seen early enough to act.",
+        "Request a staff account"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "guest",
+      "route": "/forgot",
+      "landed": "/forgot",
+      "heading": [
+        "Every learner\u00e2\u20ac\u2122s progress, seen early enough to act.",
+        "Reset your password"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "guest",
+      "route": "/reset",
+      "landed": "/forgot",
+      "heading": [
+        "Every learner\u00e2\u20ac\u2122s progress, seen early enough to act.",
+        "Reset your password"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "guest",
+      "route": "/verify",
+      "landed": "/login",
+      "heading": [
+        "Every learner\u00e2\u20ac\u2122s progress, seen early enough to act.",
+        "Welcome back"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                ".faint"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.15 (foreground color: #677184, background color: #e8ecf4, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".auth-divider"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.15 (foreground color: #677184, background color: #e8ecf4, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "guest",
+      "route": "/not-a-page",
+      "landed": "/login",
+      "heading": [
+        "Every learner\u00e2\u20ac\u2122s progress, seen early enough to act.",
+        "Welcome back"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                ".faint"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.15 (foreground color: #677184, background color: #e8ecf4, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".auth-divider"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.15 (foreground color: #677184, background color: #e8ecf4, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "guest",
+      "route": "/dashboard",
+      "landed": "/login",
+      "heading": [
+        "Every learner\u00e2\u20ac\u2122s progress, seen early enough to act.",
+        "Welcome back"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                ".faint"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.15 (foreground color: #677184, background color: #e8ecf4, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".auth-divider"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.15 (foreground color: #677184, background color: #e8ecf4, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/dashboard",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Ana.",
+        "Average grade by section",
+        "Risk distribution",
+        "Grades by quarter",
+        "Average grade by subject",
+        "Needs attention first",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 356,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by section\nPassing mark: 75\nGrade 7 - Rosal\nGrade 7",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Risk distribution\nBy weakest subject\n10\nSTUDENTS\nOn track\n3\n30%\nW",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Grades by quarter\nAverage grade per quarter\nQuarter 1\nQuarter 2\nQ",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by subject\nStrongest and weakest subjects\n50\n65\n80\n",
+              "right": 356
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "svg-img-alt",
+          "impact": "serious",
+          "description": "Ensure <svg> elements with an img, image, graphics-document or graphics-symbol role have accessible text",
+          "count": 4,
+          "examples": [
+            {
+              "target": [
+                "path[name=\"On track\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"Watch\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"At risk\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/students",
+      "landed": "/students",
+      "heading": [
+        "Students"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 3,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".is-on > .chip-count"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.31 (foreground color: #ffffff, background color: #6088f5, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/students/1",
+      "landed": "/students/1",
+      "heading": [
+        "Althea Mae Bontigao",
+        "Student details",
+        "Parent or guardian"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 356,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "BUTTON",
+              "class": "tab ",
+              "text": "Enrolment history",
+              "right": 332
+            },
+            {
+              "tag": "DIV",
+              "class": "card",
+              "text": "Student details\nWatch\nStudent ID\nS0001\nFull name\nAlthea Mae Bonti",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card",
+              "text": "Parent or guardian\nName\nMaria Bontigao\nRelationship\nParent\n Conta",
+              "right": 356
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/students/999999",
+      "landed": "/students/999999",
+      "heading": [],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/class-record",
+      "landed": "/class-record",
+      "heading": [
+        "Class record"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/pace",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Ana.",
+        "Average grade by section",
+        "Risk distribution",
+        "Grades by quarter",
+        "Average grade by subject",
+        "Needs attention first",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 356,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by section\nPassing mark: 75\nGrade 7 - Rosal\nGrade 7",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Risk distribution\nBy weakest subject\n10\nSTUDENTS\nOn track\n3\n30%\nW",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Grades by quarter\nAverage grade per quarter\nQuarter 1\nQuarter 2\nQ",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by subject\nStrongest and weakest subjects\n50\n65\n80\n",
+              "right": 356
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "svg-img-alt",
+          "impact": "serious",
+          "description": "Ensure <svg> elements with an img, image, graphics-document or graphics-symbol role have accessible text",
+          "count": 4,
+          "examples": [
+            {
+              "target": [
+                "path[name=\"On track\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"Watch\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"At risk\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/early-warning",
+      "landed": "/early-warning",
+      "heading": [
+        "Early warning",
+        "Flagged students",
+        "Where the flags are concentrated"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/ai-risk",
+      "landed": "/ai-risk",
+      "heading": [
+        "AI risk classification",
+        "Latest forecasts"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/account",
+      "landed": "/account",
+      "heading": [
+        "Account settings",
+        "Photo",
+        "Your details"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "description": "Ensure every form element has a label",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                ".visually-hidden"
+              ],
+              "failure": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/teachers",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Ana.",
+        "Average grade by section",
+        "Risk distribution",
+        "Grades by quarter",
+        "Average grade by subject",
+        "Needs attention first",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 356,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by section\nPassing mark: 75\nGrade 7 - Rosal\nGrade 7",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Risk distribution\nBy weakest subject\n10\nSTUDENTS\nOn track\n3\n30%\nW",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Grades by quarter\nAverage grade per quarter\nQuarter 1\nQuarter 2\nQ",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by subject\nStrongest and weakest subjects\n50\n65\n80\n",
+              "right": 356
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "svg-img-alt",
+          "impact": "serious",
+          "description": "Ensure <svg> elements with an img, image, graphics-document or graphics-symbol role have accessible text",
+          "count": 4,
+          "examples": [
+            {
+              "target": [
+                "path[name=\"On track\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"Watch\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"At risk\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/approvals",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Ana.",
+        "Average grade by section",
+        "Risk distribution",
+        "Grades by quarter",
+        "Average grade by subject",
+        "Needs attention first",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 356,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by section\nPassing mark: 75\nGrade 7 - Rosal\nGrade 7",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Risk distribution\nBy weakest subject\n10\nSTUDENTS\nOn track\n3\n30%\nW",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Grades by quarter\nAverage grade per quarter\nQuarter 1\nQuarter 2\nQ",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by subject\nStrongest and weakest subjects\n50\n65\n80\n",
+              "right": 356
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "svg-img-alt",
+          "impact": "serious",
+          "description": "Ensure <svg> elements with an img, image, graphics-document or graphics-symbol role have accessible text",
+          "count": 4,
+          "examples": [
+            {
+              "target": [
+                "path[name=\"On track\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"Watch\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"At risk\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/class-management",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Ana.",
+        "Average grade by section",
+        "Risk distribution",
+        "Grades by quarter",
+        "Average grade by subject",
+        "Needs attention first",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 356,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by section\nPassing mark: 75\nGrade 7 - Rosal\nGrade 7",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Risk distribution\nBy weakest subject\n10\nSTUDENTS\nOn track\n3\n30%\nW",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Grades by quarter\nAverage grade per quarter\nQuarter 1\nQuarter 2\nQ",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by subject\nStrongest and weakest subjects\n50\n65\n80\n",
+              "right": 356
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "svg-img-alt",
+          "impact": "serious",
+          "description": "Ensure <svg> elements with an img, image, graphics-document or graphics-symbol role have accessible text",
+          "count": 4,
+          "examples": [
+            {
+              "target": [
+                "path[name=\"On track\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"Watch\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"At risk\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/school-settings",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Ana.",
+        "Average grade by section",
+        "Risk distribution",
+        "Grades by quarter",
+        "Average grade by subject",
+        "Needs attention first",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 356,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by section\nPassing mark: 75\nGrade 7 - Rosal\nGrade 7",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Risk distribution\nBy weakest subject\n10\nSTUDENTS\nOn track\n3\n30%\nW",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Grades by quarter\nAverage grade per quarter\nQuarter 1\nQuarter 2\nQ",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by subject\nStrongest and weakest subjects\n50\n65\n80\n",
+              "right": 356
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "svg-img-alt",
+          "impact": "serious",
+          "description": "Ensure <svg> elements with an img, image, graphics-document or graphics-symbol role have accessible text",
+          "count": 4,
+          "examples": [
+            {
+              "target": [
+                "path[name=\"On track\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"Watch\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"At risk\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/schools",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Ana.",
+        "Average grade by section",
+        "Risk distribution",
+        "Grades by quarter",
+        "Average grade by subject",
+        "Needs attention first",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 356,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by section\nPassing mark: 75\nGrade 7 - Rosal\nGrade 7",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Risk distribution\nBy weakest subject\n10\nSTUDENTS\nOn track\n3\n30%\nW",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Grades by quarter\nAverage grade per quarter\nQuarter 1\nQuarter 2\nQ",
+              "right": 356
+            },
+            {
+              "tag": "DIV",
+              "class": "card chart-card",
+              "text": "Average grade by subject\nStrongest and weakest subjects\n50\n65\n80\n",
+              "right": 356
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "svg-img-alt",
+          "impact": "serious",
+          "description": "Ensure <svg> elements with an img, image, graphics-document or graphics-symbol role have accessible text",
+          "count": 4,
+          "examples": [
+            {
+              "target": [
+                "path[name=\"On track\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"Watch\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            },
+            {
+              "target": [
+                "path[name=\"At risk\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element has no child that is a title\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/schedule",
+      "landed": "/schedule",
+      "heading": [
+        "That page doesn\u00e2\u20ac\u2122t exist"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 3,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".code"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 1.06 (foreground color: #d9e6ff, background color: #e8ecf4, font size: 60.0pt (80px), font weight: bold). Expected contrast ratio of 3:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher",
+      "route": "/not-a-page",
+      "landed": "/not-a-page",
+      "heading": [
+        "That page doesn\u00e2\u20ac\u2122t exist"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 3,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".code"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 1.06 (foreground color: #d9e6ff, background color: #e8ecf4, font size: 60.0pt (80px), font weight: bold). Expected contrast ratio of 3:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "admin",
+      "route": "/dashboard",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Remedios.",
+        "Grading progress by teacher",
+        "Needs attention",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 5,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "tr:nth-child(2) > td:nth-child(4) > span"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.45 (foreground color: #c07b05, background color: #ffffff, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "admin",
+      "route": "/teachers",
+      "landed": "/teachers",
+      "heading": [
+        "Teachers"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "select-name",
+          "impact": "critical",
+          "description": "Ensure select element has an accessible name",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "select"
+              ],
+              "failure": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "admin",
+      "route": "/approvals",
+      "landed": "/approvals",
+      "heading": [
+        "Account approvals",
+        "Pending requests",
+        "Audit trail"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "admin",
+      "route": "/class-management",
+      "landed": "/class-management",
+      "heading": [
+        "Class management"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": [
+            {
+              "tag": "BUTTON",
+              "class": "",
+              "text": "Sections\n3",
+              "right": 437
+            },
+            {
+              "tag": "BUTTON",
+              "class": "",
+              "text": "Subjects\n8",
+              "right": 557
+            },
+            {
+              "tag": "BUTTON",
+              "class": "",
+              "text": "Teacher assignments\n11",
+              "right": 762
+            }
+          ]
+        },
+        {
+          "width": 320,
+          "scrollWidth": 334,
+          "overflows": true,
+          "offenders": [
+            {
+              "tag": "BUTTON",
+              "class": "",
+              "text": "Sections\n3",
+              "right": 437
+            },
+            {
+              "tag": "BUTTON",
+              "class": "",
+              "text": "Subjects\n8",
+              "right": 557
+            },
+            {
+              "tag": "BUTTON",
+              "class": "",
+              "text": "Teacher assignments\n11",
+              "right": 762
+            },
+            {
+              "tag": "DIV",
+              "class": "card",
+              "text": "SCHOOL YEAR\tSTATUS\tACTIONS\n2026-2027\tCurrent\t",
+              "right": 334
+            }
+          ]
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "admin",
+      "route": "/school-settings",
+      "landed": "/school-settings",
+      "heading": [
+        "School settings",
+        "School details",
+        "How your school teaches",
+        "Grading",
+        "Registration"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 3,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".alert > span"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #1b74c4, background color: #e9f3fd, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "admin",
+      "route": "/account",
+      "landed": "/account",
+      "heading": [
+        "Account settings",
+        "Photo",
+        "Your details"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "description": "Ensure every form element has a label",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                ".visually-hidden"
+              ],
+              "failure": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "admin",
+      "route": "/students",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Remedios.",
+        "Grading progress by teacher",
+        "Needs attention",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 5,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "tr:nth-child(2) > td:nth-child(4) > span"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.45 (foreground color: #c07b05, background color: #ffffff, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "admin",
+      "route": "/schools",
+      "landed": "/dashboard",
+      "heading": [
+        "Good morning, Remedios.",
+        "Grading progress by teacher",
+        "Needs attention",
+        "Recent activity"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "aria-allowed-attr",
+          "impact": "critical",
+          "description": "Ensure an element's role supports its ARIA attributes",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                "input"
+              ],
+              "failure": "Fix all of the following:\n  ARIA attribute is not allowed: aria-expanded=\"false\""
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 5,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "tr:nth-child(2) > td:nth-child(4) > span"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.45 (foreground color: #c07b05, background color: #ffffff, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "operator",
+      "route": "/schools",
+      "landed": "/schools",
+      "heading": [
+        "Schools",
+        "Pending schools"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 3,
+          "examples": [
+            {
+              "target": [
+                ".sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".alert > span"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #1b74c4, background color: #e9f3fd, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "strong"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #1b74c4, background color: #e9f3fd, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "operator",
+      "route": "/account",
+      "landed": "/account",
+      "heading": [
+        "Account settings",
+        "Photo",
+        "Your details"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                ".sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "description": "Ensure every form element has a label",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                ".visually-hidden"
+              ],
+              "failure": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "operator",
+      "route": "/dashboard",
+      "landed": "/schools",
+      "heading": [
+        "Schools",
+        "Pending schools"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 3,
+          "examples": [
+            {
+              "target": [
+                ".sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".alert > span"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #1b74c4, background color: #e9f3fd, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "strong"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #1b74c4, background color: #e9f3fd, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "operator",
+      "route": "/students",
+      "landed": "/students",
+      "heading": [
+        "Students"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 1,
+          "examples": [
+            {
+              "target": [
+                ".sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "operator",
+      "route": "/teachers",
+      "landed": "/schools",
+      "heading": [
+        "Schools",
+        "Pending schools"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 3,
+          "examples": [
+            {
+              "target": [
+                ".sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".alert > span"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #1b74c4, background color: #e9f3fd, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "strong"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #1b74c4, background color: #e9f3fd, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    },
+    {
+      "role": "teacher-pace-school",
+      "route": "/pace",
+      "landed": "/pace",
+      "heading": [
+        "Module progress",
+        "Grade 7 - Rosal"
+      ],
+      "widths": [
+        {
+          "width": 1440,
+          "scrollWidth": 1440,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 768,
+          "scrollWidth": 768,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 375,
+          "scrollWidth": 375,
+          "overflows": false,
+          "offenders": []
+        },
+        {
+          "width": 320,
+          "scrollWidth": 320,
+          "overflows": false,
+          "offenders": []
+        }
+      ],
+      "accessibility": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "count": 2,
+          "examples": [
+            {
+              "target": [
+                "div:nth-child(1) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > .sidebar-group"
+              ],
+              "failure": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #626a7d, background color: #0e1937, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        },
+        {
+          "id": "label",
+          "impact": "critical",
+          "description": "Ensure every form element has a label",
+          "count": 5,
+          "examples": [
+            {
+              "target": [
+                "tr:nth-child(1) > td:nth-child(3) > .pace-input[type=\"number\"][min=\"0\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            },
+            {
+              "target": [
+                "tr:nth-child(2) > td:nth-child(3) > .pace-input[type=\"number\"][min=\"0\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            },
+            {
+              "target": [
+                "tr:nth-child(3) > td:nth-child(3) > .pace-input[type=\"number\"][min=\"0\"]"
+              ],
+              "failure": "Fix any of the following:\n  Element does not have an implicit (wrapped) <label>\n  Element does not have an explicit <label>\n  aria-label attribute does not exist or is empty\n  aria-labelledby attribute does not exist, references elements that do not exist or references elements that are empty\n  Element has no title attribute\n  Element has no placeholder attribute\n  Element's default semantics were not overridden with role=\"none\" or role=\"presentation\""
+            }
+          ]
+        }
+      ],
+      "errorNotes": [],
+      "bodyEmpty": false
+    }
+  ],
+  "note": "Route checks completed before an initial scenario harness selector error; use browser-scenarios-results.json for corrected follow-up scenarios."
+}

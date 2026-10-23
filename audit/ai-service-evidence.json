@@ -1,0 +1,185 @@
+[
+  {
+    "probe": "health",
+    "result": [
+      200,
+      {
+        "status": "ok",
+        "model_loaded": true,
+        "model_version": "v4.0.0-final-grade",
+        "error": null
+      }
+    ]
+  },
+  {
+    "probe": "unauth_predict",
+    "result": [
+      401,
+      {
+        "detail": "Invalid or missing X-Service-Token."
+      }
+    ]
+  },
+  {
+    "probe": "unauth_reload",
+    "result": [
+      401,
+      {
+        "detail": "Invalid or missing X-Service-Token."
+      }
+    ]
+  },
+  {
+    "probe": "predict_missing_features",
+    "result": [
+      200,
+      {
+        "risk_score": 0.0,
+        "risk_level": "LOW",
+        "predicted_final": 87.9,
+        "range_low": 85.9,
+        "range_high": 89.9,
+        "primary_factor": null,
+        "suggested_action": null,
+        "used_threshold": 0.5,
+        "used_baseline_defaults": true,
+        "imputed_fields": [
+          "q1_term_grade",
+          "q1_initial_grade",
+          "q1_ww_pct",
+          "q1_pt_pct",
+          "q1_exam_pct",
+          "q1_component_gap",
+          "grade_level"
+        ],
+        "model_version": "v4.0.0-final-grade",
+        "reference": null
+      }
+    ]
+  },
+  {
+    "probe": "predict_valid",
+    "result": [
+      200,
+      {
+        "risk_score": 0.0,
+        "risk_level": "LOW",
+        "predicted_final": 86.1,
+        "range_low": 84.2,
+        "range_high": 88.1,
+        "primary_factor": null,
+        "suggested_action": null,
+        "used_threshold": 0.5,
+        "used_baseline_defaults": false,
+        "imputed_fields": [],
+        "model_version": "v4.0.0-final-grade",
+        "reference": null
+      }
+    ]
+  },
+  {
+    "probe": "unknown_feature",
+    "result": [
+      422,
+      {
+        "detail": [
+          {
+            "type": "extra_forbidden",
+            "loc": [
+              "body",
+              "attendance"
+            ],
+            "msg": "Extra inputs are not permitted",
+            "input": 90
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "probe": "out_of_range",
+    "result": [
+      422,
+      {
+        "detail": [
+          {
+            "type": "less_than_equal",
+            "loc": [
+              "body",
+              "q1_term_grade"
+            ],
+            "msg": "Input should be less than or equal to 100",
+            "input": 101,
+            "ctx": {
+              "le": 100.0
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "probe": "empty_batch",
+    "result": [
+      200,
+      {
+        "predictions": [],
+        "count": 0
+      }
+    ]
+  },
+  {
+    "probe": "oversize_batch",
+    "result": [
+      413,
+      {
+        "detail": "Batch too large: 501 records, maximum 500."
+      }
+    ]
+  },
+  {
+    "probe": "max_batch",
+    "status": 200,
+    "count": 500,
+    "seconds": 0.072,
+    "reference_order_correct": true
+  },
+  {
+    "probe": "concurrent_inference",
+    "statuses": [
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200
+    ],
+    "seconds": 0.389
+  },
+  {
+    "probe": "model_card",
+    "status": 200,
+    "algorithm": "ExtraTreesRegressor",
+    "model_version": "v4.0.0-final-grade",
+    "metrics": {
+      "mae": 1.227,
+      "rmse": 1.72,
+      "within_1": 0.56,
+      "within_2": 0.798,
+      "range_coverage": 0.792,
+      "fail_tp": 11.0,
+      "fail_fn": 3.0,
+      "fail_fp": 1.0
+    },
+    "limitations": [
+      "Only 14 learner-subject-years in the data failed, so the fail flag's catch rate rests on very few cases; the grade error (MAE) is measured on every learner and is the more reliable figure.",
+      "The final grade is the mean of the term grades, so it contains the first term; the model is measured against simply carrying the first-term grade forward.",
+      "Trained on records graded under older transmutation tables; the prediction is anchored on the school's own first-term grade to limit the effect.",
+      "The export carries no attendance, so attendance plays no part."
+    ]
+  }
+]

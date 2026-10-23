@@ -1,0 +1,1739 @@
+{
+  "checked_utc": "2026-10-19T17:11:39.890472+00:00",
+  "method": "Read-only installed/pinned version snapshot + PyPI per-version vulnerability metadata; no installation/resolution or exploit tests.",
+  "environments": {
+    "backend_installed": {
+      "aiosqlite": "0.20.0",
+      "annotated-types": "0.8.0",
+      "anyio": "4.15.1",
+      "asyncpg": "0.30.0",
+      "bcrypt": "4.2.1",
+      "certifi": "2026.7.22",
+      "cffi": "2.1.1",
+      "click": "8.5.0",
+      "colorama": "0.4.6",
+      "cryptography": "50.0.1",
+      "defusedxml": "0.7.1",
+      "dnspython": "2.8.0",
+      "ecdsa": "0.19.2",
+      "email-validator": "2.2.0",
+      "et-xmlfile": "2.0.0",
+      "fastapi": "0.115.6",
+      "greenlet": "3.5.6",
+      "h11": "0.16.0",
+      "httpcore": "1.0.9",
+      "httptools": "0.8.0",
+      "httpx": "0.28.1",
+      "idna": "3.20",
+      "openpyxl": "3.1.5",
+      "pip": "24.0",
+      "pyasn1": "0.6.4",
+      "pycparser": "3.0",
+      "pydantic": "2.10.4",
+      "pydantic-core": "2.27.2",
+      "pydantic-settings": "2.7.0",
+      "python-dotenv": "1.0.1",
+      "python-jose": "3.3.0",
+      "python-multipart": "0.0.20",
+      "pyyaml": "6.0.3",
+      "rsa": "4.9.1",
+      "six": "1.17.0",
+      "sqlalchemy": "2.0.36",
+      "starlette": "0.41.3",
+      "typing-extensions": "4.16.0",
+      "uvicorn": "0.34.0",
+      "watchfiles": "1.3.0",
+      "websockets": "17.1"
+    },
+    "ml_probe_environment_installed": {
+      "annotated-types": "0.8.0",
+      "anyio": "4.15.1",
+      "certifi": "2026.7.22",
+      "click": "8.5.0",
+      "cloudpickle": "3.1.2",
+      "colorama": "0.4.6",
+      "et-xmlfile": "2.0.0",
+      "fastapi": "0.115.6",
+      "h11": "0.16.0",
+      "httpcore": "1.0.9",
+      "httptools": "0.9.0",
+      "httpx": "0.28.1",
+      "idna": "3.20",
+      "joblib": "1.5.3",
+      "narwhals": "2.27.1",
+      "numpy": "2.4.4",
+      "openpyxl": "3.1.5",
+      "pandas": "3.0.2",
+      "pip": "24.0",
+      "pydantic": "2.10.4",
+      "pydantic-core": "2.27.2",
+      "python-dateutil": "2.9.0.post0",
+      "python-dotenv": "1.2.4",
+      "pyyaml": "6.0.3",
+      "scikit-learn": "1.8.0",
+      "scipy": "1.18.1",
+      "six": "1.17.0",
+      "starlette": "0.41.3",
+      "threadpoolctl": "3.7.0",
+      "typing-extensions": "4.16.0",
+      "tzdata": "2026.5",
+      "uvicorn": "0.34.0",
+      "watchfiles": "1.3.0",
+      "websockets": "17.2"
+    },
+    "backend_requirements_pinned": {
+      "fastapi": "0.115.6",
+      "uvicorn": "0.34.0",
+      "sqlalchemy": "2.0.36",
+      "pydantic": "2.10.4",
+      "pydantic-settings": "2.7.0",
+      "email-validator": "2.2.0",
+      "python-jose": "3.3.0",
+      "bcrypt": "4.2.1",
+      "python-multipart": "0.0.20",
+      "python-dotenv": "1.0.1",
+      "httpx": "0.28.1",
+      "openpyxl": "3.1.5",
+      "defusedxml": "0.7.1",
+      "aiosqlite": "0.20.0",
+      "asyncpg": "0.30.0"
+    },
+    "ai_requirements_pinned": {
+      "fastapi": "0.115.6",
+      "uvicorn": "0.34.0",
+      "pydantic": "2.10.4",
+      "joblib": "1.5.3",
+      "scikit-learn": "1.8.0",
+      "numpy": "2.4.4",
+      "pandas": "3.0.2"
+    }
+  },
+  "checks": [
+    {
+      "package": "aiosqlite",
+      "version": "0.20.0",
+      "source_url": "https://pypi.org/pypi/aiosqlite/0.20.0/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "typing_extensions >= 4.0",
+        "attribution==1.7.0 ; extra == \"dev\"",
+        "black==24.2.0 ; extra == \"dev\"",
+        "coverage[toml]==7.4.1 ; extra == \"dev\"",
+        "flake8==7.0.0 ; extra == \"dev\"",
+        "flake8-bugbear==24.2.6 ; extra == \"dev\"",
+        "flit==3.9.0 ; extra == \"dev\"",
+        "mypy==1.8.0 ; extra == \"dev\"",
+        "ufmt==2.3.0 ; extra == \"dev\"",
+        "usort==1.0.8.post1 ; extra == \"dev\"",
+        "sphinx==7.2.6 ; extra == \"docs\"",
+        "sphinx-mdinclude==0.5.3 ; extra == \"docs\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "annotated-types",
+      "version": "0.8.0",
+      "source_url": "https://pypi.org/pypi/annotated-types/0.8.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "anyio",
+      "version": "4.15.1",
+      "source_url": "https://pypi.org/pypi/anyio/4.15.1/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "exceptiongroup>=1.0.2; python_version < \"3.11\"",
+        "idna>=2.8",
+        "typing_extensions>=4.16.0; python_version < \"3.15\"",
+        "trio>=0.32.0; extra == \"trio\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "asyncpg",
+      "version": "0.30.0",
+      "source_url": "https://pypi.org/pypi/asyncpg/0.30.0/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "async-timeout>=4.0.3; python_version < \"3.11.0\"",
+        "Sphinx~=8.1.3; extra == \"docs\"",
+        "sphinx-rtd-theme>=1.2.2; extra == \"docs\"",
+        "gssapi; platform_system != \"Windows\" and extra == \"gssauth\"",
+        "sspilib; platform_system == \"Windows\" and extra == \"gssauth\"",
+        "flake8~=6.1; extra == \"test\"",
+        "flake8-pyi~=24.1.0; extra == \"test\"",
+        "distro~=1.9.0; extra == \"test\"",
+        "mypy~=1.8.0; extra == \"test\"",
+        "uvloop>=0.15.3; (platform_system != \"Windows\" and python_version < \"3.14.0\") and extra == \"test\"",
+        "gssapi; platform_system == \"Linux\" and extra == \"test\"",
+        "k5test; platform_system == \"Linux\" and extra == \"test\"",
+        "sspilib; platform_system == \"Windows\" and extra == \"test\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "bcrypt",
+      "version": "4.2.1",
+      "source_url": "https://pypi.org/pypi/bcrypt/4.2.1/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "pytest!=3.3.0,>=3.2.1; extra == \"tests\"",
+        "mypy; extra == \"typecheck\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "certifi",
+      "version": "2026.7.22",
+      "source_url": "https://pypi.org/pypi/certifi/2026.7.22/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "cffi",
+      "version": "2.1.1",
+      "source_url": "https://pypi.org/pypi/cffi/2.1.1/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": [
+        "pycparser; implementation_name != \"PyPy\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "click",
+      "version": "8.5.0",
+      "source_url": "https://pypi.org/pypi/click/8.5.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "cloudpickle",
+      "version": "3.1.2",
+      "source_url": "https://pypi.org/pypi/cloudpickle/3.1.2/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "colorama",
+      "version": "0.4.6",
+      "source_url": "https://pypi.org/pypi/colorama/0.4.6/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "cryptography",
+      "version": "50.0.1",
+      "source_url": "https://pypi.org/pypi/cryptography/50.0.1/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": [
+        "cffi>=2.0.0; platform_python_implementation != \"PyPy\"",
+        "typing-extensions>=4.13.2; python_full_version < \"3.11\"",
+        "bcrypt>=3.1.5; extra == \"ssh\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "defusedxml",
+      "version": "0.7.1",
+      "source_url": "https://pypi.org/pypi/defusedxml/0.7.1/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "dnspython",
+      "version": "2.8.0",
+      "source_url": "https://pypi.org/pypi/dnspython/2.8.0/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": [
+        "black>=25.1.0; extra == \"dev\"",
+        "coverage>=7.0; extra == \"dev\"",
+        "flake8>=7; extra == \"dev\"",
+        "hypercorn>=0.17.0; extra == \"dev\"",
+        "mypy>=1.17; extra == \"dev\"",
+        "pylint>=3; extra == \"dev\"",
+        "pytest-cov>=6.2.0; extra == \"dev\"",
+        "pytest>=8.4; extra == \"dev\"",
+        "quart-trio>=0.12.0; extra == \"dev\"",
+        "sphinx-rtd-theme>=3.0.0; extra == \"dev\"",
+        "sphinx>=8.2.0; extra == \"dev\"",
+        "twine>=6.1.0; extra == \"dev\"",
+        "wheel>=0.45.0; extra == \"dev\"",
+        "cryptography>=45; extra == \"dnssec\"",
+        "h2>=4.2.0; extra == \"doh\"",
+        "httpcore>=1.0.0; extra == \"doh\"",
+        "httpx>=0.28.0; extra == \"doh\"",
+        "aioquic>=1.2.0; extra == \"doq\"",
+        "idna>=3.10; extra == \"idna\"",
+        "trio>=0.30; extra == \"trio\"",
+        "wmi>=1.5.1; platform_system == \"Windows\" and extra == \"wmi\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "ecdsa",
+      "version": "0.19.2",
+      "source_url": "https://pypi.org/pypi/ecdsa/0.19.2/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": [
+        "six>=1.9.0",
+        "gmpy; extra == \"gmpy\"",
+        "gmpy2; extra == \"gmpy2\""
+      ],
+      "advisories": [
+        {
+          "id": "PYSEC-2026-1325",
+          "aliases": [
+            "CVE-2024-23342",
+            "GHSA-wj6h-64fc-37mp"
+          ],
+          "fixed_in": [],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-1325",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-wj6h-64fc-37mp",
+          "aliases": [
+            "CVE-2024-23342",
+            "PYSEC-2026-1325"
+          ],
+          "fixed_in": [],
+          "link": "https://osv.dev/vulnerability/GHSA-wj6h-64fc-37mp",
+          "source": "osv",
+          "withdrawn": null
+        }
+      ]
+    },
+    {
+      "package": "email-validator",
+      "version": "2.2.0",
+      "source_url": "https://pypi.org/pypi/email-validator/2.2.0/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "dnspython>=2.0.0",
+        "idna>=2.0.0"
+      ],
+      "advisories": []
+    },
+    {
+      "package": "et-xmlfile",
+      "version": "2.0.0",
+      "source_url": "https://pypi.org/pypi/et-xmlfile/2.0.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "fastapi",
+      "version": "0.115.6",
+      "source_url": "https://pypi.org/pypi/fastapi/0.115.6/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed",
+        "backend_requirements_pinned",
+        "ai_requirements_pinned"
+      ],
+      "requires_dist": [
+        "starlette<0.42.0,>=0.40.0",
+        "pydantic!=1.8,!=1.8.1,!=2.0.0,!=2.0.1,!=2.1.0,<3.0.0,>=1.7.4",
+        "typing-extensions>=4.8.0",
+        "fastapi-cli[standard]>=0.0.5; extra == \"standard\"",
+        "httpx>=0.23.0; extra == \"standard\"",
+        "jinja2>=2.11.2; extra == \"standard\"",
+        "python-multipart>=0.0.7; extra == \"standard\"",
+        "email-validator>=2.0.0; extra == \"standard\"",
+        "uvicorn[standard]>=0.12.0; extra == \"standard\"",
+        "fastapi-cli[standard]>=0.0.5; extra == \"all\"",
+        "httpx>=0.23.0; extra == \"all\"",
+        "jinja2>=2.11.2; extra == \"all\"",
+        "python-multipart>=0.0.7; extra == \"all\"",
+        "itsdangerous>=1.1.0; extra == \"all\"",
+        "pyyaml>=5.3.1; extra == \"all\"",
+        "ujson!=4.0.2,!=4.1.0,!=4.2.0,!=4.3.0,!=5.0.0,!=5.1.0,>=4.0.1; extra == \"all\"",
+        "orjson>=3.2.1; extra == \"all\"",
+        "email-validator>=2.0.0; extra == \"all\"",
+        "uvicorn[standard]>=0.12.0; extra == \"all\"",
+        "pydantic-settings>=2.0.0; extra == \"all\"",
+        "pydantic-extra-types>=2.0.0; extra == \"all\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "greenlet",
+      "version": "3.5.6",
+      "source_url": "https://pypi.org/pypi/greenlet/3.5.6/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": [
+        "Sphinx; extra == \"docs\"",
+        "furo; extra == \"docs\"",
+        "objgraph; extra == \"test\"",
+        "psutil; extra == \"test\"",
+        "setuptools; extra == \"test\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "h11",
+      "version": "0.16.0",
+      "source_url": "https://pypi.org/pypi/h11/0.16.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "httpcore",
+      "version": "1.0.9",
+      "source_url": "https://pypi.org/pypi/httpcore/1.0.9/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "certifi",
+        "h11>=0.16",
+        "anyio<5.0,>=4.0; extra == \"asyncio\"",
+        "h2<5,>=3; extra == \"http2\"",
+        "socksio==1.*; extra == \"socks\"",
+        "trio<1.0,>=0.22.0; extra == \"trio\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "httptools",
+      "version": "0.8.0",
+      "source_url": "https://pypi.org/pypi/httptools/0.8.0/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "httptools",
+      "version": "0.9.0",
+      "source_url": "https://pypi.org/pypi/httptools/0.9.0/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "httpx",
+      "version": "0.28.1",
+      "source_url": "https://pypi.org/pypi/httpx/0.28.1/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "anyio",
+        "certifi",
+        "httpcore==1.*",
+        "idna",
+        "brotli; platform_python_implementation == \"CPython\" and extra == \"brotli\"",
+        "brotlicffi; platform_python_implementation != \"CPython\" and extra == \"brotli\"",
+        "click==8.*; extra == \"cli\"",
+        "pygments==2.*; extra == \"cli\"",
+        "rich<14,>=10; extra == \"cli\"",
+        "h2<5,>=3; extra == \"http2\"",
+        "socksio==1.*; extra == \"socks\"",
+        "zstandard>=0.18.0; extra == \"zstd\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "idna",
+      "version": "3.20",
+      "source_url": "https://pypi.org/pypi/idna/3.20/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "ruff>=0.16.0; extra == \"all\"",
+        "mypy>=1.11.2; extra == \"all\"",
+        "ty>=0.0.37; extra == \"all\"",
+        "pytest>=8.3.2; extra == \"all\"",
+        "hypothesis>=6.141.1; extra == \"all\"",
+        "coverage>=7.10.0; extra == \"all\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "joblib",
+      "version": "1.5.3",
+      "source_url": "https://pypi.org/pypi/joblib/1.5.3/json",
+      "environments": [
+        "ml_probe_environment_installed",
+        "ai_requirements_pinned"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "narwhals",
+      "version": "2.27.1",
+      "source_url": "https://pypi.org/pypi/narwhals/2.27.1/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "cudf-cu12>=24.10.0; sys_platform == \"linux\" and extra == \"cudf\"",
+        "dask[dataframe]>=2024.8; extra == \"dask\"",
+        "duckdb>=1.1; extra == \"duckdb\"",
+        "ibis-framework>=6.0.0; extra == \"ibis\"",
+        "packaging>=21.3; extra == \"ibis\"",
+        "pyarrow-hotfix>=0.7; extra == \"ibis\"",
+        "modin>=0.22.0; extra == \"modin\"",
+        "pandas>=1.3.4; extra == \"pandas\"",
+        "polars>=0.20.4; extra == \"polars\"",
+        "pyarrow>=13.0.0; extra == \"pyarrow\"",
+        "pyspark>=3.5.0; extra == \"pyspark\"",
+        "pyspark[connect]>=3.5.0; extra == \"pyspark-connect\"",
+        "narwhals[duckdb]; extra == \"sql\"",
+        "sqlparse>=0.5.5; extra == \"sql\"",
+        "sqlframe!=3.39.3,>=3.22.0; extra == \"sqlframe\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "numpy",
+      "version": "2.4.4",
+      "source_url": "https://pypi.org/pypi/numpy/2.4.4/json",
+      "environments": [
+        "ml_probe_environment_installed",
+        "ai_requirements_pinned"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "openpyxl",
+      "version": "3.1.5",
+      "source_url": "https://pypi.org/pypi/openpyxl/3.1.5/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "et-xmlfile"
+      ],
+      "advisories": []
+    },
+    {
+      "package": "pandas",
+      "version": "3.0.2",
+      "source_url": "https://pypi.org/pypi/pandas/3.0.2/json",
+      "environments": [
+        "ml_probe_environment_installed",
+        "ai_requirements_pinned"
+      ],
+      "requires_dist": [
+        "numpy>=1.26.0; python_version < \"3.14\"",
+        "numpy>=2.3.3; python_version >= \"3.14\"",
+        "python-dateutil>=2.8.2",
+        "tzdata; sys_platform == \"win32\"",
+        "tzdata; sys_platform == \"emscripten\"",
+        "hypothesis>=6.116.0; extra == \"test\"",
+        "pytest>=8.3.4; extra == \"test\"",
+        "pytest-xdist>=3.6.1; extra == \"test\"",
+        "pyarrow>=13.0.0; extra == \"pyarrow\"",
+        "bottleneck>=1.4.2; extra == \"performance\"",
+        "numba>=0.60.0; extra == \"performance\"",
+        "numexpr>=2.10.2; extra == \"performance\"",
+        "scipy>=1.14.1; extra == \"computation\"",
+        "xarray>=2024.10.0; extra == \"computation\"",
+        "fsspec>=2024.10.0; extra == \"fss\"",
+        "s3fs>=2024.10.0; extra == \"aws\"",
+        "gcsfs>=2024.10.0; extra == \"gcp\"",
+        "odfpy>=1.4.1; extra == \"excel\"",
+        "openpyxl>=3.1.5; extra == \"excel\"",
+        "python-calamine>=0.3.0; extra == \"excel\"",
+        "pyxlsb>=1.0.10; extra == \"excel\"",
+        "xlrd>=2.0.1; extra == \"excel\"",
+        "xlsxwriter>=3.2.0; extra == \"excel\"",
+        "pyarrow>=13.0.0; extra == \"parquet\"",
+        "pyarrow>=13.0.0; extra == \"feather\"",
+        "pyiceberg>=0.8.1; extra == \"iceberg\"",
+        "tables>=3.10.1; extra == \"hdf5\"",
+        "pyreadstat>=1.2.8; extra == \"spss\"",
+        "SQLAlchemy>=2.0.36; extra == \"postgresql\"",
+        "psycopg2>=2.9.10; extra == \"postgresql\"",
+        "adbc-driver-postgresql>=1.2.0; extra == \"postgresql\"",
+        "SQLAlchemy>=2.0.36; extra == \"mysql\"",
+        "pymysql>=1.1.1; extra == \"mysql\"",
+        "SQLAlchemy>=2.0.36; extra == \"sql-other\"",
+        "adbc-driver-postgresql>=1.2.0; extra == \"sql-other\"",
+        "adbc-driver-sqlite>=1.2.0; extra == \"sql-other\"",
+        "beautifulsoup4>=4.12.3; extra == \"html\"",
+        "html5lib>=1.1; extra == \"html\"",
+        "lxml>=5.3.0; extra == \"html\"",
+        "lxml>=5.3.0; extra == \"xml\"",
+        "matplotlib>=3.9.3; extra == \"plot\"",
+        "jinja2>=3.1.5; extra == \"output-formatting\"",
+        "tabulate>=0.9.0; extra == \"output-formatting\"",
+        "PyQt5>=5.15.9; extra == \"clipboard\"",
+        "qtpy>=2.4.2; extra == \"clipboard\"",
+        "zstandard>=0.23.0; extra == \"compression\"",
+        "pytz>=2024.2; extra == \"timezone\"",
+        "adbc-driver-postgresql>=1.2.0; extra == \"all\"",
+        "adbc-driver-sqlite>=1.2.0; extra == \"all\"",
+        "beautifulsoup4>=4.12.3; extra == \"all\"",
+        "bottleneck>=1.4.2; extra == \"all\"",
+        "fastparquet>=2024.11.0; extra == \"all\"",
+        "fsspec>=2024.10.0; extra == \"all\"",
+        "gcsfs>=2024.10.0; extra == \"all\"",
+        "html5lib>=1.1; extra == \"all\"",
+        "hypothesis>=6.116.0; extra == \"all\"",
+        "jinja2>=3.1.5; extra == \"all\"",
+        "lxml>=5.3.0; extra == \"all\"",
+        "matplotlib>=3.9.3; extra == \"all\"",
+        "numba>=0.60.0; extra == \"all\"",
+        "numexpr>=2.10.2; extra == \"all\"",
+        "odfpy>=1.4.1; extra == \"all\"",
+        "openpyxl>=3.1.5; extra == \"all\"",
+        "psycopg2>=2.9.10; extra == \"all\"",
+        "pyarrow>=13.0.0; extra == \"all\"",
+        "pyiceberg>=0.8.1; extra == \"all\"",
+        "pymysql>=1.1.1; extra == \"all\"",
+        "PyQt5>=5.15.9; extra == \"all\"",
+        "pyreadstat>=1.2.8; extra == \"all\"",
+        "pytest>=8.3.4; extra == \"all\"",
+        "pytest-xdist>=3.6.1; extra == \"all\"",
+        "python-calamine>=0.3.0; extra == \"all\"",
+        "pytz>=2024.2; extra == \"all\"",
+        "pyxlsb>=1.0.10; extra == \"all\"",
+        "qtpy>=2.4.2; extra == \"all\"",
+        "scipy>=1.14.1; extra == \"all\"",
+        "s3fs>=2024.10.0; extra == \"all\"",
+        "SQLAlchemy>=2.0.36; extra == \"all\"",
+        "tables>=3.10.1; extra == \"all\"",
+        "tabulate>=0.9.0; extra == \"all\"",
+        "xarray>=2024.10.0; extra == \"all\"",
+        "xlrd>=2.0.1; extra == \"all\"",
+        "xlsxwriter>=3.2.0; extra == \"all\"",
+        "zstandard>=0.23.0; extra == \"all\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "pip",
+      "version": "24.0",
+      "source_url": "https://pypi.org/pypi/pip/24.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": [
+        {
+          "id": "GHSA-4xh5-x5gv-qwph",
+          "aliases": [
+            "CVE-2025-8869",
+            "PYSEC-2026-1795"
+          ],
+          "fixed_in": [
+            "25.3"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-4xh5-x5gv-qwph",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-6vgw-5pg2-w6jp",
+          "aliases": [
+            "CVE-2026-1703",
+            "PYSEC-2026-1796"
+          ],
+          "fixed_in": [
+            "26.0"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-6vgw-5pg2-w6jp",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-58qw-9mgm-455v",
+          "aliases": [
+            "CVE-2026-3219",
+            "PYSEC-2026-2875"
+          ],
+          "fixed_in": [
+            "26.1"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-58qw-9mgm-455v",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-jp4c-xjxw-mgf9",
+          "aliases": [
+            "CVE-2026-6357",
+            "PYSEC-2026-2876"
+          ],
+          "fixed_in": [
+            "26.1"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-jp4c-xjxw-mgf9",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-196",
+          "aliases": [
+            "CVE-2026-8643",
+            "GHSA-wf93-45jw-7689"
+          ],
+          "fixed_in": [
+            "26.1.2"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-196",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-1795",
+          "aliases": [
+            "CVE-2025-8869",
+            "GHSA-4xh5-x5gv-qwph"
+          ],
+          "fixed_in": [
+            "25.3"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-1795",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-1796",
+          "aliases": [
+            "CVE-2026-1703",
+            "GHSA-6vgw-5pg2-w6jp"
+          ],
+          "fixed_in": [
+            "26.0"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-1796",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-wf93-45jw-7689",
+          "aliases": [
+            "CVE-2026-8643",
+            "PYSEC-2026-196"
+          ],
+          "fixed_in": [
+            "26.1.2"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-wf93-45jw-7689",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-2875",
+          "aliases": [
+            "CVE-2026-3219",
+            "GHSA-58qw-9mgm-455v"
+          ],
+          "fixed_in": [
+            "26.1"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-2875",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-2876",
+          "aliases": [
+            "CVE-2026-6357",
+            "GHSA-jp4c-xjxw-mgf9"
+          ],
+          "fixed_in": [
+            "26.1"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-2876",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-3721",
+          "aliases": [
+            "CVE-2026-13346",
+            "GHSA-qwm4-qh6w-59xr"
+          ],
+          "fixed_in": [
+            "26.2"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-3721",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-qwm4-qh6w-59xr",
+          "aliases": [
+            "CVE-2026-13346",
+            "PYSEC-2026-3721"
+          ],
+          "fixed_in": [
+            "26.2.0"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-qwm4-qh6w-59xr",
+          "source": "osv",
+          "withdrawn": null
+        }
+      ]
+    },
+    {
+      "package": "pyasn1",
+      "version": "0.6.4",
+      "source_url": "https://pypi.org/pypi/pyasn1/0.6.4/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "pycparser",
+      "version": "3.0",
+      "source_url": "https://pypi.org/pypi/pycparser/3.0/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "pydantic",
+      "version": "2.10.4",
+      "source_url": "https://pypi.org/pypi/pydantic/2.10.4/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed",
+        "backend_requirements_pinned",
+        "ai_requirements_pinned"
+      ],
+      "requires_dist": [
+        "annotated-types>=0.6.0",
+        "pydantic-core==2.27.2",
+        "typing-extensions>=4.12.2",
+        "email-validator>=2.0.0; extra == \"email\"",
+        "tzdata; (python_version >= \"3.9\" and platform_system == \"Windows\") and extra == \"timezone\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "pydantic-core",
+      "version": "2.27.2",
+      "source_url": "https://pypi.org/pypi/pydantic-core/2.27.2/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "typing-extensions!=4.7.0,>=4.6.0"
+      ],
+      "advisories": []
+    },
+    {
+      "package": "pydantic-settings",
+      "version": "2.7.0",
+      "source_url": "https://pypi.org/pypi/pydantic-settings/2.7.0/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "pydantic>=2.7.0",
+        "python-dotenv>=0.21.0",
+        "azure-identity>=1.16.0; extra == \"azure-key-vault\"",
+        "azure-keyvault-secrets>=4.8.0; extra == \"azure-key-vault\"",
+        "tomli>=2.0.1; extra == \"toml\"",
+        "pyyaml>=6.0.1; extra == \"yaml\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "python-dateutil",
+      "version": "2.9.0.post0",
+      "source_url": "https://pypi.org/pypi/python-dateutil/2.9.0.post0/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "six >=1.5"
+      ],
+      "advisories": []
+    },
+    {
+      "package": "python-dotenv",
+      "version": "1.0.1",
+      "source_url": "https://pypi.org/pypi/python-dotenv/1.0.1/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "click >=5.0 ; extra == 'cli'"
+      ],
+      "advisories": [
+        {
+          "id": "GHSA-mf9w-mj56-hr94",
+          "aliases": [
+            "CVE-2026-28684",
+            "PYSEC-2026-2270"
+          ],
+          "fixed_in": [
+            "1.2.2"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-mf9w-mj56-hr94",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-2270",
+          "aliases": [
+            "CVE-2026-28684",
+            "GHSA-mf9w-mj56-hr94"
+          ],
+          "fixed_in": [
+            "1.2.2"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-2270",
+          "source": "osv",
+          "withdrawn": null
+        }
+      ]
+    },
+    {
+      "package": "python-dotenv",
+      "version": "1.2.4",
+      "source_url": "https://pypi.org/pypi/python-dotenv/1.2.4/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "click>=5.0; extra == \"cli\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "python-jose",
+      "version": "3.3.0",
+      "source_url": "https://pypi.org/pypi/python-jose/3.3.0/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "ecdsa (!=0.15)",
+        "rsa",
+        "pyasn1",
+        "cryptography (>=3.4.0) ; extra == 'cryptography'",
+        "pycrypto (<2.7.0,>=2.6.0) ; extra == 'pycrypto'",
+        "pyasn1 ; extra == 'pycrypto'",
+        "pycryptodome (<4.0.0,>=3.3.1) ; extra == 'pycryptodome'",
+        "pyasn1 ; extra == 'pycryptodome'"
+      ],
+      "advisories": [
+        {
+          "id": "GHSA-cjwg-qfpm-7377",
+          "aliases": [
+            "CVE-2024-33664",
+            "PYSEC-2024-233"
+          ],
+          "fixed_in": [
+            "3.4.0"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-cjwg-qfpm-7377",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-6c5p-j8vq-pqhj",
+          "aliases": [
+            "CVE-2024-33663",
+            "CVE-2026-85394",
+            "PYSEC-2024-232"
+          ],
+          "fixed_in": [
+            "3.4.0"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-6c5p-j8vq-pqhj",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2024-232",
+          "aliases": [
+            "CVE-2024-33663",
+            "GHSA-6c5p-j8vq-pqhj"
+          ],
+          "fixed_in": [
+            "3.4.0"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2024-232",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2024-233",
+          "aliases": [
+            "CVE-2024-33664",
+            "GHSA-cjwg-qfpm-7377"
+          ],
+          "fixed_in": [
+            "3.4.0"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2024-233",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2025-185",
+          "aliases": [
+            "CVE-2024-29370"
+          ],
+          "fixed_in": [],
+          "link": "https://osv.dev/vulnerability/PYSEC-2025-185",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-3qf3-8w2g-rqmx",
+          "aliases": [
+            "CVE-2026-85394"
+          ],
+          "fixed_in": [],
+          "link": "https://osv.dev/vulnerability/GHSA-3qf3-8w2g-rqmx",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-4298",
+          "aliases": [
+            "CVE-2026-85394",
+            "GHSA-3qf3-8w2g-rqmx"
+          ],
+          "fixed_in": [],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-4298",
+          "source": "osv",
+          "withdrawn": null
+        }
+      ]
+    },
+    {
+      "package": "python-multipart",
+      "version": "0.0.20",
+      "source_url": "https://pypi.org/pypi/python-multipart/0.0.20/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": null,
+      "advisories": [
+        {
+          "id": "GHSA-wp53-j4wj-2cfg",
+          "aliases": [
+            "CVE-2026-24486",
+            "PYSEC-2026-1852"
+          ],
+          "fixed_in": [
+            "0.0.22"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-wp53-j4wj-2cfg",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-mj87-hwqh-73pj",
+          "aliases": [
+            "CVE-2026-40347",
+            "PYSEC-2026-3038"
+          ],
+          "fixed_in": [
+            "0.0.26"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-mj87-hwqh-73pj",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-pp6c-gr5w-3c5g",
+          "aliases": [
+            "CVE-2026-42561",
+            "PYSEC-2026-3039"
+          ],
+          "fixed_in": [
+            "0.0.27"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-pp6c-gr5w-3c5g",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-v9pg-7xvm-68hf",
+          "aliases": [
+            "CVE-2026-53540",
+            "PYSEC-2026-3040"
+          ],
+          "fixed_in": [
+            "0.0.31"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-v9pg-7xvm-68hf",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-5rvq-cxj2-64vf",
+          "aliases": [
+            "CVE-2026-53539",
+            "PYSEC-2026-3036"
+          ],
+          "fixed_in": [
+            "0.0.30"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-5rvq-cxj2-64vf",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-6jv3-5f52-599m",
+          "aliases": [
+            "CVE-2026-53538",
+            "PYSEC-2026-3037"
+          ],
+          "fixed_in": [
+            "0.0.30"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-6jv3-5f52-599m",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-1852",
+          "aliases": [
+            "CVE-2026-24486",
+            "GHSA-wp53-j4wj-2cfg"
+          ],
+          "fixed_in": [
+            "0.0.22"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-1852",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-3038",
+          "aliases": [
+            "CVE-2026-40347",
+            "GHSA-mj87-hwqh-73pj"
+          ],
+          "fixed_in": [
+            "0.0.26"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-3038",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-3037",
+          "aliases": [
+            "CVE-2026-53538",
+            "GHSA-6jv3-5f52-599m"
+          ],
+          "fixed_in": [
+            "0.0.30"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-3037",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-3036",
+          "aliases": [
+            "CVE-2026-53539",
+            "GHSA-5rvq-cxj2-64vf"
+          ],
+          "fixed_in": [
+            "0.0.30"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-3036",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-3040",
+          "aliases": [
+            "CVE-2026-53540",
+            "GHSA-v9pg-7xvm-68hf"
+          ],
+          "fixed_in": [
+            "0.0.31"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-3040",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-3039",
+          "aliases": [
+            "CVE-2026-42561",
+            "GHSA-pp6c-gr5w-3c5g"
+          ],
+          "fixed_in": [
+            "0.0.27"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-3039",
+          "source": "osv",
+          "withdrawn": null
+        }
+      ]
+    },
+    {
+      "package": "pyyaml",
+      "version": "6.0.3",
+      "source_url": "https://pypi.org/pypi/pyyaml/6.0.3/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "rsa",
+      "version": "4.9.1",
+      "source_url": "https://pypi.org/pypi/rsa/4.9.1/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": [
+        "pyasn1>=0.1.3"
+      ],
+      "advisories": []
+    },
+    {
+      "package": "scikit-learn",
+      "version": "1.8.0",
+      "source_url": "https://pypi.org/pypi/scikit-learn/1.8.0/json",
+      "environments": [
+        "ml_probe_environment_installed",
+        "ai_requirements_pinned"
+      ],
+      "requires_dist": [
+        "numpy>=1.24.1",
+        "scipy>=1.10.0",
+        "joblib>=1.3.0",
+        "threadpoolctl>=3.2.0",
+        "numpy>=1.24.1; extra == \"build\"",
+        "scipy>=1.10.0; extra == \"build\"",
+        "cython>=3.1.2; extra == \"build\"",
+        "meson-python>=0.17.1; extra == \"build\"",
+        "numpy>=1.24.1; extra == \"install\"",
+        "scipy>=1.10.0; extra == \"install\"",
+        "joblib>=1.3.0; extra == \"install\"",
+        "threadpoolctl>=3.2.0; extra == \"install\"",
+        "matplotlib>=3.6.1; extra == \"benchmark\"",
+        "pandas>=1.5.0; extra == \"benchmark\"",
+        "memory_profiler>=0.57.0; extra == \"benchmark\"",
+        "matplotlib>=3.6.1; extra == \"docs\"",
+        "scikit-image>=0.22.0; extra == \"docs\"",
+        "pandas>=1.5.0; extra == \"docs\"",
+        "seaborn>=0.13.0; extra == \"docs\"",
+        "memory_profiler>=0.57.0; extra == \"docs\"",
+        "sphinx>=7.3.7; extra == \"docs\"",
+        "sphinx-copybutton>=0.5.2; extra == \"docs\"",
+        "sphinx-gallery>=0.17.1; extra == \"docs\"",
+        "numpydoc>=1.2.0; extra == \"docs\"",
+        "Pillow>=10.1.0; extra == \"docs\"",
+        "pooch>=1.8.0; extra == \"docs\"",
+        "sphinx-prompt>=1.4.0; extra == \"docs\"",
+        "sphinxext-opengraph>=0.9.1; extra == \"docs\"",
+        "plotly>=5.18.0; extra == \"docs\"",
+        "polars>=0.20.30; extra == \"docs\"",
+        "sphinx-design>=0.6.0; extra == \"docs\"",
+        "sphinxcontrib-sass>=0.3.4; extra == \"docs\"",
+        "pydata-sphinx-theme>=0.15.3; extra == \"docs\"",
+        "sphinx-remove-toctrees>=1.0.0.post1; extra == \"docs\"",
+        "towncrier>=24.8.0; extra == \"docs\"",
+        "matplotlib>=3.6.1; extra == \"examples\"",
+        "scikit-image>=0.22.0; extra == \"examples\"",
+        "pandas>=1.5.0; extra == \"examples\"",
+        "seaborn>=0.13.0; extra == \"examples\"",
+        "pooch>=1.8.0; extra == \"examples\"",
+        "plotly>=5.18.0; extra == \"examples\"",
+        "matplotlib>=3.6.1; extra == \"tests\"",
+        "pandas>=1.5.0; extra == \"tests\"",
+        "pytest>=7.1.2; extra == \"tests\"",
+        "pytest-cov>=2.9.0; extra == \"tests\"",
+        "ruff>=0.11.7; extra == \"tests\"",
+        "mypy>=1.15; extra == \"tests\"",
+        "pyamg>=5.0.0; extra == \"tests\"",
+        "polars>=0.20.30; extra == \"tests\"",
+        "pyarrow>=12.0.0; extra == \"tests\"",
+        "numpydoc>=1.2.0; extra == \"tests\"",
+        "pooch>=1.8.0; extra == \"tests\"",
+        "conda-lock==3.0.1; extra == \"maintenance\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "scipy",
+      "version": "1.18.1",
+      "source_url": "https://pypi.org/pypi/scipy/1.18.1/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "numpy<2.8,>=2.0.0",
+        "pytest>=8.0.0; extra == \"test\"",
+        "pytest-cov; extra == \"test\"",
+        "pytest-timeout; extra == \"test\"",
+        "pytest-xdist; extra == \"test\"",
+        "asv; extra == \"test\"",
+        "mpmath; extra == \"test\"",
+        "gmpy2; extra == \"test\"",
+        "threadpoolctl; extra == \"test\"",
+        "scikit-umfpack; extra == \"test\"",
+        "pooch; extra == \"test\"",
+        "hypothesis>=6.30; extra == \"test\"",
+        "array-api-strict>=2.3.1; extra == \"test\"",
+        "Cython; extra == \"test\"",
+        "meson; extra == \"test\"",
+        "ninja; sys_platform != \"emscripten\" and extra == \"test\"",
+        "scipy-doctest>=2.0.0; extra == \"test\"",
+        "sphinx<8.2.0,>=5.0.0; extra == \"doc\"",
+        "intersphinx_registry; extra == \"doc\"",
+        "pydata-sphinx-theme>=0.15.2; extra == \"doc\"",
+        "sphinx-copybutton; extra == \"doc\"",
+        "sphinx-design>=0.4.0; extra == \"doc\"",
+        "matplotlib>=3.5; extra == \"doc\"",
+        "numpydoc; extra == \"doc\"",
+        "jupytext; extra == \"doc\"",
+        "myst-nb>=1.2.0; extra == \"doc\"",
+        "pooch; extra == \"doc\"",
+        "jupyterlite-sphinx>=0.19.1; extra == \"doc\"",
+        "jupyterlite-pyodide-kernel; extra == \"doc\"",
+        "linkify-it-py; extra == \"doc\"",
+        "tabulate; extra == \"doc\"",
+        "click<8.3.0; extra == \"dev\"",
+        "spin; extra == \"dev\"",
+        "mypy==1.19.1; extra == \"dev\"",
+        "pyrefly==0.63.0; extra == \"dev\"",
+        "typing_extensions; extra == \"dev\"",
+        "types-psutil; extra == \"dev\"",
+        "pycodestyle; extra == \"dev\"",
+        "ruff>=0.12.0; extra == \"dev\"",
+        "cython-lint>=0.12.2; extra == \"dev\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "six",
+      "version": "1.17.0",
+      "source_url": "https://pypi.org/pypi/six/1.17.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "sqlalchemy",
+      "version": "2.0.36",
+      "source_url": "https://pypi.org/pypi/sqlalchemy/2.0.36/json",
+      "environments": [
+        "backend_installed",
+        "backend_requirements_pinned"
+      ],
+      "requires_dist": [
+        "importlib-metadata; python_version < \"3.8\"",
+        "greenlet!=0.4.17; python_version < \"3.13\" and (platform_machine == \"aarch64\" or (platform_machine == \"ppc64le\" or (platform_machine == \"x86_64\" or (platform_machine == \"amd64\" or (platform_machine == \"AMD64\" or (platform_machine == \"win32\" or platform_machine == \"WIN32\"))))))",
+        "typing-extensions>=4.6.0",
+        "greenlet!=0.4.17; extra == \"asyncio\"",
+        "mypy>=0.910; extra == \"mypy\"",
+        "pyodbc; extra == \"mssql\"",
+        "pymssql; extra == \"mssql-pymssql\"",
+        "pyodbc; extra == \"mssql-pyodbc\"",
+        "mysqlclient>=1.4.0; extra == \"mysql\"",
+        "mysql-connector-python; extra == \"mysql-connector\"",
+        "mariadb!=1.1.10,!=1.1.2,!=1.1.5,>=1.0.1; extra == \"mariadb-connector\"",
+        "cx_oracle>=8; extra == \"oracle\"",
+        "oracledb>=1.0.1; extra == \"oracle-oracledb\"",
+        "psycopg2>=2.7; extra == \"postgresql\"",
+        "pg8000>=1.29.1; extra == \"postgresql-pg8000\"",
+        "greenlet!=0.4.17; extra == \"postgresql-asyncpg\"",
+        "asyncpg; extra == \"postgresql-asyncpg\"",
+        "psycopg2-binary; extra == \"postgresql-psycopg2binary\"",
+        "psycopg2cffi; extra == \"postgresql-psycopg2cffi\"",
+        "psycopg>=3.0.7; extra == \"postgresql-psycopg\"",
+        "psycopg[binary]>=3.0.7; extra == \"postgresql-psycopgbinary\"",
+        "pymysql; extra == \"pymysql\"",
+        "greenlet!=0.4.17; extra == \"aiomysql\"",
+        "aiomysql>=0.2.0; extra == \"aiomysql\"",
+        "greenlet!=0.4.17; extra == \"aioodbc\"",
+        "aioodbc; extra == \"aioodbc\"",
+        "greenlet!=0.4.17; extra == \"asyncmy\"",
+        "asyncmy!=0.2.4,!=0.2.6,>=0.2.3; extra == \"asyncmy\"",
+        "greenlet!=0.4.17; extra == \"aiosqlite\"",
+        "aiosqlite; extra == \"aiosqlite\"",
+        "typing_extensions!=3.10.0.1; extra == \"aiosqlite\"",
+        "sqlcipher3_binary; extra == \"sqlcipher\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "starlette",
+      "version": "0.41.3",
+      "source_url": "https://pypi.org/pypi/starlette/0.41.3/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "anyio<5,>=3.4.0",
+        "typing-extensions>=3.10.0; python_version < \"3.10\"",
+        "httpx>=0.22.0; extra == \"full\"",
+        "itsdangerous; extra == \"full\"",
+        "jinja2; extra == \"full\"",
+        "python-multipart>=0.0.7; extra == \"full\"",
+        "pyyaml; extra == \"full\""
+      ],
+      "advisories": [
+        {
+          "id": "GHSA-2c2j-9gv5-cj73",
+          "aliases": [
+            "CVE-2025-54121",
+            "PYSEC-2026-1941"
+          ],
+          "fixed_in": [
+            "0.47.2"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-2c2j-9gv5-cj73",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-7f5h-v6xp-fcq8",
+          "aliases": [
+            "CVE-2025-62727",
+            "PYSEC-2026-1942"
+          ],
+          "fixed_in": [
+            "0.49.1"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-7f5h-v6xp-fcq8",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-161",
+          "aliases": [
+            "CVE-2026-48710",
+            "GHSA-86qp-5c8j-p5mr",
+            "X41-2026-002"
+          ],
+          "fixed_in": [
+            "1.0.1"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-161",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-86qp-5c8j-p5mr",
+          "aliases": [
+            "CVE-2026-48710",
+            "PYSEC-2026-161",
+            "X41-2026-002"
+          ],
+          "fixed_in": [
+            "1.0.1"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-86qp-5c8j-p5mr",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-wqp7-x3pw-xc5r",
+          "aliases": [
+            "CVE-2026-48818",
+            "PYSEC-2026-2281"
+          ],
+          "fixed_in": [
+            "1.1.0"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-wqp7-x3pw-xc5r",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-x746-7m8f-x49c",
+          "aliases": [
+            "CVE-2026-48817",
+            "PYSEC-2026-2280"
+          ],
+          "fixed_in": [
+            "1.1.0"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-x746-7m8f-x49c",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-82w8-qh3p-5jfq",
+          "aliases": [
+            "CVE-2026-54283",
+            "PYSEC-2026-249"
+          ],
+          "fixed_in": [
+            "1.3.1"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-82w8-qh3p-5jfq",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "GHSA-jp82-jpqv-5vv3",
+          "aliases": [
+            "CVE-2026-54282",
+            "PYSEC-2026-248"
+          ],
+          "fixed_in": [
+            "1.3.0"
+          ],
+          "link": "https://osv.dev/vulnerability/GHSA-jp82-jpqv-5vv3",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-249",
+          "aliases": [
+            "CVE-2026-54283",
+            "GHSA-82w8-qh3p-5jfq"
+          ],
+          "fixed_in": [
+            "1.3.1"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-249",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-248",
+          "aliases": [
+            "CVE-2026-54282",
+            "GHSA-jp82-jpqv-5vv3"
+          ],
+          "fixed_in": [
+            "1.3.0"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-248",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-1942",
+          "aliases": [
+            "CVE-2025-62727",
+            "GHSA-7f5h-v6xp-fcq8"
+          ],
+          "fixed_in": [
+            "0.49.1"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-1942",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-1941",
+          "aliases": [
+            "CVE-2025-54121",
+            "GHSA-2c2j-9gv5-cj73"
+          ],
+          "fixed_in": [
+            "0.47.2"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-1941",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-2281",
+          "aliases": [
+            "CVE-2026-48818",
+            "GHSA-wqp7-x3pw-xc5r"
+          ],
+          "fixed_in": [
+            "1.1.0"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-2281",
+          "source": "osv",
+          "withdrawn": null
+        },
+        {
+          "id": "PYSEC-2026-2280",
+          "aliases": [
+            "CVE-2026-48817",
+            "GHSA-x746-7m8f-x49c"
+          ],
+          "fixed_in": [
+            "1.1.0"
+          ],
+          "link": "https://osv.dev/vulnerability/PYSEC-2026-2280",
+          "source": "osv",
+          "withdrawn": null
+        }
+      ]
+    },
+    {
+      "package": "threadpoolctl",
+      "version": "3.7.0",
+      "source_url": "https://pypi.org/pypi/threadpoolctl/3.7.0/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "typing-extensions",
+      "version": "4.16.0",
+      "source_url": "https://pypi.org/pypi/typing-extensions/4.16.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "tzdata",
+      "version": "2026.5",
+      "source_url": "https://pypi.org/pypi/tzdata/2026.5/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "uvicorn",
+      "version": "0.34.0",
+      "source_url": "https://pypi.org/pypi/uvicorn/0.34.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed",
+        "backend_requirements_pinned",
+        "ai_requirements_pinned"
+      ],
+      "requires_dist": [
+        "click>=7.0",
+        "h11>=0.8",
+        "typing-extensions>=4.0; python_version < \"3.11\"",
+        "colorama>=0.4; sys_platform == \"win32\" and extra == \"standard\"",
+        "httptools>=0.6.3; extra == \"standard\"",
+        "python-dotenv>=0.13; extra == \"standard\"",
+        "pyyaml>=5.1; extra == \"standard\"",
+        "uvloop!=0.15.0,!=0.15.1,>=0.14.0; (sys_platform != \"win32\" and (sys_platform != \"cygwin\" and platform_python_implementation != \"PyPy\")) and extra == \"standard\"",
+        "watchfiles>=0.13; extra == \"standard\"",
+        "websockets>=10.4; extra == \"standard\""
+      ],
+      "advisories": []
+    },
+    {
+      "package": "watchfiles",
+      "version": "1.3.0",
+      "source_url": "https://pypi.org/pypi/watchfiles/1.3.0/json",
+      "environments": [
+        "backend_installed",
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": [
+        "anyio>=3.0.0"
+      ],
+      "advisories": []
+    },
+    {
+      "package": "websockets",
+      "version": "17.1",
+      "source_url": "https://pypi.org/pypi/websockets/17.1/json",
+      "environments": [
+        "backend_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    },
+    {
+      "package": "websockets",
+      "version": "17.2",
+      "source_url": "https://pypi.org/pypi/websockets/17.2/json",
+      "environments": [
+        "ml_probe_environment_installed"
+      ],
+      "requires_dist": null,
+      "advisories": []
+    }
+  ]
+}

@@ -1,0 +1,2133 @@
+[
+  {
+    "probe": "positive_scope_private_student",
+    "result": [
+      404,
+      {
+        "detail": "Student not found."
+      }
+    ]
+  },
+  {
+    "probe": "unassigned_quality_list",
+    "result": [
+      200,
+      [
+        {
+          "student_id": 2,
+          "teacher_id": "13cc343f-243e-4014-908e-900ee698faac",
+          "student_pace_id": null,
+          "issue_type": "sensitive",
+          "detail": "Private guardian document correction",
+          "log_id": 1,
+          "resolved": false,
+          "resolved_date": null,
+          "created_at": "2026-10-19T17:16:00.176895",
+          "student_name": "Private Learner"
+        }
+      ]
+    ]
+  },
+  {
+    "probe": "unassigned_quality_resolve",
+    "result": [
+      200,
+      {
+        "student_id": 2,
+        "teacher_id": "13cc343f-243e-4014-908e-900ee698faac",
+        "student_pace_id": null,
+        "issue_type": "sensitive",
+        "detail": "Private guardian document correction",
+        "log_id": 1,
+        "resolved": true,
+        "resolved_date": "2026-10-19T17:16:00.192521",
+        "created_at": "2026-10-19T17:16:00.176895",
+        "student_name": null
+      }
+    ]
+  },
+  {
+    "probe": "spoof_quality_author",
+    "result": [
+      201,
+      {
+        "student_id": 2,
+        "teacher_id": "13cc343f-243e-4014-908e-900ee698faac",
+        "student_pace_id": null,
+        "issue_type": "spoofed",
+        "detail": "written by unassigned teacher",
+        "log_id": 2,
+        "resolved": false,
+        "resolved_date": null,
+        "created_at": "2026-10-19T17:16:00.210679",
+        "student_name": null
+      }
+    ]
+  },
+  {
+    "probe": "create_assigned_pace",
+    "status": 201,
+    "pace_id": 1
+  },
+  {
+    "probe": "rename_to_unassigned_subject",
+    "result": [
+      200,
+      {
+        "ww_total_raw": null,
+        "ww_percent": null,
+        "ww_weighted": null,
+        "pt_total_raw": null,
+        "pt_percent": null,
+        "pt_weighted": null,
+        "exam_parts": [
+          null,
+          null,
+          null
+        ],
+        "exam_percent": null,
+        "exam_weighted": null,
+        "initial_grade": null,
+        "transmuted_grade": null,
+        "descriptor": null,
+        "record_complete": false,
+        "ww_scores": null,
+        "pt_scores": null,
+        "exam_scores": null,
+        "absences": null,
+        "extracurricular_count": null,
+        "student_id": 1,
+        "enrollment_id": 1,
+        "subject": "Science",
+        "subject_id": null,
+        "current_pace": 5,
+        "expected_pace": 0,
+        "total_paces": 12,
+        "attendance": 100.0,
+        "average_score": 0.0,
+        "remarks": null,
+        "pace_id": 1,
+        "grading_period": 1,
+        "pace_percent": 41.7,
+        "paces_behind": 0,
+        "updated_at": "2026-10-19T17:16:00.255507",
+        "student_name": null,
+        "section_name": null,
+        "grade_level_name": null,
+        "risk_level": "low",
+        "ai_risk_score": null,
+        "ai_risk_level": null,
+        "ai_source": null,
+        "ai_used_threshold": null,
+        "ai_model_version": null,
+        "ai_used_baseline_defaults": null,
+        "ai_primary_factor": null,
+        "ai_predicted_final": null,
+        "ai_range_low": null,
+        "ai_range_high": null
+      }
+    ]
+  },
+  {
+    "probe": "mismatched_student_enrollment",
+    "status": 201,
+    "result": {
+      "ww_total_raw": null,
+      "ww_percent": null,
+      "ww_weighted": null,
+      "pt_total_raw": null,
+      "pt_percent": null,
+      "pt_weighted": null,
+      "exam_parts": [
+        null,
+        null,
+        null
+      ],
+      "exam_percent": null,
+      "exam_weighted": null,
+      "initial_grade": null,
+      "transmuted_grade": null,
+      "descriptor": null,
+      "record_complete": false,
+      "ww_scores": null,
+      "pt_scores": null,
+      "exam_scores": null,
+      "absences": null,
+      "extracurricular_count": null,
+      "student_id": 2,
+      "enrollment_id": 1,
+      "subject": "Mathematics",
+      "subject_id": null,
+      "current_pace": 0,
+      "expected_pace": 0,
+      "total_paces": 12,
+      "attendance": 100.0,
+      "average_score": 0.0,
+      "remarks": null,
+      "pace_id": 2,
+      "grading_period": 1,
+      "pace_percent": 0.0,
+      "paces_behind": 0,
+      "updated_at": "2026-10-19T17:16:00.271098",
+      "student_name": null,
+      "section_name": null,
+      "grade_level_name": null,
+      "risk_level": "moderate",
+      "ai_risk_score": null,
+      "ai_risk_level": null,
+      "ai_source": null,
+      "ai_used_threshold": null,
+      "ai_model_version": null,
+      "ai_used_baseline_defaults": null,
+      "ai_primary_factor": null,
+      "ai_predicted_final": null,
+      "ai_range_low": null,
+      "ai_range_high": null
+    }
+  },
+  {
+    "probe": "normal_header",
+    "result": [
+      200,
+      {
+        "template": "core",
+        "ww_highest": [
+          100.0
+        ],
+        "pt_highest": [
+          100.0
+        ],
+        "exam_highest": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "ww_weight": 20.0,
+        "pt_weight": 50.0,
+        "ex_weight": 30.0,
+        "exam_subweights": [
+          30.0,
+          30.0,
+          40.0
+        ],
+        "section_id": 1,
+        "subject_id": 1,
+        "grading_period": 1
+      }
+    ]
+  },
+  {
+    "probe": "normal_header_read",
+    "result": [
+      200,
+      {
+        "template": "core",
+        "ww_highest": [
+          100.0
+        ],
+        "pt_highest": [
+          100.0
+        ],
+        "exam_highest": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "ww_weight": 20.0,
+        "pt_weight": 50.0,
+        "ex_weight": 30.0,
+        "exam_subweights": [
+          30.0,
+          30.0,
+          40.0
+        ],
+        "section_id": 1,
+        "subject_id": 1,
+        "grading_period": 1
+      }
+    ]
+  },
+  {
+    "probe": "normal_bulk",
+    "result": [
+      200,
+      {
+        "saved": 1,
+        "skipped": [],
+        "ai": {
+          "scored": 1,
+          "fallback": 1,
+          "source": "fallback",
+          "held_back": 0,
+          "model_version": null,
+          "detail": "AI_ENABLED is off."
+        }
+      }
+    ]
+  },
+  {
+    "probe": "normal_saved_grade",
+    "grade": 100,
+    "record_complete": true
+  },
+  {
+    "probe": "four_period_school_required_average",
+    "list_needs_to_pass": 66.67,
+    "detail_needs_to_pass": 62.5,
+    "detail_required_in_weakest": 70.0,
+    "expected_needs_to_pass": 66.67,
+    "expected_required_at_80": 73.33
+  },
+  {
+    "probe": "subject_scope_get",
+    "result": [
+      200,
+      {
+        "first_name": "Owned",
+        "middle_name": null,
+        "last_name": "Learner",
+        "birth_date": null,
+        "gender": "Male",
+        "address": "",
+        "photo": null,
+        "guardian_first_name": "",
+        "guardian_mid_name": null,
+        "guardian_last_name": "",
+        "guardian_contact": "",
+        "guardian_relationship": "Parent",
+        "guardian_email": null,
+        "student_id": 1,
+        "login_id": null,
+        "is_active": true,
+        "created_at": "2026-10-19T17:16:00.161293",
+        "full_name": "Owned Learner",
+        "enrollment_id": 1,
+        "grade_level_id": 1,
+        "grade_level_name": "Grade 7",
+        "section_id": 1,
+        "section_name": "Own",
+        "school_year_id": 1,
+        "adviser_name": null,
+        "profile_missing": [
+          "birth date",
+          "address",
+          "parent or guardian",
+          "guardian contact"
+        ],
+        "risk_level": "low",
+        "risk_score": 0.0,
+        "subjects_tracked": 1,
+        "subjects_flagged": 0,
+        "lowest_standing": 100.0,
+        "average_standing": 100.0,
+        "lowest_term_grade": 100,
+        "weakest_subject": "Mathematics",
+        "required_in_weakest": 70.0,
+        "terms_done": 1,
+        "weakest_standing": 100.0,
+        "weakest_basis": "year",
+        "needs_to_pass": 62.5,
+        "ai_subject": null,
+        "ai_predicted_final": null,
+        "ai_range_low": null,
+        "ai_range_high": null,
+        "ai_risk_level": null,
+        "ai_risk_score": null,
+        "ai_used_threshold": null,
+        "ai_source": null,
+        "ai_model_version": null,
+        "pace_percent": 0.0,
+        "paces_behind": 0
+      }
+    ]
+  },
+  {
+    "probe": "subject_scope_patch",
+    "result": [
+      200,
+      {
+        "first_name": "Owned",
+        "middle_name": null,
+        "last_name": "Learner",
+        "birth_date": null,
+        "gender": "Male",
+        "address": "Updated address",
+        "photo": null,
+        "guardian_first_name": "",
+        "guardian_mid_name": null,
+        "guardian_last_name": "",
+        "guardian_contact": "",
+        "guardian_relationship": "Parent",
+        "guardian_email": null,
+        "student_id": 1,
+        "login_id": null,
+        "is_active": true,
+        "created_at": "2026-10-19T17:16:00.161293",
+        "full_name": "Owned Learner",
+        "enrollment_id": 1,
+        "grade_level_id": 1,
+        "grade_level_name": "Grade 7",
+        "section_id": 1,
+        "section_name": "Own",
+        "school_year_id": 1,
+        "adviser_name": null,
+        "profile_missing": [
+          "birth date",
+          "parent or guardian",
+          "guardian contact"
+        ],
+        "risk_level": "critical",
+        "risk_score": 100.0,
+        "subjects_tracked": 2,
+        "subjects_flagged": 1,
+        "lowest_standing": 60.0,
+        "average_standing": 80.0,
+        "lowest_term_grade": 60,
+        "weakest_subject": "Science",
+        "required_in_weakest": 90.0,
+        "terms_done": 1,
+        "weakest_standing": 60.0,
+        "weakest_basis": "year",
+        "needs_to_pass": 82.5,
+        "ai_subject": null,
+        "ai_predicted_final": null,
+        "ai_range_low": null,
+        "ai_range_high": null,
+        "ai_risk_level": null,
+        "ai_risk_score": null,
+        "ai_used_threshold": null,
+        "ai_source": null,
+        "ai_model_version": null,
+        "pace_percent": 0.0,
+        "paces_behind": 0
+      }
+    ]
+  },
+  {
+    "probe": "healthy_teacher_reads",
+    "results": {
+      "/api/students": 200,
+      "/api/enrollments": 200,
+      "/api/paces": 200,
+      "/api/school-years": 200,
+      "/api/school-years/current": 200,
+      "/api/grade-levels": 200,
+      "/api/sections": 200,
+      "/api/subjects": 200,
+      "/api/teacher-assignments": 200,
+      "/api/my-classes": 200,
+      "/api/early-warnings": 200,
+      "/api/early-warnings/summary": 200,
+      "/api/ai/predictions": 200,
+      "/api/ai/summary": 200,
+      "/api/students/1/profile": 200
+    }
+  },
+  {
+    "probe": "backend_ai_disabled_status",
+    "result": [
+      200,
+      {
+        "enabled": false,
+        "reachable": false,
+        "service_url": "http://localhost:8001",
+        "model_version": null,
+        "model_loaded": false,
+        "detail": "Disabled by configuration (AI_ENABLED=false).",
+        "latency_ms": null
+      }
+    ]
+  },
+  {
+    "probe": "backend_ai_disabled_model_card",
+    "result": [
+      503,
+      {
+        "detail": "The AI service is not reachable, so its model card cannot be read."
+      }
+    ]
+  },
+  {
+    "probe": "backend_ai_prediction_detail",
+    "result": [
+      200,
+      {
+        "prediction_id": 1,
+        "student_id": 1,
+        "enrollment_id": 1,
+        "pace_id": 1,
+        "subject": "Mathematics",
+        "risk_score": 0.0,
+        "risk_level": "LOW",
+        "used_threshold": 0.5,
+        "primary_factor": null,
+        "suggested_action": null,
+        "predicted_final": 100.0,
+        "range_low": 99.1,
+        "range_high": 100.0,
+        "source": "fallback",
+        "model_version": "rule-based (rule-v4)",
+        "used_baseline_defaults": false,
+        "imputed_fields": [],
+        "features": {
+          "q1_term_grade": 100.0,
+          "q1_initial_grade": 100.0,
+          "q1_ww_pct": 100.0,
+          "q1_pt_pct": 100.0,
+          "q1_exam_pct": 100.0,
+          "q1_component_gap": 0.0,
+          "grade_level": 7.0
+        },
+        "latency_ms": null,
+        "error": "AI_ENABLED is off.",
+        "created_at": "2026-10-19T17:16:00.318474",
+        "student_name": null,
+        "section_name": null,
+        "grade_level_name": null
+      }
+    ]
+  },
+  {
+    "probe": "backend_ai_rescore",
+    "result": [
+      200,
+      {
+        "requested": 1,
+        "scored": 1,
+        "fallback": 1,
+        "source": "fallback",
+        "model_version": null,
+        "detail": "AI_ENABLED is off."
+      }
+    ]
+  },
+  {
+    "probe": "teacher_admin_dashboard_denied",
+    "result": [
+      403,
+      {
+        "detail": "Administrator access is required for this action."
+      }
+    ]
+  },
+  {
+    "probe": "historical_grades_current_summary",
+    "result": [
+      200,
+      {
+        "first_name": "Owned",
+        "middle_name": null,
+        "last_name": "Learner",
+        "birth_date": null,
+        "gender": "Male",
+        "address": "Updated address",
+        "photo": null,
+        "guardian_first_name": "",
+        "guardian_mid_name": null,
+        "guardian_last_name": "",
+        "guardian_contact": "",
+        "guardian_relationship": "Parent",
+        "guardian_email": null,
+        "student_id": 1,
+        "login_id": null,
+        "is_active": true,
+        "created_at": "2026-10-19T17:16:00.161293",
+        "full_name": "Owned Learner",
+        "enrollment_id": 1,
+        "grade_level_id": 1,
+        "grade_level_name": "Grade 7",
+        "section_id": 1,
+        "section_name": "Own",
+        "school_year_id": 1,
+        "adviser_name": null,
+        "profile_missing": [
+          "birth date",
+          "parent or guardian",
+          "guardian contact"
+        ],
+        "risk_level": "critical",
+        "risk_score": 100.0,
+        "subjects_tracked": 2,
+        "subjects_flagged": 1,
+        "lowest_standing": 60.0,
+        "average_standing": 80.0,
+        "lowest_term_grade": 60,
+        "weakest_subject": "Mathematics",
+        "required_in_weakest": 90.0,
+        "terms_done": 1,
+        "weakest_standing": 60.0,
+        "weakest_basis": "year",
+        "needs_to_pass": 82.5,
+        "ai_subject": null,
+        "ai_predicted_final": null,
+        "ai_range_low": null,
+        "ai_range_high": null,
+        "ai_risk_level": null,
+        "ai_risk_score": null,
+        "ai_used_threshold": null,
+        "ai_source": null,
+        "ai_model_version": null,
+        "pace_percent": 0.0,
+        "paces_behind": 0
+      }
+    ]
+  },
+  {
+    "probe": "patch_scores_uses_header",
+    "result": [
+      200,
+      {
+        "ww_total_raw": 90.0,
+        "ww_percent": null,
+        "ww_weighted": null,
+        "pt_total_raw": 100.0,
+        "pt_percent": null,
+        "pt_weighted": null,
+        "exam_parts": [
+          null,
+          null,
+          null
+        ],
+        "exam_percent": null,
+        "exam_weighted": null,
+        "initial_grade": null,
+        "transmuted_grade": null,
+        "descriptor": null,
+        "record_complete": false,
+        "ww_scores": [
+          90.0
+        ],
+        "pt_scores": [
+          100.0
+        ],
+        "exam_scores": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "absences": null,
+        "extracurricular_count": null,
+        "student_id": 1,
+        "enrollment_id": 1,
+        "subject": "Mathematics",
+        "subject_id": null,
+        "current_pace": 0,
+        "expected_pace": 0,
+        "total_paces": 0,
+        "attendance": 100.0,
+        "average_score": 0.0,
+        "remarks": null,
+        "pace_id": 1,
+        "grading_period": 1,
+        "pace_percent": 0.0,
+        "paces_behind": 0,
+        "updated_at": "2026-10-19T17:16:00.652326",
+        "student_name": null,
+        "section_name": null,
+        "grade_level_name": null,
+        "risk_level": "moderate",
+        "ai_risk_score": null,
+        "ai_risk_level": null,
+        "ai_source": null,
+        "ai_used_threshold": null,
+        "ai_model_version": null,
+        "ai_used_baseline_defaults": null,
+        "ai_primary_factor": null,
+        "ai_predicted_final": null,
+        "ai_range_low": null,
+        "ai_range_high": null
+      }
+    ]
+  },
+  {
+    "probe": "restore_bulk",
+    "result": [
+      200,
+      {
+        "saved": 1,
+        "skipped": [],
+        "ai": {
+          "scored": 1,
+          "fallback": 1,
+          "source": "fallback",
+          "held_back": 0,
+          "model_version": null,
+          "detail": "AI_ENABLED is off."
+        }
+      }
+    ]
+  },
+  {
+    "probe": "warning_before_header_change",
+    "result": [
+      200,
+      []
+    ]
+  },
+  {
+    "probe": "lower_grade_via_header",
+    "result": [
+      200,
+      {
+        "template": "core",
+        "ww_highest": [
+          200.0
+        ],
+        "pt_highest": [
+          200.0
+        ],
+        "exam_highest": [
+          200.0,
+          200.0,
+          200.0
+        ],
+        "ww_weight": 20.0,
+        "pt_weight": 50.0,
+        "ex_weight": 30.0,
+        "exam_subweights": [
+          30.0,
+          30.0,
+          40.0
+        ],
+        "section_id": 1,
+        "subject_id": 1,
+        "grading_period": 1
+      }
+    ]
+  },
+  {
+    "probe": "warnings_after_header_change",
+    "result": [
+      200,
+      []
+    ]
+  },
+  {
+    "probe": "student_after_header_change",
+    "result": [
+      200,
+      {
+        "first_name": "Owned",
+        "middle_name": null,
+        "last_name": "Learner",
+        "birth_date": null,
+        "gender": "Male",
+        "address": "Updated address",
+        "photo": null,
+        "guardian_first_name": "",
+        "guardian_mid_name": null,
+        "guardian_last_name": "",
+        "guardian_contact": "",
+        "guardian_relationship": "Parent",
+        "guardian_email": null,
+        "student_id": 1,
+        "login_id": null,
+        "is_active": true,
+        "created_at": "2026-10-19T17:16:00.161293",
+        "full_name": "Owned Learner",
+        "enrollment_id": 1,
+        "grade_level_id": 1,
+        "grade_level_name": "Grade 7",
+        "section_id": 1,
+        "section_name": "Own",
+        "school_year_id": 1,
+        "adviser_name": null,
+        "profile_missing": [
+          "birth date",
+          "parent or guardian",
+          "guardian contact"
+        ],
+        "risk_level": "critical",
+        "risk_score": 85.0,
+        "subjects_tracked": 1,
+        "subjects_flagged": 1,
+        "lowest_standing": 70.0,
+        "average_standing": 70.0,
+        "lowest_term_grade": 70,
+        "weakest_subject": "Mathematics",
+        "required_in_weakest": 85.0,
+        "terms_done": 1,
+        "weakest_standing": 70.0,
+        "weakest_basis": "year",
+        "needs_to_pass": 77.5,
+        "ai_subject": null,
+        "ai_predicted_final": null,
+        "ai_range_low": null,
+        "ai_range_high": null,
+        "ai_risk_level": null,
+        "ai_risk_score": null,
+        "ai_used_threshold": null,
+        "ai_source": null,
+        "ai_model_version": null,
+        "pace_percent": 0.0,
+        "paces_behind": 0
+      }
+    ]
+  },
+  {
+    "probe": "dashboard_after_header_change",
+    "result": [
+      200,
+      {
+        "total_students": 1,
+        "active_enrollments": 1,
+        "total_teachers": 0,
+        "pending_approvals": 0,
+        "total_sections": 1,
+        "total_subjects": 2,
+        "average_pace": 0.0,
+        "average_standing": 70.0,
+        "on_track": 1,
+        "at_risk": 0,
+        "critical": 0,
+        "risk_distribution": [
+          {
+            "name": "On track",
+            "key": "low",
+            "value": 1
+          },
+          {
+            "name": "Watch",
+            "key": "moderate",
+            "value": 0
+          },
+          {
+            "name": "At risk",
+            "key": "high",
+            "value": 0
+          },
+          {
+            "name": "Critical",
+            "key": "critical",
+            "value": 0
+          }
+        ],
+        "pace_by_section": [
+          {
+            "section": "Own",
+            "average": 0.0,
+            "students": 1
+          }
+        ],
+        "pace_by_subject": [
+          {
+            "subject": "Mathematics",
+            "average": 0.0,
+            "behind": 0,
+            "students": 1
+          }
+        ],
+        "trend": [
+          {
+            "label": "Mathematics",
+            "actual": 0.0,
+            "expected": 0.0
+          }
+        ],
+        "tracks_units": false,
+        "unit_label_plural": "Modules",
+        "passing_mark": 75.0,
+        "grading_period_label": "Quarter",
+        "standing_by_section": [
+          {
+            "section": "Own",
+            "average": 70.0,
+            "below": 1,
+            "students": 1
+          }
+        ],
+        "standing_by_subject": [
+          {
+            "subject": "Mathematics",
+            "average": 70.0,
+            "below": 1,
+            "students": 1
+          }
+        ],
+        "standing_by_period": [
+          {
+            "label": "Quarter 1",
+            "passing": 75.0,
+            "average": 70.0,
+            "below": 1,
+            "students": 1
+          }
+        ],
+        "recent_activity": [
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "class record header saved for section 1 subject 1 period 1; 1 records regraded",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "student_updated",
+            "label": "Student record updated",
+            "detail": "Owned Learner",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "class record header saved for section 1 subject 1 period 1; 0 records regraded",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "student=2 subject=Mathematics",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "student=1 subject=Mathematics",
+            "actor": "Math Teacher",
+            "when": "just now"
+          }
+        ],
+        "top_concerns": [],
+        "school_year": "2026-2027"
+      }
+    ]
+  },
+  {
+    "probe": "incomplete_exam",
+    "result": [
+      200,
+      {
+        "saved": 1,
+        "skipped": [],
+        "ai": {
+          "scored": 1,
+          "fallback": 1,
+          "source": "fallback",
+          "held_back": 0,
+          "model_version": null,
+          "detail": "AI_ENABLED is off."
+        }
+      }
+    ]
+  },
+  {
+    "probe": "incomplete_record_read",
+    "result": [
+      200,
+      [
+        {
+          "ww_total_raw": 100.0,
+          "ww_percent": 50.0,
+          "ww_weighted": 10.0,
+          "pt_total_raw": 100.0,
+          "pt_percent": 50.0,
+          "pt_weighted": 25.0,
+          "exam_parts": [
+            15.0,
+            null,
+            null
+          ],
+          "exam_percent": 15.0,
+          "exam_weighted": 4.5,
+          "initial_grade": 39.5,
+          "transmuted_grade": 68,
+          "descriptor": "Developing",
+          "record_complete": false,
+          "ww_scores": [
+            100.0
+          ],
+          "pt_scores": [
+            100.0
+          ],
+          "exam_scores": [
+            100.0,
+            null,
+            null
+          ],
+          "absences": null,
+          "extracurricular_count": null,
+          "student_id": 1,
+          "enrollment_id": 1,
+          "subject": "Mathematics",
+          "subject_id": null,
+          "current_pace": 0,
+          "expected_pace": 0,
+          "total_paces": 0,
+          "attendance": 100.0,
+          "average_score": 0.0,
+          "remarks": null,
+          "pace_id": 1,
+          "grading_period": 1,
+          "pace_percent": 0.0,
+          "paces_behind": 0,
+          "updated_at": "2026-10-19T17:16:00.762116",
+          "student_name": "Owned Learner",
+          "section_name": "Own",
+          "grade_level_name": "Grade 7",
+          "risk_level": "critical",
+          "ai_risk_score": 0.9901,
+          "ai_risk_level": "HIGH",
+          "ai_source": "fallback",
+          "ai_used_threshold": 0.5,
+          "ai_model_version": "rule-based (rule-v4)",
+          "ai_used_baseline_defaults": false,
+          "ai_primary_factor": "first-term grade (rule-based)",
+          "ai_predicted_final": 69.1,
+          "ai_range_low": 67.1,
+          "ai_range_high": 71.3
+        }
+      ]
+    ]
+  },
+  {
+    "probe": "reset_header_before_concurrency",
+    "result": [
+      200,
+      {
+        "template": "core",
+        "ww_highest": [
+          100.0
+        ],
+        "pt_highest": [
+          100.0
+        ],
+        "exam_highest": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "ww_weight": 20.0,
+        "pt_weight": 50.0,
+        "ex_weight": 30.0,
+        "exam_subweights": [
+          30.0,
+          30.0,
+          40.0
+        ],
+        "section_id": 1,
+        "subject_id": 1,
+        "grading_period": 1
+      }
+    ]
+  },
+  {
+    "probe": "concurrent_same_record_saves",
+    "results": [
+      [
+        200,
+        {
+          "saved": 1,
+          "skipped": [],
+          "ai": {
+            "scored": 1,
+            "fallback": 1,
+            "source": "fallback",
+            "held_back": 0,
+            "model_version": null,
+            "detail": "AI_ENABLED is off."
+          }
+        }
+      ],
+      [
+        200,
+        {
+          "saved": 1,
+          "skipped": [],
+          "ai": {
+            "scored": 1,
+            "fallback": 1,
+            "source": "fallback",
+            "held_back": 0,
+            "model_version": null,
+            "detail": "AI_ENABLED is off."
+          }
+        }
+      ],
+      [
+        200,
+        {
+          "saved": 1,
+          "skipped": [],
+          "ai": {
+            "scored": 1,
+            "fallback": 1,
+            "source": "fallback",
+            "held_back": 0,
+            "model_version": null,
+            "detail": "AI_ENABLED is off."
+          }
+        }
+      ],
+      [
+        200,
+        {
+          "saved": 1,
+          "skipped": [],
+          "ai": {
+            "scored": 1,
+            "fallback": 1,
+            "source": "fallback",
+            "held_back": 0,
+            "model_version": null,
+            "detail": "AI_ENABLED is off."
+          }
+        }
+      ],
+      [
+        200,
+        {
+          "saved": 1,
+          "skipped": [],
+          "ai": {
+            "scored": 1,
+            "fallback": 1,
+            "source": "fallback",
+            "held_back": 0,
+            "model_version": null,
+            "detail": "AI_ENABLED is off."
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "probe": "concurrent_same_record_state",
+    "result": [
+      200,
+      [
+        {
+          "ww_total_raw": 88.0,
+          "ww_percent": 88.0,
+          "ww_weighted": 17.6,
+          "pt_total_raw": 88.0,
+          "pt_percent": 88.0,
+          "pt_weighted": 44.0,
+          "exam_parts": [
+            26.4,
+            26.4,
+            35.2
+          ],
+          "exam_percent": 88.0,
+          "exam_weighted": 26.4,
+          "initial_grade": 88.0,
+          "transmuted_grade": 90,
+          "descriptor": "Advancing",
+          "record_complete": true,
+          "ww_scores": [
+            88.0
+          ],
+          "pt_scores": [
+            88.0
+          ],
+          "exam_scores": [
+            88.0,
+            88.0,
+            88.0
+          ],
+          "absences": null,
+          "extracurricular_count": null,
+          "student_id": 1,
+          "enrollment_id": 1,
+          "subject": "Mathematics",
+          "subject_id": null,
+          "current_pace": 0,
+          "expected_pace": 0,
+          "total_paces": 0,
+          "attendance": 100.0,
+          "average_score": 0.0,
+          "remarks": null,
+          "pace_id": 1,
+          "grading_period": 1,
+          "pace_percent": 0.0,
+          "paces_behind": 0,
+          "updated_at": "2026-10-19T17:16:00.966557",
+          "student_name": "Owned Learner",
+          "section_name": "Own",
+          "grade_level_name": "Grade 7",
+          "risk_level": "low",
+          "ai_risk_score": 0.0,
+          "ai_risk_level": "LOW",
+          "ai_source": "fallback",
+          "ai_used_threshold": 0.5,
+          "ai_model_version": "rule-based (rule-v4)",
+          "ai_used_baseline_defaults": false,
+          "ai_primary_factor": null,
+          "ai_predicted_final": 91.1,
+          "ai_range_low": 89.1,
+          "ai_range_high": 93.3
+        }
+      ]
+    ]
+  },
+  {
+    "probe": "concurrent_new_record_creation",
+    "results": [
+      [
+        500,
+        {
+          "detail": "The server hit an unexpected error. The details are in the service log.",
+          "error_type": "IntegrityError",
+          "path": "/api/paces/bulk"
+        }
+      ],
+      [
+        500,
+        {
+          "detail": "The server hit an unexpected error. The details are in the service log.",
+          "error_type": "IntegrityError",
+          "path": "/api/paces/bulk"
+        }
+      ],
+      [
+        200,
+        {
+          "saved": 1,
+          "skipped": [],
+          "ai": {
+            "scored": 1,
+            "fallback": 1,
+            "source": "fallback",
+            "held_back": 0,
+            "model_version": null,
+            "detail": "AI_ENABLED is off."
+          }
+        }
+      ],
+      [
+        500,
+        {
+          "detail": "The server hit an unexpected error. The details are in the service log.",
+          "error_type": "IntegrityError",
+          "path": "/api/paces/bulk"
+        }
+      ],
+      [
+        200,
+        {
+          "saved": 1,
+          "skipped": [],
+          "ai": {
+            "scored": 1,
+            "fallback": 1,
+            "source": "fallback",
+            "held_back": 0,
+            "model_version": null,
+            "detail": "AI_ENABLED is off."
+          }
+        }
+      ]
+    ]
+  },
+  {
+    "probe": "ordinary_save_ai_outage",
+    "result": [
+      200,
+      {
+        "saved": 1,
+        "skipped": [],
+        "ai": {
+          "scored": 1,
+          "fallback": 1,
+          "source": "fallback",
+          "held_back": 0,
+          "model_version": null,
+          "detail": "AI service returned HTTP 503 on every one of 4 attempts over 45s \u2014 it is either still starting up or failing to start. Check its logs."
+        }
+      }
+    ],
+    "configured_clients": [
+      {
+        "timeout": 90.0
+      },
+      {
+        "timeout": 90.0
+      },
+      {
+        "timeout": 90.0
+      },
+      {
+        "timeout": 90.0
+      }
+    ],
+    "retry_pauses": [
+      15.0,
+      15.0,
+      15.0
+    ]
+  },
+  {
+    "probe": "gap_terms_student",
+    "result": [
+      200,
+      {
+        "first_name": "Gap",
+        "middle_name": null,
+        "last_name": "Learner",
+        "birth_date": null,
+        "gender": "Male",
+        "address": "",
+        "photo": null,
+        "guardian_first_name": "",
+        "guardian_mid_name": null,
+        "guardian_last_name": "",
+        "guardian_contact": "",
+        "guardian_relationship": "Parent",
+        "guardian_email": null,
+        "student_id": 3,
+        "login_id": null,
+        "is_active": true,
+        "created_at": "2026-10-19T17:16:01.164204",
+        "full_name": "Gap Learner",
+        "enrollment_id": 3,
+        "grade_level_id": 1,
+        "grade_level_name": "Grade 7",
+        "section_id": 1,
+        "section_name": "Own",
+        "school_year_id": 1,
+        "adviser_name": null,
+        "profile_missing": [
+          "birth date",
+          "address",
+          "parent or guardian",
+          "guardian contact"
+        ],
+        "risk_level": "critical",
+        "risk_score": 100.0,
+        "subjects_tracked": 1,
+        "subjects_flagged": 1,
+        "lowest_standing": 60.0,
+        "average_standing": 60.0,
+        "lowest_term_grade": 60,
+        "weakest_subject": "Mathematics",
+        "required_in_weakest": 90.0,
+        "terms_done": 1,
+        "weakest_standing": 60.0,
+        "weakest_basis": "year",
+        "needs_to_pass": 82.5,
+        "ai_subject": null,
+        "ai_predicted_final": null,
+        "ai_range_low": null,
+        "ai_range_high": null,
+        "ai_risk_level": null,
+        "ai_risk_score": null,
+        "ai_used_threshold": null,
+        "ai_source": null,
+        "ai_model_version": null,
+        "pace_percent": 0.0,
+        "paces_behind": 0
+      }
+    ]
+  },
+  {
+    "probe": "gap_terms_warning",
+    "status": 200,
+    "rows": [
+      {
+        "student_id": 3,
+        "enrollment_id": 3,
+        "subject": "Mathematics",
+        "teacher": "Math Teacher",
+        "risk_level": "moderate",
+        "risk_score": 49.9,
+        "paces_behind": 0,
+        "pace_percent": 0.0,
+        "standing": 80.0,
+        "basis": "year",
+        "status": "Warning",
+        "trend": "stable",
+        "last_activity": "Today",
+        "intervention": "Needs an average of 80 across the terms that remain to finish at 80. Agree that target with the learner and their guardian now, while there are terms left to use.",
+        "warning_id": 2,
+        "is_resolved": false,
+        "created_at": "2026-10-19T17:16:01.212559",
+        "updated_at": "2026-10-19T17:16:01.212559",
+        "student_name": "Gap Learner",
+        "grade_level_name": "Grade 7",
+        "section_name": "Own"
+      }
+    ]
+  },
+  {
+    "probe": "healthy_warning_intervention_patch",
+    "result": [
+      200,
+      {
+        "student_id": 3,
+        "enrollment_id": 3,
+        "subject": "Mathematics",
+        "teacher": "Math Teacher",
+        "risk_level": "moderate",
+        "risk_score": 49.9,
+        "paces_behind": 0,
+        "pace_percent": 0.0,
+        "standing": 80.0,
+        "basis": "year",
+        "status": "Warning",
+        "trend": "stable",
+        "last_activity": "Today",
+        "intervention": "Synthetic audit intervention",
+        "warning_id": 2,
+        "is_resolved": false,
+        "created_at": "2026-10-19T17:16:01.212559",
+        "updated_at": "2026-10-19T17:16:01.242750",
+        "student_name": null,
+        "grade_level_name": null,
+        "section_name": null
+      }
+    ]
+  },
+  {
+    "probe": "accept_invalid_setup",
+    "result": [
+      200,
+      {
+        "template": "core",
+        "ww_highest": [
+          -10.0
+        ],
+        "pt_highest": [
+          100.0
+        ],
+        "exam_highest": [
+          100.0
+        ],
+        "ww_weight": 20.0,
+        "pt_weight": 50.0,
+        "ex_weight": 30.0,
+        "exam_subweights": [
+          -100.0,
+          100.0,
+          100.0
+        ],
+        "section_id": 1,
+        "subject_id": 1,
+        "grading_period": 1
+      }
+    ]
+  },
+  {
+    "probe": "invalid_period_zero",
+    "result": [
+      200,
+      {
+        "saved": 1,
+        "skipped": [],
+        "ai": {
+          "scored": 0,
+          "fallback": 0,
+          "source": "rule",
+          "held_back": 1,
+          "note": "The risk shown is the rule's. The model starts once a learner's first term is fully graded, then predicts the rest of their year."
+        }
+      }
+    ]
+  },
+  {
+    "probe": "invalid_period_negative_accepted",
+    "result": [
+      200,
+      {
+        "saved": 1,
+        "skipped": [],
+        "ai": {
+          "scored": 0,
+          "fallback": 0,
+          "source": "rule",
+          "held_back": 1,
+          "note": "The risk shown is the rule's. The model starts once a learner's first term is fully graded, then predicts the rest of their year."
+        }
+      }
+    ]
+  },
+  {
+    "probe": "invalid_period_negative",
+    "result": [
+      500,
+      {
+        "detail": "The server hit an unexpected error. The details are in the service log.",
+        "error_type": "IndexError",
+        "path": "/api/paces/bulk"
+      }
+    ]
+  },
+  {
+    "probe": "invalid_period_seven",
+    "result": [
+      200,
+      {
+        "saved": 1,
+        "skipped": [],
+        "ai": {
+          "scored": 0,
+          "fallback": 0,
+          "source": "rule",
+          "held_back": 1,
+          "note": "The risk shown is the rule's. The model starts once a learner's first term is fully graded, then predicts the rest of their year."
+        }
+      }
+    ]
+  },
+  {
+    "probe": "healthy_admin_dashboard",
+    "result": [
+      200,
+      {
+        "school_year": "2026-2027",
+        "term": 3,
+        "measure": "graded",
+        "recent_days": 30,
+        "term_label": "Quarter",
+        "counts": {
+          "teachers": 1,
+          "pending_approvals": 0,
+          "sections": 2,
+          "subjects": 2,
+          "learners": 3
+        },
+        "grading_progress": 50.0,
+        "teachers": [
+          {
+            "id": "c819e72d-1483-4cc5-829c-c4bce08846dd",
+            "name": "Math Teacher",
+            "classes": 1,
+            "learners": 2,
+            "graded": 1,
+            "progress": 50.0,
+            "last_login": null,
+            "quiet": true
+          }
+        ],
+        "attention": {
+          "quiet_teachers": [
+            "Math Teacher"
+          ],
+          "sections_without_adviser": [
+            "Own",
+            "Unassigned"
+          ],
+          "classes_not_started": [],
+          "classes_not_started_total": 0
+        },
+        "recent_activity": [
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "class record header saved for section 1 subject 1 period 1; 1 records regraded",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "class record header saved for section 1 subject 1 period 3; 0 records regraded",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          },
+          {
+            "action": "pace_recorded",
+            "label": "Class record updated",
+            "detail": "bulk saved=1",
+            "actor": "Math Teacher",
+            "when": "just now"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "probe": "admin_delete_pace",
+    "result": [
+      204,
+      ""
+    ]
+  },
+  {
+    "probe": "warnings_after_pace_delete",
+    "remaining_for_deleted_pace_student": [
+      {
+        "student_id": 3,
+        "enrollment_id": 3,
+        "subject": "Mathematics",
+        "teacher": "Math Teacher",
+        "risk_level": "moderate",
+        "risk_score": 49.9,
+        "paces_behind": 0,
+        "pace_percent": 0.0,
+        "standing": 80.0,
+        "basis": "year",
+        "status": "Warning",
+        "trend": "stable",
+        "last_activity": "Today",
+        "intervention": "Synthetic audit intervention",
+        "warning_id": 2,
+        "is_resolved": false,
+        "created_at": "2026-10-19T17:16:01.212559",
+        "updated_at": "2026-10-19T17:16:01.242750",
+        "student_name": "Gap Learner",
+        "grade_level_name": "Grade 7",
+        "section_name": "Own"
+      }
+    ]
+  },
+  {
+    "probe": "subject_rename",
+    "result": [
+      200,
+      {
+        "grade_level_id": 1,
+        "subject_name": "Renamed Mathematics",
+        "subject_code": "MATH",
+        "total_paces": 12,
+        "is_active": true,
+        "subject_id": 1,
+        "grade_level_name": null
+      }
+    ]
+  },
+  {
+    "probe": "teacher_paces_after_subject_rename",
+    "result": [
+      200,
+      []
+    ]
+  },
+  {
+    "probe": "academic_crud",
+    "results": [
+      [
+        "year_create",
+        201
+      ],
+      [
+        "year_patch",
+        200
+      ],
+      [
+        "year_delete",
+        204
+      ],
+      [
+        "level_create",
+        201
+      ],
+      [
+        "level_patch",
+        200
+      ],
+      [
+        "section_create",
+        201
+      ],
+      [
+        "section_patch",
+        200
+      ],
+      [
+        "subject_create",
+        201
+      ],
+      [
+        "assignment_create",
+        201
+      ],
+      [
+        "assignment_delete",
+        204
+      ],
+      [
+        "subject_delete",
+        204
+      ],
+      [
+        "section_delete",
+        204
+      ],
+      [
+        "level_delete",
+        204
+      ]
+    ]
+  },
+  {
+    "probe": "enrollment_create_healthy",
+    "status": 201
+  },
+  {
+    "probe": "enrollment_patch_into_full_section",
+    "result": [
+      200,
+      {
+        "student_id": 4,
+        "grade_level_id": 1,
+        "section_id": 1,
+        "school_year_id": 1,
+        "enrollment_date": "2026-10-20",
+        "is_active": true,
+        "enrollment_id": 4,
+        "next_grade_level_id": null,
+        "end_of_year_status": null,
+        "student_name": null,
+        "grade_level_name": null,
+        "section_name": null,
+        "school_year_name": null
+      }
+    ]
+  },
+  {
+    "probe": "enrollment_delete_healthy",
+    "result": [
+      204,
+      ""
+    ]
+  },
+  {
+    "probe": "ungraded_student_delete_healthy",
+    "result": [
+      204,
+      ""
+    ]
+  },
+  {
+    "probe": "crossschool_header",
+    "result": [
+      200,
+      {
+        "template": "core",
+        "ww_highest": [
+          100.0
+        ],
+        "pt_highest": [
+          100.0
+        ],
+        "exam_highest": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "ww_weight": 20.0,
+        "pt_weight": 50.0,
+        "ex_weight": 30.0,
+        "exam_subweights": [
+          30.0,
+          30.0,
+          40.0
+        ],
+        "section_id": 3,
+        "subject_id": 1,
+        "grading_period": 1
+      }
+    ]
+  },
+  {
+    "probe": "enroll_above_capacity_via_student",
+    "result": [
+      201,
+      {
+        "first_name": "Over",
+        "middle_name": null,
+        "last_name": "Capacity",
+        "birth_date": null,
+        "gender": "Male",
+        "address": "",
+        "photo": null,
+        "guardian_first_name": "",
+        "guardian_mid_name": null,
+        "guardian_last_name": "",
+        "guardian_contact": "",
+        "guardian_relationship": "Parent",
+        "guardian_email": null,
+        "student_id": 4,
+        "login_id": "S0004",
+        "is_active": true,
+        "created_at": "2026-10-19T17:16:01.632907",
+        "full_name": "Over Capacity",
+        "enrollment_id": 4,
+        "grade_level_id": 1,
+        "grade_level_name": "Grade 7",
+        "section_id": 1,
+        "section_name": "Own",
+        "school_year_id": 1,
+        "adviser_name": null,
+        "profile_missing": [
+          "birth date",
+          "address",
+          "parent or guardian",
+          "guardian contact"
+        ],
+        "risk_level": "low",
+        "risk_score": 0.0,
+        "subjects_tracked": 0,
+        "subjects_flagged": 0,
+        "lowest_standing": null,
+        "average_standing": null,
+        "lowest_term_grade": null,
+        "weakest_subject": null,
+        "required_in_weakest": null,
+        "terms_done": 0,
+        "weakest_standing": null,
+        "weakest_basis": null,
+        "needs_to_pass": null,
+        "ai_subject": null,
+        "ai_predicted_final": null,
+        "ai_range_low": null,
+        "ai_range_high": null,
+        "ai_risk_level": null,
+        "ai_risk_score": null,
+        "ai_used_threshold": null,
+        "ai_source": null,
+        "ai_model_version": null,
+        "pace_percent": 0.0,
+        "paces_behind": 0
+      }
+    ]
+  },
+  {
+    "probe": "invalid_student_update",
+    "result": [
+      500,
+      {
+        "detail": "The server hit an unexpected error. The details are in the service log.",
+        "error_type": "ValidationError",
+        "path": "/api/students/1"
+      }
+    ]
+  },
+  {
+    "probe": "invalid_student_read",
+    "result": [
+      500,
+      {
+        "detail": "The server hit an unexpected error. The details are in the service log.",
+        "error_type": "ValidationError",
+        "path": "/api/students/1"
+      }
+    ]
+  },
+  {
+    "probe": "duplicate_section_update",
+    "result": [
+      500,
+      {
+        "detail": "The server hit an unexpected error. The details are in the service log.",
+        "error_type": "IntegrityError",
+        "path": "/api/sections/2"
+      }
+    ]
+  },
+  {
+    "probe": "same_name_import_preview",
+    "result": [
+      200,
+      {
+        "file": {
+          "subject": "Mathematics"
+        },
+        "section": "Own",
+        "subject": "Mathematics",
+        "learners": [
+          {
+            "name": "Twin, Alex A.",
+            "gender": "Male",
+            "status": "matched"
+          }
+        ],
+        "counts": {
+          "matched": 1,
+          "new": 0,
+          "enrol": 0,
+          "elsewhere": 0
+        },
+        "terms": [
+          {
+            "term": 1,
+            "learners": 1,
+            "graded": 1,
+            "written_works": 1,
+            "performance_tasks": 1,
+            "exams": 3,
+            "weights": [
+              20.0,
+              50.0,
+              30.0
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    ]
+  },
+  {
+    "probe": "same_name_import_save",
+    "result": [
+      200,
+      {
+        "file": {
+          "subject": "Mathematics"
+        },
+        "section": "Own",
+        "subject": "Mathematics",
+        "learners": [
+          {
+            "name": "Twin, Alex A.",
+            "gender": "Male",
+            "status": "matched"
+          }
+        ],
+        "counts": {
+          "matched": 1,
+          "new": 0,
+          "enrol": 0,
+          "elsewhere": 0
+        },
+        "terms": [
+          {
+            "term": 1,
+            "learners": 1,
+            "graded": 1,
+            "written_works": 1,
+            "performance_tasks": 1,
+            "exams": 3,
+            "weights": [
+              20.0,
+              50.0,
+              30.0
+            ]
+          }
+        ],
+        "warnings": [],
+        "saved": {
+          "added": 0,
+          "enrolled": 0,
+          "skipped": 0,
+          "terms": [
+            {
+              "term": 1,
+              "saved": 1,
+              "skipped": []
+            }
+          ],
+          "ai": {
+            "scored": 1,
+            "fallback": 1,
+            "source": "fallback",
+            "held_back": 0,
+            "model_version": null,
+            "detail": "AI_ENABLED is off."
+          }
+        }
+      }
+    ]
+  },
+  {
+    "probe": "same_name_import_actual_owner",
+    "expected_student_id": 5,
+    "actual_student_ids": [
+      6
+    ]
+  },
+  {
+    "probe": "import_partial_failure_preview",
+    "result": [
+      200,
+      {
+        "file": {
+          "subject": "Mathematics"
+        },
+        "section": "Own",
+        "subject": "Mathematics",
+        "learners": [
+          {
+            "name": "Partial, New",
+            "gender": "Male",
+            "status": "new"
+          }
+        ],
+        "counts": {
+          "matched": 0,
+          "new": 1,
+          "enrol": 0,
+          "elsewhere": 0
+        },
+        "terms": [
+          {
+            "term": 1,
+            "learners": 1,
+            "graded": 1,
+            "written_works": 1,
+            "performance_tasks": 1,
+            "exams": 3,
+            "weights": [
+              20.0,
+              50.0,
+              30.0
+            ]
+          },
+          {
+            "term": 2,
+            "learners": 1,
+            "graded": 1,
+            "written_works": 1,
+            "performance_tasks": 1,
+            "exams": 3,
+            "weights": [
+              20.0,
+              50.0,
+              30.0
+            ]
+          }
+        ],
+        "warnings": [
+          "Term 2: scores above the highest possible score for PARTIAL, New.",
+          "Own will have 6 learners, above its capacity of 1."
+        ]
+      }
+    ]
+  },
+  {
+    "probe": "import_partial_failure_save",
+    "result": [
+      500,
+      {
+        "detail": "The server hit an unexpected error. The details are in the service log.",
+        "error_type": "ValidationError",
+        "path": "/api/class-record/import"
+      }
+    ]
+  },
+  {
+    "probe": "import_partial_committed_state",
+    "student_persisted": true,
+    "periods": [
+      1
+    ]
+  },
+  {
+    "probe": "invalid_import_file",
+    "status": 400,
+    "body": {
+      "detail": "Upload the class record as an .xlsx file. Older .xls files must be saved as .xlsx in Excel first."
+    }
+  },
+  {
+    "probe": "delete_student_with_prediction",
+    "result": [
+      500,
+      {
+        "detail": "The server hit an unexpected error. The details are in the service log.",
+        "error_type": "IntegrityError",
+        "path": "/api/students/8"
+      }
+    ]
+  },
+  {
+    "probe": "state_after_student_delete",
+    "student_still_exists": true,
+    "prediction_count": 1
+  },
+  {
+    "probe": "delete_student_exact_error",
+    "error": "IntegrityError",
+    "reason": "NOT NULL constraint failed: ai_risk_predictions.student_id"
+  },
+  {
+    "probe": "sqlite_fk_pool",
+    "foreign_keys": [
+      0
+    ]
+  },
+  {
+    "probe": "section_capacity",
+    "capacity": 1,
+    "enrolled": 6
+  },
+  {
+    "probe": "incomplete_pure_grading",
+    "template": "core",
+    "ww_total_raw": 100.0,
+    "ww_percent": 100.0,
+    "ww_weighted": 20.0,
+    "pt_total_raw": 100.0,
+    "pt_percent": 100.0,
+    "pt_weighted": 50.0,
+    "exam_parts": [
+      30.0,
+      null,
+      null
+    ],
+    "exam_percent": 30.0,
+    "exam_weighted": 9.0,
+    "initial_grade": 79.0,
+    "transmuted_grade": 82,
+    "descriptor": "Benchmarking",
+    "complete": false,
+    "pre_exam_weighted": 70.0,
+    "pre_exam_max": 70.0,
+    "ai_first_term_ready": true
+  }
+]

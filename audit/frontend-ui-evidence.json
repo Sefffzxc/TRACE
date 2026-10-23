@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-20",
+  "browser": "installed Chrome headless",
+  "syntheticEmail": "audit.flow.29997526@example.com",
+  "tests": [
+    {
+      "name": "Teacher signup creates pending synthetic account",
+      "status": 201,
+      "received": true
+    },
+    {
+      "name": "Pending synthetic teacher login rejected in UI",
+      "status": 403,
+      "landed": "/login",
+      "alert": [
+        "Your account is still awaiting administrator approval."
+      ]
+    },
+    {
+      "name": "Principal UI approves the synthetic signup",
+      "status": 200,
+      "removedFromQueue": true
+    },
+    {
+      "name": "Approved synthetic teacher login and OTP complete in UI",
+      "status": 201,
+      "landed": "/dashboard",
+      "alert": []
+    },
+    {
+      "name": "Account header Security action when already on profile",
+      "query": "?tab=security",
+      "activeTab": "Profile",
+      "passwordFieldVisible": false
+    },
+    {
+      "name": "Synthetic profile empty-name validation",
+      "status": 200,
+      "acceptedBlankNames": true
+    },
+    {
+      "name": "Synthetic account password mismatch stays local with feedback",
+      "feedback": [
+        "Passwords do not match."
+      ]
+    },
+    {
+      "name": "Forgot-password reset completes on synthetic teacher",
+      "requestStatus": 202,
+      "mismatchFeedback": [
+        "The two passwords do not match."
+      ],
+      "resetStatus": 200,
+      "success": true
+    },
+    {
+      "name": "Synthetic account new password login after reset",
+      "status": 201,
+      "landed": "/dashboard",
+      "alert": []
+    },
+    {
+      "name": "School-years modal invalid format and valid create",
+      "invalidStatus": 422,
+      "invalidFeedback": true,
+      "validStatus": 201
+    },
+    {
+      "name": "Grade-level modal create and edit",
+      "createStatus": 201,
+      "editStatus": 200
+    },
+    {
+      "name": "Section modal create",
+      "status": 201
+    },
+    {
+      "name": "Subject modal create",
+      "status": 201
+    },
+    {
+      "name": "Assignment modal create for synthetic teacher and section",
+      "status": 201
+    },
+    {
+      "name": "Assignment removal confirmation",
+      "status": 204,
+      "removed": true
+    },
+    {
+      "name": "Modal focus initialization and Tab confinement",
+      "initialFocus": {
+        "inside": false,
+        "tag": "BUTTON",
+        "text": "Add subject"
+      },
+      "focusEscapes": true,
+      "escapeCloses": true
+    },
+    {
+      "name": "Mobile navigation open close and Escape",
+      "opened": true,
+      "escapeClosed": false,
+      "navigationCloses": true,
+      "landed": "/teachers"
+    },
+    {
+      "name": "School registration address selects province city barangay by keyboard",
+      "province": "Laguna",
+      "city": "City of Calamba",
+      "barangayDisabled": false,
+      "barangay": "Pansol",
+      "regionShown": true
+    },
+    {
+      "name": "Failed address dataset cannot recover without page refresh",
+      "cityStillDisabled": true,
+      "errorVisible": [],
+      "retryButtons": 0
+    }
+  ],
+  "errors": []
+}

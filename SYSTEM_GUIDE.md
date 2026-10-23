@@ -1,5 +1,7 @@
 # TRACE — How the System Works
 
+For a task-by-task walkthrough for school administrators and teachers, see the [User Guide](USER_GUIDE.md).
+
 **TRACE** (Tracking and Risk Assessment for Continuous Education) is a web system for Philippine basic education schools. It keeps each class's record, works out the grades, warns teachers about students heading below the passing mark, and forecasts each student's final grade from the first term.
 
 This guide explains every rule the system follows and the reason behind it. For installing and deploying, see [README.md](README.md) and [DEPLOYMENT.md](DEPLOYMENT.md). For how schools are kept apart, see [MULTI_SCHOOL.md](MULTI_SCHOOL.md).

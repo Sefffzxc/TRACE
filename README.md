@@ -2,6 +2,10 @@
 
 Tracking and Risk Assessment for Continuous Education.
 
+**Using the system:** See the [step-by-step user guide](USER_GUIDE.md) for school
+administrators and teachers, from school registration and class setup to learner
+records, progress monitoring and follow-up.
+
 Student PACE monitoring and early-warning system for **Lord's Blessing Christian
 Academy** — rebuilt from the ground up with the same stack as the original
 (React + Vite on the front, FastAPI + SQLAlchemy on the back).

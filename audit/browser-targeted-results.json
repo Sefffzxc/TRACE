@@ -1,0 +1,66 @@
+[
+  {
+    "name": "account375",
+    "grid": {
+      "columns": "135.578px 189.828px",
+      "width": 343,
+      "inputs": [
+        {
+          "width": 144.640625,
+          "placeholder": ""
+        },
+        {
+          "width": 144.640625,
+          "placeholder": ""
+        },
+        {
+          "width": 144.640625,
+          "placeholder": ""
+        },
+        {
+          "width": 144.640625,
+          "placeholder": ""
+        },
+        {
+          "width": 144.640625,
+          "placeholder": ""
+        }
+      ]
+    }
+  },
+  {
+    "name": "passing chart line",
+    "charts": 4,
+    "referenceLines": 0
+  },
+  {
+    "name": "setup draft survives term change",
+    "original": "20",
+    "edited": "37",
+    "selectedTerm": "2",
+    "captured": {
+      "url": "http://localhost:8000/api/class-record/setup?section_id=2&subject_id=2&grading_period=2",
+      "firstHighest": 37
+    }
+  },
+  {
+    "name": "reordered roster responses",
+    "selected": "Grade 7 - Sampaguita",
+    "staleSection": "Grade 7 - Rosal",
+    "displayedNames": [
+      "1Jenny Rose Lumabao",
+      "2Kyla Marie Dagohoy",
+      "3Mark Anthony Escobido",
+      "4Paulo Gumapac",
+      "5Rhoda Makinano"
+    ],
+    "staleSectionStudentNames": [
+      "Kyla Marie Dagohoy",
+      "Jenny Rose Lumabao",
+      "Mark Anthony Escobido",
+      "Paulo Gumapac",
+      "Rhoda Makinano"
+    ],
+    "staleRendered": true
+  }
+]

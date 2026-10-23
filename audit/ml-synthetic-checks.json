@@ -1,0 +1,7 @@
+{
+  "synthetic_repeats": 5,
+  "distinct_partitionings": 1,
+  "all_repeat_folds_identical": true,
+  "synthetic_name_dictionary_match_succeeds": true,
+  "real_dataset_values_read": false
+}

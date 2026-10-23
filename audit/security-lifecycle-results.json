@@ -1,0 +1,992 @@
+{
+  "isolation": "fresh invented-data fixture DB; no shared server or existing DB used",
+  "database": "security-auth-ea672d91325e450c81f453c3bb74224a.sqlite",
+  "declared_operation_count": 27,
+  "invoked_operation_count": 27,
+  "uninvoked_operations": [],
+  "coverage": {
+    "POST /api/auth/login": [
+      201,
+      201,
+      201,
+      403,
+      201,
+      401,
+      201,
+      403,
+      201,
+      403,
+      403,
+      403,
+      201,
+      403,
+      201,
+      201
+    ],
+    "POST /api/auth/verify-otp": [
+      201,
+      201,
+      201,
+      201,
+      201,
+      400
+    ],
+    "POST /api/auth/register": [
+      201,
+      201,
+      500,
+      422
+    ],
+    "GET /api/staff/pending": [
+      200,
+      403,
+      403,
+      401
+    ],
+    "PATCH /api/staff/{staff_id}": [
+      200,
+      400,
+      400,
+      403,
+      200,
+      200,
+      200,
+      200,
+      401
+    ],
+    "GET /api/staff": [
+      200,
+      401
+    ],
+    "GET /api/staff/teachers": [
+      200,
+      401
+    ],
+    "GET /api/staff/{staff_id}": [
+      200,
+      404,
+      404,
+      401
+    ],
+    "GET /api/staff/me": [
+      200,
+      401
+    ],
+    "PATCH /api/staff/me": [
+      200,
+      401
+    ],
+    "GET /api/auth/me": [
+      200,
+      403,
+      401,
+      401
+    ],
+    "POST /api/staff/me/photo": [
+      200,
+      401
+    ],
+    "DELETE /api/staff/me/photo": [
+      200,
+      200,
+      401
+    ],
+    "POST /api/staff/me/password": [
+      400,
+      400,
+      422,
+      200,
+      401
+    ],
+    "DELETE /api/staff/{staff_id}": [
+      400,
+      403,
+      404,
+      204,
+      401
+    ],
+    "GET /api/staff/audit-logs": [
+      200,
+      403,
+      401
+    ],
+    "POST /api/schools/register": [
+      201,
+      409,
+      422
+    ],
+    "GET /api/schools": [
+      200,
+      403,
+      401
+    ],
+    "GET /api/schools/directory": [
+      200,
+      200,
+      200,
+      422
+    ],
+    "PATCH /api/schools/{school_id}": [
+      403,
+      400,
+      200,
+      200,
+      200,
+      200,
+      401
+    ],
+    "GET /api/schools/me": [
+      200,
+      200,
+      404,
+      403,
+      200,
+      401
+    ],
+    "PATCH /api/schools/me": [
+      200,
+      403,
+      403,
+      401
+    ],
+    "POST /api/auth/forgot-password": [
+      202,
+      422
+    ],
+    "POST /api/auth/verify-reset-otp": [
+      400,
+      200
+    ],
+    "POST /api/auth/reset-password": [
+      200,
+      400,
+      400
+    ],
+    "POST /api/auth/refresh": [
+      200,
+      401
+    ],
+    "POST /api/auth/logout": [
+      204,
+      401
+    ]
+  },
+  "probes": [
+    {
+      "probe": "fixture principal: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "fixture principal: OTP",
+      "operation": "POST /api/auth/verify-otp",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "fixture teacher: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "fixture teacher: OTP",
+      "operation": "POST /api/auth/verify-otp",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "fixture operator: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "fixture operator: OTP",
+      "operation": "POST /api/auth/verify-otp",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "register teacher",
+      "operation": "POST /api/auth/register",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "pending teacher denied: login",
+      "operation": "POST /api/auth/login",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "principal pending queue",
+      "operation": "GET /api/staff/pending",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "registered teacher appears pending",
+      "present": true
+    },
+    {
+      "probe": "teacher cannot read pending queue",
+      "operation": "GET /api/staff/pending",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "approve teacher",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "approved teacher signs in: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "approved teacher signs in: OTP",
+      "operation": "POST /api/auth/verify-otp",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "staff directory",
+      "operation": "GET /api/staff",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "teachers directory",
+      "operation": "GET /api/staff/teachers",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "principal reads colleague",
+      "operation": "GET /api/staff/{staff_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "cross-school colleague hidden",
+      "operation": "GET /api/staff/{staff_id}",
+      "status": 404,
+      "expected": 404,
+      "matches_expected": true
+    },
+    {
+      "probe": "self profile",
+      "operation": "GET /api/staff/me",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "edit self profile",
+      "operation": "PATCH /api/staff/me",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "auth identity",
+      "operation": "GET /api/auth/me",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "upload avatar",
+      "operation": "POST /api/staff/me/photo",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "remove avatar",
+      "operation": "DELETE /api/staff/me/photo",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "avatar deletion removes saved file",
+      "before_status": 200,
+      "after_status": 404,
+      "profile_cleared": true
+    },
+    {
+      "probe": "remove absent avatar is idempotent",
+      "operation": "DELETE /api/staff/me/photo",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "wrong current password rejected",
+      "operation": "POST /api/staff/me/password",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "same password rejected",
+      "operation": "POST /api/staff/me/password",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "weak changed password rejected",
+      "operation": "POST /api/staff/me/password",
+      "status": 422,
+      "expected": 422,
+      "matches_expected": true
+    },
+    {
+      "probe": "change own password",
+      "operation": "POST /api/staff/me/password",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "old changed password denied: login",
+      "operation": "POST /api/auth/login",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "new changed password accepted: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "principal self reject prevented",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "principal self deactivate prevented",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "principal self delete prevented",
+      "operation": "DELETE /api/staff/{staff_id}",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "teacher cannot delete principal",
+      "operation": "DELETE /api/staff/{staff_id}",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "cross-school delete hidden",
+      "operation": "DELETE /api/staff/{staff_id}",
+      "status": 404,
+      "expected": 404,
+      "matches_expected": true
+    },
+    {
+      "probe": "teacher cannot administer account",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "operator cannot use school staff queue",
+      "operation": "GET /api/staff/pending",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "principal audit log",
+      "operation": "GET /api/staff/audit-logs",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "teacher cannot read audit log",
+      "operation": "GET /api/staff/audit-logs",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "deactivate teacher",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "deactivated teacher login denied: login",
+      "operation": "POST /api/auth/login",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "deactivated teacher token denied",
+      "operation": "GET /api/auth/me",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "reactivate teacher",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "reactivated teacher login: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "unlock teacher",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "register second teacher",
+      "operation": "POST /api/auth/register",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "reject teacher",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "rejected teacher denied: login",
+      "operation": "POST /api/auth/login",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "duplicate employee number",
+      "operation": "POST /api/auth/register",
+      "status": 500,
+      "expected": 409,
+      "matches_expected": false
+    },
+    {
+      "probe": "duplicate employee number diagnostic",
+      "error_type": "IntegrityError"
+    },
+    {
+      "probe": "register school and principal",
+      "operation": "POST /api/schools/register",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "pending principal denied: login",
+      "operation": "POST /api/auth/login",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "operator pending schools",
+      "operation": "GET /api/schools",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "pending school visible to operator",
+      "present": true
+    },
+    {
+      "probe": "public approved directory",
+      "operation": "GET /api/schools/directory",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "pending school excluded from public directory",
+      "excluded": true
+    },
+    {
+      "probe": "teacher cannot list schools as operator",
+      "operation": "GET /api/schools",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "principal cannot decide school",
+      "operation": "PATCH /api/schools/{school_id}",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "reject school requires explanation",
+      "operation": "PATCH /api/schools/{school_id}",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "operator rejects school",
+      "operation": "PATCH /api/schools/{school_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "rejected principal denied: login",
+      "operation": "POST /api/auth/login",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "operator approves school",
+      "operation": "PATCH /api/schools/{school_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "approved principal signs in: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "approved principal signs in: OTP",
+      "operation": "POST /api/auth/verify-otp",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "approved school joins directory",
+      "operation": "GET /api/schools/directory",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "approved school directory presence",
+      "present": true
+    },
+    {
+      "probe": "principal own school settings",
+      "operation": "GET /api/schools/me",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "teacher own school settings",
+      "operation": "GET /api/schools/me",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "operator has no own school",
+      "operation": "GET /api/schools/me",
+      "status": 404,
+      "expected": 404,
+      "matches_expected": true
+    },
+    {
+      "probe": "principal edits school settings",
+      "operation": "PATCH /api/schools/me",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "teacher cannot edit settings",
+      "operation": "PATCH /api/schools/me",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "operator cannot edit school through mine",
+      "operation": "PATCH /api/schools/me",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "operator suspends school",
+      "operation": "PATCH /api/schools/{school_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "suspended principal login denied: login",
+      "operation": "POST /api/auth/login",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "suspended principal existing token denied",
+      "operation": "GET /api/schools/me",
+      "status": 403,
+      "expected": 403,
+      "matches_expected": true
+    },
+    {
+      "probe": "suspended school directory filter",
+      "operation": "GET /api/schools/directory",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "suspended school excluded",
+      "excluded": true
+    },
+    {
+      "probe": "operator restores school",
+      "operation": "PATCH /api/schools/{school_id}",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "restored principal login: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "restored school usable",
+      "operation": "GET /api/schools/me",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "duplicate school registration conflicts",
+      "operation": "POST /api/schools/register",
+      "status": 409,
+      "expected": 409,
+      "matches_expected": true
+    },
+    {
+      "probe": "request password reset",
+      "operation": "POST /api/auth/forgot-password",
+      "status": 202,
+      "expected": 202,
+      "matches_expected": true
+    },
+    {
+      "probe": "wrong reset code rejected",
+      "operation": "POST /api/auth/verify-reset-otp",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "exchange reset code",
+      "operation": "POST /api/auth/verify-reset-otp",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "complete reset",
+      "operation": "POST /api/auth/reset-password",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "used reset token rejected",
+      "operation": "POST /api/auth/reset-password",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "reset password login: login",
+      "operation": "POST /api/auth/login",
+      "status": 201,
+      "expected": 201,
+      "matches_expected": true
+    },
+    {
+      "probe": "refresh session",
+      "operation": "POST /api/auth/refresh",
+      "status": 200,
+      "expected": 200,
+      "matches_expected": true
+    },
+    {
+      "probe": "logout session",
+      "operation": "POST /api/auth/logout",
+      "status": 204,
+      "expected": 204,
+      "matches_expected": true
+    },
+    {
+      "probe": "delete staff",
+      "operation": "DELETE /api/staff/{staff_id}",
+      "status": 204,
+      "expected": 204,
+      "matches_expected": true
+    },
+    {
+      "probe": "deleted account token denied",
+      "operation": "GET /api/auth/me",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "deleted colleague no longer found",
+      "operation": "GET /api/staff/{staff_id}",
+      "status": 404,
+      "expected": 404,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/auth/me",
+      "operation": "GET /api/auth/me",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated POST /api/auth/logout",
+      "operation": "POST /api/auth/logout",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated POST /api/auth/refresh",
+      "operation": "POST /api/auth/refresh",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/staff/me",
+      "operation": "GET /api/staff/me",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated PATCH /api/staff/me",
+      "operation": "PATCH /api/staff/me",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated POST /api/staff/me/password",
+      "operation": "POST /api/staff/me/password",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated DELETE /api/staff/me/photo",
+      "operation": "DELETE /api/staff/me/photo",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/staff",
+      "operation": "GET /api/staff",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/staff/teachers",
+      "operation": "GET /api/staff/teachers",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/staff/pending",
+      "operation": "GET /api/staff/pending",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/staff/audit-logs",
+      "operation": "GET /api/staff/audit-logs",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/staff/418dc0b9-1839-42b3-a280-b3492f8be123",
+      "operation": "GET /api/staff/{staff_id}",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated PATCH /api/staff/418dc0b9-1839-42b3-a280-b3492f8be123",
+      "operation": "PATCH /api/staff/{staff_id}",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated DELETE /api/staff/418dc0b9-1839-42b3-a280-b3492f8be123",
+      "operation": "DELETE /api/staff/{staff_id}",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/schools/me",
+      "operation": "GET /api/schools/me",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated PATCH /api/schools/me",
+      "operation": "PATCH /api/schools/me",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated GET /api/schools",
+      "operation": "GET /api/schools",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated PATCH /api/schools/3",
+      "operation": "PATCH /api/schools/{school_id}",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "unauthenticated photo upload",
+      "operation": "POST /api/staff/me/photo",
+      "status": 401,
+      "expected": 401,
+      "matches_expected": true
+    },
+    {
+      "probe": "invalid teacher registration rejected",
+      "operation": "POST /api/auth/register",
+      "status": 422,
+      "expected": 422,
+      "matches_expected": true
+    },
+    {
+      "probe": "invalid forgot email rejected",
+      "operation": "POST /api/auth/forgot-password",
+      "status": 422,
+      "expected": 422,
+      "matches_expected": true
+    },
+    {
+      "probe": "unknown reset token rejected",
+      "operation": "POST /api/auth/reset-password",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "wrong login OTP rejected",
+      "operation": "POST /api/auth/verify-otp",
+      "status": 400,
+      "expected": 400,
+      "matches_expected": true
+    },
+    {
+      "probe": "invalid school registration rejected",
+      "operation": "POST /api/schools/register",
+      "status": 422,
+      "expected": 422,
+      "matches_expected": true
+    },
+    {
+      "probe": "overlong directory search rejected",
+      "operation": "GET /api/schools/directory",
+      "status": 422,
+      "expected": 422,
+      "matches_expected": true
+    }
+  ],
+  "unexpected_statuses": [
+    {
+      "probe": "duplicate employee number",
+      "operation": "POST /api/auth/register",
+      "status": 500,
+      "expected": 409,
+      "matches_expected": false
+    }
+  ]
+}

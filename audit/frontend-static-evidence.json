@@ -1,0 +1,95 @@
+﻿{
+  "date": "2026-10-20",
+  "cases": [
+    {
+      "name": "Expired auth/me does not try valid refresh token",
+      "confirmed": true,
+      "requests": [
+        "http://audit.invalid/api/auth/me"
+      ]
+    },
+    {
+      "name": "403 does not expire local session or clear tokens",
+      "confirmed": true
+    },
+    {
+      "name": "Request supplies no AbortSignal and remains pending when network hangs",
+      "confirmed": true
+    },
+    {
+      "name": "Theme initial render throws when browser storage is blocked",
+      "confirmed": true
+    },
+    {
+      "name": "Missing written-work score still marks record complete",
+      "confirmed": true,
+      "result": {
+        "ww_total": 10,
+        "ww_pct": 50,
+        "ww_ws": 10,
+        "pt_total": 10,
+        "pt_pct": 100,
+        "pt_ws": 50,
+        "exam_parts": [
+          30,
+          30,
+          40
+        ],
+        "exam_pct": 100,
+        "exam_ws": 30,
+        "initial_grade": 90,
+        "transmuted_grade": 91,
+        "descriptor": "Advancing",
+        "complete": true,
+        "pre_exam_weighted": 60
+      }
+    },
+    {
+      "name": "Installed Recharts discards PassingLine wrapper",
+      "confirmed": true
+    },
+    {
+      "name": "Roster subject switch moves draft to Science; filtered save clears Bob without posting him",
+      "confirmed": true,
+      "posted": [
+        {
+          "student_id": 1,
+          "enrollment_id": 1,
+          "subject": "Science",
+          "current_pace": 3,
+          "expected_pace": 6,
+          "total_paces": 12,
+          "attendance": 100,
+          "average_score": 0
+        }
+      ]
+    },
+    {
+      "name": "Class-record filtered save clears hidden Bob without posting his scores",
+      "confirmed": true,
+      "posted": [
+        {
+          "student_id": 1,
+          "enrollment_id": 1,
+          "subject": "English",
+          "current_pace": 0,
+          "expected_pace": 0,
+          "total_paces": 0,
+          "attendance": 100,
+          "average_score": 0,
+          "ww_scores": [
+            3
+          ],
+          "pt_scores": [
+            null
+          ],
+          "exam_scores": [
+            null,
+            null,
+            null
+          ]
+        }
+      ]
+    }
+  ]
+}

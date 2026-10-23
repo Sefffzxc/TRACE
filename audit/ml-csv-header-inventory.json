@@ -1,0 +1,87 @@
+[
+  {
+    "path": "ml/algorithm_comparison.csv",
+    "columns": [
+      "model",
+      "macro_f1",
+      "macro_f1_sd",
+      "recall",
+      "recall_sd",
+      "precision",
+      "precision_sd",
+      "specificity",
+      "roc_auc",
+      "pr_auc",
+      "false_pos",
+      "false_neg"
+    ]
+  },
+  {
+    "path": "ml/artifacts_final/final_dataset.csv",
+    "columns": [
+      "learner_key",
+      "school",
+      "subject",
+      "school_year",
+      "grade_level",
+      "q1_term_grade",
+      "q1_initial_grade",
+      "q1_ww_pct",
+      "q1_pt_pct",
+      "q1_exam_pct",
+      "q1_component_gap",
+      "terms_recorded",
+      "final_grade",
+      "failed",
+      "change"
+    ]
+  },
+  {
+    "path": "ml/artifacts_year/year_dataset.csv",
+    "columns": [
+      "learner_key",
+      "subject",
+      "school_year",
+      "grade_level",
+      "q1_ww_pct",
+      "q1_pt_pct",
+      "q1_exam_pct",
+      "q1_term_grade",
+      "later_terms",
+      "later_avg",
+      "q1_composite",
+      "q1_component_gap",
+      "at_risk"
+    ]
+  },
+  {
+    "path": "ml/classrecord_modelling.csv",
+    "columns": [
+      "learner_key",
+      "school_year",
+      "quarter",
+      "grade_level",
+      "ww_total",
+      "ww_pct",
+      "ww_weighted",
+      "pt_total",
+      "pt_pct",
+      "pt_weighted",
+      "pre_exam_weighted",
+      "component_gap",
+      "term_grade",
+      "at_risk"
+    ]
+  },
+  {
+    "path": "ml/threshold_sweep.csv",
+    "columns": [
+      "threshold",
+      "macro_f1",
+      "recall",
+      "precision",
+      "false_pos",
+      "false_neg"
+    ]
+  }
+]
