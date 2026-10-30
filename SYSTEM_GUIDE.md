@@ -147,12 +147,13 @@ The teacher sets the **highest possible score** of every item in *Set up record*
 
 ## 7. Importing an E-Class Record workbook
 
-In Class Record, a teacher picks the section and subject and clicks **Import from Excel**. The import reads DepEd's *3-Term E-Class Record (Grades 2–10)* `.xlsx` file.
+In Class Record, a teacher picks the section and subject and clicks **Import from Excel**. The import reads three-term E-Class Record `.xlsx` files, including standard, compact and GMRC domain layouts. All three term sheets are required, even if later terms are blank. Sheet names allow spacing, case and ordinal variations. Quarterly, semester, fourth-term and unrelated workbooks are rejected using period labels and the class-record structure.
 
 **What is read:**
 
-- From the *INPUT DATA* sheet: school ID, school year, grade level, section and subject (used for warnings), and the boys' and girls' names.
-- From each *TERM* sheet: the highest possible scores, the three weights, and the raw scores (WW1–5, PT1–3, ST1, ST2, TE).
+- From the input and term sheets: school ID, school year, grade level, section and subject (used for warnings), and the numbered boys' and girls' names. Readable term rosters can replace missing or stale input lists; scores follow names when rows are reordered.
+- From each term sheet: the highest possible scores, component weights, raw WW/PT scores, ST1/ST2/TE and examination shares. Assessment columns are located by their headings, rather than fixed cell addresses.
+- Independently weighted domains, such as GMRC, become equivalent domain points so each domain retains its contribution to the grade. The preview reports this conversion. Templates that pool raw examination scores retain proportional exam shares.
 - Everything the workbook computes itself is ignored, and TRACE computes it again.
 
 **How it works:**
@@ -361,6 +362,6 @@ The AI service holds no student data and has no database connection. It receives
 - The forecast is validated only at the end of the first term. Before that, only the rule-based early warning is available.
 - Only 14 failing cases were in the training data, so the "failures caught" figure rests on very few cases. The average grade error is the more reliable figure.
 - Email is not connected, so one-time codes show on screen.
-- The import reads DepEd's 3-Term E-Class Record for Grades 2–10 only. MAPEH workbooks and SF1 are not supported yet.
+- The import requires three recognizable term assessment tables and numbered male/female learner lists. It does not import SF1, quarterly or semester records, or arbitrary spreadsheet layouts without these headings.
 - Re-importing overwrites scores changed in TRACE, and the preview does not yet list what will change.
 - The `class_schedules` and `teacher_availabilities` tables still exist but are unused, since the timetable was removed.

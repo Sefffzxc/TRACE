@@ -1,4 +1,7 @@
-"""Import a DepEd 3-Term E-Class Record into one section's class record.
+"""Import a DepEd three-term E-Class Record into one section's class record.
+
+The reader recognizes the roster and assessment headers in supported
+three-term layouts, including compact records and subject-domain columns.
 
 One endpoint, two steps. With ``save`` false it only reads the file and says
 what would happen: who matches an enrolled learner, who is new, what each
@@ -212,6 +215,7 @@ async def import_class_record(
                 ww_highest=term.ww_highest, pt_highest=term.pt_highest,
                 exam_highest=term.exam_highest, ww_weight=term.weights[0],
                 pt_weight=term.weights[1], ex_weight=term.weights[2],
+                exam_subweights=term.exam_subweights,
             )
             complete += bool(result["complete"])
         return {
@@ -222,6 +226,7 @@ async def import_class_record(
             "performance_tasks": len(term.pt_highest),
             "exams": sum(1 for h in term.exam_highest if h),
             "weights": list(term.weights),
+            "exam_subweights": list(term.exam_subweights),
         }
 
     preview = {
@@ -312,6 +317,7 @@ async def import_class_record(
         setup.ww_highest = json.dumps(term.ww_highest)
         setup.pt_highest = json.dumps(term.pt_highest)
         setup.exam_highest = json.dumps(term.exam_highest)
+        setup.exam_subweights = json.dumps(term.exam_subweights)
         setup.ww_weight, setup.pt_weight, setup.ex_weight = term.weights
         setup.updated_by = current.id
         await db.flush()

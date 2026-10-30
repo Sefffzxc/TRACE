@@ -265,7 +265,9 @@ To correct a saved score, reopen the same section, subject and period, change th
 
 ## 6. Teacher: import an Excel class record
 
-This is an alternative to manually entering learners and scores at class-record schools. It reads the supported **DepEd 3-Term E-Class Record for Grades 2–10**, saved as `.xlsx`, up to 5 MB. The importer does not support every Excel layout; MAPEH workbooks and SF1 are not supported.
+This is an alternative to manually entering learners and scores at class-record schools. It reads **three-term E-Class Records**, saved as `.xlsx`, up to 5 MB. Standard, compact and GMRC domain layouts are supported. All three term sheets must be present, including blank later terms. Sheet names such as `TERM1`, `Term 1` and `First Term` are recognized; the importer locates the numbered learner lists, assessment headings and highest possible score rows. Quarterly records, semester records, fourth terms, SF1 and unrelated spreadsheets are rejected.
+
+Records with independently weighted domains, such as GMRC, are imported as equivalent domain points: each assessment shown in TRACE represents one domain. The preview explains this conversion. Examination shares are read from the workbook; templates that pool exam scores keep that calculation.
 
 ### Step 1: Prepare and preview the workbook
 

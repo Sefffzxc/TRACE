@@ -4,7 +4,7 @@ import { Modal } from './ui';
 import { classRecordApi } from '../../api/endpoints';
 import { periodName } from '../../lib/grading';
 
-/* Brings a DepEd 3-Term E-Class Record (.xlsx) into the class record open on
+/* Brings a three-term E-Class Record (.xlsx) into the class record open on
    screen. The file is read first and nothing is saved until the teacher has
    seen who matches, who is new and what each term holds. */
 
@@ -84,11 +84,15 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
           <span>
             <strong>{file ? file.name : 'Choose the E-Class Record file'}</strong>
             <span className="faint">
-              {busy === 'reading' ? 'Reading…' : 'DepEd 3-Term E-Class Record, .xlsx'}
+              {busy === 'reading' ? 'Reading…' : 'Three-term E-Class Record (.xlsx), up to 5 MB'}
             </span>
           </span>
           <input type="file" accept=".xlsx" onChange={choose} disabled={Boolean(busy)} />
         </label>
+        <p className="faint">
+          Include all three term sheets, even if later terms are blank. Different template layouts are supported;
+          quarterly and semester records are not accepted.
+        </p>
 
         {error && (
           <div className="alert alert-warning">
