@@ -78,7 +78,10 @@ The school's address is picked from the PSA's official list (PSGC): province, th
 | Forgot password | A one-time code for the registered email; at most **5** reset requests an hour; once the code is verified, the reset is valid for **30 minutes** |
 | Temporary password | Issued by the Admin, shown **once**, and the teacher must change it at the next sign-in |
 
-> No mail service is connected yet, so the one-time code is shown on screen (`DEBUG_OTP`). Connect email and turn this off before real records go in.
+> Verification codes can be delivered through Resend. Deployed systems use
+> `EMAIL_ENABLED=true` with a verified sender and `DEBUG_OTP=false`. For the
+> defense, `LOG_OTP_CODES=true` also shows the emailed code in API logs; turn
+> that logging off afterward. See [email setup](STUDENT_HOSTING_GUIDE.md).
 
 ## 4. Setting up a school
 

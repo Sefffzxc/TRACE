@@ -151,11 +151,24 @@ services:
       - key: ALLOWED_ORIGINS
         sync: false
 
-      # There is no mail server wired up, so the two-factor code is shown on
-      # screen. That is fine for a defence demo and NOT fine with real student
-      # records in the database — see DEPLOYMENT.md.
-      - key: DEBUG_OTP
+      # Verification emails go through Resend. Keep credentials on the API,
+      # and copy the verified sender exactly from your own domain setup.
+      - key: EMAIL_ENABLED
         value: "true"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_TIMEOUT_SECONDS
+        value: "10"
+
+      # Never return codes to the deployed frontend. Choose true for temporary
+      # defense logging, then false afterward. Keep this user-managed so a later
+      # blueprint sync cannot silently turn logging back on.
+      - key: DEBUG_OTP
+        value: "false"
+      - key: LOG_OTP_CODES
+        sync: false
 
   # ── The React app ───────────────────────────────────────────────────────────
   # A static site: free, always awake, and it does not consume the shared
@@ -169,12 +182,8 @@ services:
     # has no instance to size, so Render rejects `plan: free` as an unknown plan
     # for this service type, and the built files are served from its CDN rather
     # than from one region.
-    # `npm install`, not `npm ci`, because this repository has no committed
-    # package-lock.json and `npm ci` refuses to run without one. Once you run
-    # npm install locally and commit the lockfile, change this to `npm ci` —
-    # it is faster and pins exact dependency versions, which is worth having
-    # for a build you will point examiners at.
-    buildCommand: npm install && npm run build
+    # The committed lockfile makes builds reproducible.
+    buildCommand: npm ci && npm run build
     staticPublishPath: dist
     autoDeployTrigger: commit
     envVars:

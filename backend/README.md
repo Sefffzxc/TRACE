@@ -8,13 +8,14 @@ FastAPI + SQLAlchemy (async). SQLite out of the box, PostgreSQL when you want it
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env              # Windows: Copy-Item .env.example .env
 
-python seed.py                     # demo school: staff, sections, 118 students
+python seed.py --demo              # add the local demonstration school
 uvicorn app.main:app --reload --port 8000
 ```
 
-Docs: <http://localhost:8000/docs>. Reset and rebuild the demo data with
-`python seed.py --reset`.
+Docs: <http://localhost:8000/docs>. Do not reset or reseed an existing production
+database when configuring email or moving hosts.
 
 ## Layout
 
@@ -95,13 +96,38 @@ Copy `.env.example` to `.env`. The important ones:
 |---|---|---|
 | `DATABASE_URL` | `sqlite+aiosqlite:///./lbca.db` | `postgresql+asyncpg://…` for Postgres |
 | `SECRET_KEY` | placeholder | **Change this before deploying** |
-| `DEBUG_OTP` | `true` | Returns the OTP in the response. Turn off once email works. |
+| `DEBUG_OTP` | `false` | Returns the code in the response only when explicitly enabled for local development. The example .env enables it locally. |
+| `LOG_OTP_CODES` | `false` | Copies codes to API logs independently of on-screen debug. Enable temporarily for the defense, then disable. |
+| `EMAIL_ENABLED` | `false` | Send login and password-reset codes through Resend. |
+| `RESEND_API_KEY` | empty | API-server secret, never a frontend variable. |
+| `EMAIL_FROM` | empty | Verified sender, e.g. `TRACE <noreply@auth.yourtrace.app>`. |
+| `EMAIL_TIMEOUT_SECONDS` | `10` | HTTP timeout per email request: more than 0, at most 60 seconds. |
 | `ALLOWED_ORIGINS` | localhost dev ports | Comma-separated frontend origins |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | |
 | `TWO_FACTOR_DAYS_INTERVAL` | `90` | How long a device stays trusted |
 
 ## Sending real OTP emails
 
-Two places print a code instead of sending it, both in
-`app/api/routers/auth.py` — search for `[OTP]`. Replace those prints with your
-mail call and set `DEBUG_OTP=false`.
+`app/services/email.py` sends login and password-reset codes through Resend's
+HTTPS API using the existing httpx dependency. Set `EMAIL_ENABLED=true`, the
+verified `EMAIL_FROM`, and `RESEND_API_KEY`. Keep `DEBUG_OTP=false` on deployment.
+No database migration or frontend change is required.
+
+For the defense, set `LOG_OTP_CODES=true`: the same emailed code appears as an
+`[OTP]` entry in the API process logs after the code is committed. Teachers still
+receive the email. Set the flag false and restart/redeploy the API after the
+defense; email delivery continues.
+
+An enabled email provider must accept the message before issuance succeeds.
+Failures return a retryable sign-in error and do not save the failed code.
+Password-reset requests retain the same public response for known and unknown
+addresses, including provider failures; check API diagnostics and the Resend
+dashboard if reset mail does not arrive. A provider acknowledgement does not
+guarantee inbox delivery. Provider error bodies and credentials are not logged.
+
+With email disabled, either `DEBUG_OTP=true` or `LOG_OTP_CODES=true` must be
+explicitly enabled for local/testing use. If all delivery methods are disabled,
+new-device login fails rather than issuing an inaccessible code.
+
+See [the Student Pack guide](../STUDENT_HOSTING_GUIDE.md) for the domain/DNS,
+Resend account and Ubuntu server configuration.

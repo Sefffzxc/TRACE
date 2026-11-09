@@ -56,6 +56,7 @@ from app.schemas.staff import (
     VerifyResetOTPRequest,
 )
 from app.services.audit import Action, client_ip, log_event
+from app.services.email import EmailDeliveryError, log_otp_code, send_otp_email
 
 router = APIRouter(tags=["Authentication"])
 
@@ -345,10 +346,18 @@ async def login(
         await log_event(
             db, Action.OTP_ISSUED, target_user_id=staff.id, detail="login", request=request
         )
+        try:
+            await send_otp_email(staff.email, code, purpose="login")
+        except EmailDeliveryError:
+            # Do not leave a usable OTP behind when delivery was rejected.
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="We couldn't send your verification email. Please try again "
+                       "later or contact your administrator.",
+            ) from None
         await db.commit()
-        # No mail server in this build — the code is printed for the developer
-        # and echoed back when DEBUG_OTP is on.
-        print(f"[OTP] login code for {staff.email}: {code}", flush=True)
+        log_otp_code(staff.email, code, purpose="login")
         return TokenResponse(
             requires_2fa=True,
             user_id=str(staff.id),
@@ -559,8 +568,16 @@ async def forgot_password(
     await log_event(
         db, Action.PASSWORD_RESET_REQUESTED, target_user_id=staff.id, request=request
     )
+    try:
+        await send_otp_email(staff.email, code, purpose="password-reset")
+    except EmailDeliveryError:
+        # Preserve the same public response for known and unknown addresses,
+        # including during a provider outage. The email helper logs a safe
+        # diagnostic for the operator; the failed OTP is not committed.
+        await db.rollback()
+        return generic
     await db.commit()
-    print(f"[OTP] password reset code for {staff.email}: {code}", flush=True)
+    log_otp_code(staff.email, code, purpose="password-reset")
 
     response = dict(generic)
     if settings.DEBUG_OTP:

@@ -1,5 +1,11 @@
 # Deploying TRACE on Render
 
+For the Student Pack domain, verification email and hosting migration, start
+with [STUDENT_HOSTING_GUIDE.md](STUDENT_HOSTING_GUIDE.md). That workflow deploys
+the API and AI directly to Azure, the frontend to Cloudflare Pages, and keeps
+the existing database on Render. The all-Render instructions below describe
+the older deployment option.
+
 Four pieces, one blueprint file:
 
 | Piece | Render type | What it is | Folder |
@@ -66,16 +72,18 @@ Sources: [Render free tier](https://render.com/docs/free) ·
 
 1. Render dashboard → **New** → **Blueprint** → pick the repository.
 2. Render reads `render.yaml` and lists the four resources.
-3. It prompts for **three** values. All three are public `.onrender.com`
-   addresses:
+3. It prompts for **six** values: three public addresses and three email/log settings:
 
    | Service | Key | What to paste |
    |---|---|---|
    | `trace-api` | `ALLOWED_ORIGINS` | the static site's address, e.g. `trace-web.onrender.com` |
    | `trace-api` | `AI_SERVICE_URL` | the AI service's address, e.g. `trace-ai.onrender.com` |
+   | `trace-api` | `RESEND_API_KEY` | your Resend sending API key; keep it secret |
+   | `trace-api` | `EMAIL_FROM` | your verified sender, e.g. `TRACE <noreply@auth.yourtrace.app>` |
+   | `trace-api` | `LOG_OTP_CODES` | `true` for the defense, `false` for normal use |
    | `trace-web` | `VITE_API_URL` | the API's address, e.g. `trace-api.onrender.com` |
 
-   The `https://` is optional — both the backend and the frontend add it to a
+   For the three public addresses, `https://` is optional — both clients add it to a
    bare hostname. If Render renamed a service because the name was taken, use
    the name it actually gave you; each service's real URL is shown at the top of
    its own page.
@@ -122,10 +130,17 @@ which. Note that `/health` answers `200` even when the model failed to load —
 deliberately, so Render starts the service and you can read the error, rather
 than watching it restart in a loop with the reason hidden.
 
-Then open the static site and **register**. The first account to register
-becomes an approved administrator; every account after it is a teacher awaiting
-approval. Sign-in on a new browser asks for a 6-digit code, which is shown on
-screen while `DEBUG_OTP` is `true`.
+Keep the existing accounts when deploying against an existing database. On a
+genuinely new database, bootstrap the system operator with
+`python seed.py --create-superadmin your-email@example.com`, then register and
+approve a school through the normal school registration flow. The first public
+registration does not become the system administrator.
+
+Sign-in on a new browser sends a code through Resend with the configured sender.
+The blueprint keeps `DEBUG_OTP=false`. Choose `LOG_OTP_CODES=true` for the defense
+to copy the emailed code to API logs, then set it false afterward. This switch
+stays user-managed so a later blueprint sync does not turn logging back on.
+Set up Resend using [the email guide](STUDENT_HOSTING_GUIDE.md).
 
 ---
 
@@ -206,9 +221,10 @@ why the React app is a static site rather than a Node server.
 The deployment above is set up for a demo. Three things must change first, and
 they are listed here because the data protection question comes up in defences:
 
-1. **`DEBUG_OTP=false`.** Right now the two-factor code is shown on screen,
-   because no mail server is connected. With that on, two-factor authentication
-   is decoration. Wire up email delivery, then turn it off.
+1. **Email delivery with codes hidden from users.** Set `EMAIL_ENABLED=true`,
+   configure `RESEND_API_KEY` and the verified `EMAIL_FROM`, and keep
+   `DEBUG_OTP=false`. Test sign-in and reset emails. `LOG_OTP_CODES=true` is a
+   temporary defense setting; switch it false afterward and redeploy the API.
 2. **A real `SECRET_KEY`** — Render generates one, so this is already handled;
    just never commit one.
 3. **Backups.** The free database has none. Real records need a paid plan or a

@@ -39,8 +39,9 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+cp .env.example .env              # Windows: Copy-Item .env.example .env
 
-python seed.py                     # creates lbca.db with demo data
+python seed.py --demo              # adds local demo data; do not run on production
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -86,10 +87,13 @@ Every seeded account uses the password **`Lbca@2026`**.
 | `jsantos@lbca.edu.ph` | Teacher — adviser, Grade 8 - Hope |
 | `pending@lbca.edu.ph` | Teacher, still awaiting approval (try signing in as them) |
 
-**The first sign-in on a new browser asks for a 6-digit code.** There is no mail
-server wired up yet, so while `DEBUG_OTP=true` the code is shown on the
-verification screen itself and printed in the backend console. Once that device
-is verified it is trusted for 90 days.
+**The first sign-in on a new browser asks for a 6-digit code.** The local
+`.env.example` enables `DEBUG_OTP=true` to show it on the verification screen.
+For deployment, configure Resend and set `DEBUG_OTP=false` so the code goes to
+the account owner's email. `LOG_OTP_CODES=true` independently copies that same
+code to API logs for the defense; set it false afterward. Verified devices are
+trusted for 90 days. Follow [the setup guide](STUDENT_HOSTING_GUIDE.md) for the
+email settings and domain verification.
 
 ---
 
@@ -227,6 +231,12 @@ on either database.
 
 ## Deploying it online
 
+For an **`.app` frontend, API and AI hosting that stays running, and the existing
+Render database**, follow [the Student Pack hosting guide](STUDENT_HOSTING_GUIDE.md).
+It covers domain and email verification, then deploys the API and AI directly
+to an Azure Ubuntu VM and the frontend to Cloudflare Pages. Only the database
+stays on Render. Email is configured on the new VM during deployment.
+
 `render.yaml` deploys all four pieces from one commit. **`DEPLOYMENT.md` has the
 full walkthrough** — read the top of it first, because a free Render Postgres
 expires 30 days after it is created, which makes deployment timing a scheduling
@@ -237,9 +247,9 @@ decision rather than a technical one.
 ## Before going live
 
 1. Set a real `SECRET_KEY` — `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
-2. Set `DEBUG_OTP=false` and wire up email delivery (the two places that print a
-   code are in `app/api/routers/auth.py`). While it is on, two-factor
-   authentication is decoration.
+2. Configure `EMAIL_ENABLED=true`, `RESEND_API_KEY` and `EMAIL_FROM`, then set
+   `DEBUG_OTP=false`. Use `LOG_OTP_CODES=true` only for the temporary defense
+   setup; turn it off afterward. Test login and password-reset delivery.
 3. Set `ALLOWED_ORIGINS` to your deployed frontend URL.
 4. Serve over HTTPS and move to PostgreSQL.
 5. Point `VITE_API_URL` in `frontend/.env` at the deployed API, then

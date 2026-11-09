@@ -9,7 +9,7 @@ import os
 from functools import lru_cache
 from typing import List
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -60,9 +60,17 @@ class Settings(BaseSettings):
     OTP_EXPIRY_MINUTES: int = 10
     OTP_MAX_ATTEMPTS: int = 5
     TWO_FACTOR_DAYS_INTERVAL: int = 90
-    # In development the OTP is returned in the response and printed to the
-    # console because there is no mail server wired up.
-    DEBUG_OTP: bool = True
+    # Explicit local development only: return the code in the API response.
+    # Email delivery and temporary defense logging are separate switches.
+    DEBUG_OTP: bool = False
+    LOG_OTP_CODES: bool = False
+
+    # ── Transactional email ───────────────────────────────────────────────
+    EMAIL_ENABLED: bool = False
+    RESEND_API_KEY: str = Field(default="", repr=False)
+    # A verified sender, e.g. TRACE <noreply@auth.yourtrace.app>.
+    EMAIL_FROM: str = ""
+    EMAIL_TIMEOUT_SECONDS: float = Field(default=10.0, gt=0, le=60)
 
     # ── Password reset ────────────────────────────────────────────────────
     RESET_TOKEN_EXPIRE_MINUTES: int = 30
