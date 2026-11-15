@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { FieldError } from './ui';
 
 /* A school's address, picked from the PSA's list instead of typed out:
    province, then a city or municipality in that province, then a barangay in
@@ -39,7 +40,7 @@ function splitAddress(address) {
 const joinAddress = (street, barangay) =>
   [street.trim(), barangay.trim()].filter(Boolean).join(', ');
 
-export default function AddressFields({ value, onChange, idPrefix = 'addr' }) {
+export default function AddressFields({ value, onChange, idPrefix = 'addr', errors = {} }) {
   const [provinces, setProvinces] = useState([]);
   const [barangays, setBarangays] = useState({});
   const [{ street, barangay }, setParts] = useState(() => splitAddress(value.address));
@@ -105,12 +106,16 @@ export default function AddressFields({ value, onChange, idPrefix = 'addr' }) {
         <label className="field-label" htmlFor={`${idPrefix}_province`}>
           Province <span className="req">*</span>
         </label>
+        <FieldError id={`${idPrefix}_province`} message={errors[`${idPrefix}_province`]} />
         <Combo
           id={`${idPrefix}_province`}
+          error={errors[`${idPrefix}_province`]}
+          maxLength={100}
           value={value.province || ''}
           options={provinces.map((p) => p.name)}
           onChange={pickProvince}
           placeholder="Type or choose a province"
+          required
         />
         {province && <span className="field-hint">{province.region}</span>}
       </div>
@@ -118,8 +123,11 @@ export default function AddressFields({ value, onChange, idPrefix = 'addr' }) {
         <label className="field-label" htmlFor={`${idPrefix}_city`}>
           City or municipality <span className="req">*</span>
         </label>
+        <FieldError id={`${idPrefix}_city`} message={errors[`${idPrefix}_city`]} />
         <Combo
           id={`${idPrefix}_city`}
+          error={errors[`${idPrefix}_city`]}
+          maxLength={100}
           value={value.city || ''}
           options={province ? province.cities.map(([, name]) => name) : []}
           onChange={pickCity}
@@ -133,8 +141,10 @@ export default function AddressFields({ value, onChange, idPrefix = 'addr' }) {
           <label className="field-label" htmlFor={`${idPrefix}_barangay`}>
             Barangay
           </label>
+          <FieldError id={`${idPrefix}_barangay`} message={errors[`${idPrefix}_barangay`]} />
           <Combo
             id={`${idPrefix}_barangay`}
+            error={errors[`${idPrefix}_barangay`]}
             value={barangay}
             options={city ? barangays[city[0]] || [] : []}
             onChange={(name) => setAddress({ street, barangay: name })}
@@ -146,8 +156,12 @@ export default function AddressFields({ value, onChange, idPrefix = 'addr' }) {
           <label className="field-label" htmlFor={`${idPrefix}_street`}>
             Street
           </label>
+          <FieldError id={`${idPrefix}_street`} message={errors[`${idPrefix}_street`]} />
           <input
             id={`${idPrefix}_street`}
+            aria-invalid={Boolean(errors[`${idPrefix}_street`]) || undefined}
+            aria-describedby={errors[`${idPrefix}_street`] ? `${idPrefix}_street-error` : undefined}
+            maxLength={255}
             className="input"
             placeholder="House no., street, purok — optional"
             value={street}
@@ -161,7 +175,7 @@ export default function AddressFields({ value, onChange, idPrefix = 'addr' }) {
 
 /* A text box with a list under it. Clicking it shows the whole list to scroll
    through; typing narrows it to the names that start with what was typed. */
-function Combo({ id, value, options, onChange, placeholder, required, disabled }) {
+function Combo({ id, value, options, onChange, placeholder, required, disabled, error, maxLength }) {
   const listId = useId();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -222,6 +236,9 @@ function Combo({ id, value, options, onChange, placeholder, required, disabled }
       <ChevronDown size={16} className="combo-chevron" aria-hidden="true" />
       <input
         id={id}
+        aria-invalid={Boolean(error) || undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        maxLength={maxLength}
         className="input"
         role="combobox"
         aria-expanded={showing}

@@ -75,6 +75,11 @@ export function EmptyState({ icon: Icon = Inbox, title, description, action }) {
 }
 
 /* ── Alerts & loaders ────────────────────────────────────────────────────── */
+export function FieldError({ id, message }) {
+  if (!message) return null;
+  return <span className="field-error" id={`${id}-error`} role="alert">{message}</span>;
+}
+
 export function ErrorNote({ message }) {
   if (!message) return null;
   return (

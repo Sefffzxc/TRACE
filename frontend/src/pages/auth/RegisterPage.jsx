@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -12,7 +12,8 @@ import {
 import AuthLayout from './AuthLayout';
 import { authApi, schoolApi } from '../../api/endpoints';
 import AddressFields from '../../components/common/AddressFields';
-import { ErrorNote } from '../../components/common/ui';
+import { ErrorNote, FieldError } from '../../components/common/ui';
+import { registrationApiErrors, validateRegistration } from './registrationValidation';
 
 /* One deployment now serves many schools, so the first thing this form has to
    settle is which of two completely different things is happening: somebody
@@ -114,6 +115,10 @@ export default function RegisterPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [focusRequest, setFocusRequest] = useState(0);
+  const formRef = useRef(null);
+  const errorRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
 
@@ -129,6 +134,51 @@ export default function RegisterPage() {
   const password = mode === 'teacher' ? teacher.password : admin.password;
   const confirm = mode === 'teacher' ? teacher.confirm : admin.confirm;
   const strength = useMemo(() => scorePassword(password), [password]);
+
+  // Wait for inline errors to render before focusing and scrolling their field.
+  // scrollIntoView handles both the desktop form column and the mobile page.
+  useEffect(() => {
+    if (!focusRequest) return undefined;
+    const invalid = [...(formRef.current?.querySelectorAll('[aria-invalid="true"]') || [])]
+      .find((element) => !element.disabled && element.getClientRects().length);
+    const control = invalid?.matches('fieldset')
+      ? invalid.querySelector('input:not(:disabled)') : invalid;
+    const target = invalid?.closest('.field') || errorRef.current;
+    (control || errorRef.current)?.focus({ preventScroll: true });
+    const frame = requestAnimationFrame(() => target?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'center', inline: 'nearest',
+    }));
+    return () => cancelAnimationFrame(frame);
+  }, [focusRequest]);
+
+  const visibleErrors = { ...fieldErrors };
+  if (confirm && confirm !== password) {
+    visibleErrors[mode === 'teacher' ? 'confirm' : 'a_confirm'] = 'The passwords do not match.';
+  }
+  const validationProps = (id) => ({
+    'aria-invalid': Boolean(visibleErrors[id]) || undefined,
+    'aria-describedby': visibleErrors[id] ? `${id}-error` : undefined,
+  });
+  const fieldError = (id) => <FieldError id={id} message={visibleErrors[id]} />;
+  const clearFieldErrors = (ids) => setFieldErrors((current) => {
+    if (!ids.some((id) => current[id])) return current;
+    const next = { ...current };
+    ids.forEach((id) => delete next[id]);
+    return next;
+  });
+  const clearChangedError = (event) => {
+    const control = event.target;
+    const id = control.type === 'radio'
+      ? { school_type: 's_school_type', tracks_units: 's_tracks' }[control.name]
+      : control.id;
+    const related = {
+      reg_password: ['confirm'], a_password: ['a_confirm'],
+      s_tracks: ['s_unit_plural', 's_unit_singular', 's_unit_count'],
+    };
+    clearFieldErrors([id, ...(related[id] || [])]);
+    setError('');
+  };
 
   /* Fetched lazily, but the teacher path is the default so in practice this
      runs on mount. The whole directory comes down once and is filtered in the
@@ -163,6 +213,7 @@ export default function RegisterPage() {
   const switchMode = (next) => {
     setMode(next);
     setError('');
+    setFieldErrors({});
   };
 
   const schoolOptions = useMemo(
@@ -237,43 +288,14 @@ export default function RegisterPage() {
 
   const submit = async (event) => {
     event.preventDefault();
+    if (busy) return;
     setError('');
-
-    if (mode === 'teacher' && !teacher.school_id) {
-      setError('Please choose your school from the list.');
-      return;
-    }
-    if (mode === 'school') {
-      if (!school.school_type) {
-        setError('Please say whether the school is public or private.');
-        return;
-      }
-      // The region is filled in only when a province is picked from the list.
-      if (!school.region) {
-        setError('Please choose the province from the list.');
-        return;
-      }
-      if (!school.city.trim()) {
-        setError('Please choose the city or municipality.');
-        return;
-      }
-      if (school.tracks_units === null) {
-        setError('Please answer whether teachers track progress through numbered booklets.');
-        return;
-      }
-      if (school.tracks_units && !school.unit_label_plural.trim()) {
-        setError('Please say what your school calls its booklets or modules.');
-        return;
-      }
-    }
-    if (password !== confirm) {
-      setError('The two passwords do not match.');
-      return;
-    }
-    if (strength.score < 4) {
-      setError(
-        'Password must be at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol.',
-      );
+    const errors = validateRegistration(event.currentTarget, {
+      mode, school, password, confirm, passwordScore: strength.score,
+    });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setFocusRequest((current) => current + 1);
       return;
     }
 
@@ -282,7 +304,10 @@ export default function RegisterPage() {
       if (mode === 'teacher') await submitTeacher();
       else await submitSchool();
     } catch (err) {
-      setError(readSubmitError(err));
+      const { fields, unmapped } = registrationApiErrors(err, mode);
+      setFieldErrors(fields);
+      if (unmapped || !Object.keys(fields).length) setError(readSubmitError(err));
+      setFocusRequest((current) => current + 1);
     } finally {
       setBusy(false);
     }
@@ -366,8 +391,8 @@ export default function RegisterPage() {
           : 'Your school administrator approves new accounts.'}
       </p>
 
-      <form className="auth-form" onSubmit={submit} noValidate>
-        <ErrorNote message={error} />
+      <form ref={formRef} className="auth-form registration-form" onSubmit={submit} onChangeCapture={clearChangedError} noValidate>
+        {error && <div ref={errorRef} tabIndex={-1}><ErrorNote message={error} /></div>}
 
         <fieldset className="field" style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
           <legend className="field-label" style={{ padding: 0 }}>
@@ -404,8 +429,10 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="school_id">
                 Your school <span className="req">*</span>
               </label>
+              {fieldError('school_id')}
               <select
                 id="school_id"
+                {...validationProps('school_id')}
                 className="select"
                 value={teacher.school_id}
                 onChange={setTeacherField('school_id')}
@@ -435,8 +462,11 @@ export default function RegisterPage() {
                 <label className="field-label" htmlFor="first_name">
                   First name <span className="req">*</span>
                 </label>
+                {fieldError('first_name')}
                 <input
                   id="first_name"
+                  {...validationProps('first_name')}
+                  maxLength={100}
                   className="input"
                   value={teacher.first_name}
                   onChange={setTeacherField('first_name')}
@@ -447,8 +477,11 @@ export default function RegisterPage() {
                 <label className="field-label" htmlFor="last_name">
                   Last name <span className="req">*</span>
                 </label>
+                {fieldError('last_name')}
                 <input
                   id="last_name"
+                  {...validationProps('last_name')}
+                  maxLength={100}
                   className="input"
                   value={teacher.last_name}
                   onChange={setTeacherField('last_name')}
@@ -461,8 +494,11 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="middle_name">
                 Middle name
               </label>
+              {fieldError('middle_name')}
               <input
                 id="middle_name"
+                {...validationProps('middle_name')}
+                maxLength={100}
                 className="input"
                 placeholder="Optional"
                 value={teacher.middle_name}
@@ -474,8 +510,10 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="reg_email">
                 Email <span className="req">*</span>
               </label>
+              {fieldError('reg_email')}
               <input
                 id="reg_email"
+                {...validationProps('reg_email')}
                 className="input"
                 type="email"
                 placeholder="you@school.edu.ph"
@@ -489,8 +527,11 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="contact">
                 Contact number <span className="req">*</span>
               </label>
+              {fieldError('contact')}
               <input
                 id="contact"
+                {...validationProps('contact')}
+                minLength={7} maxLength={20}
                 className="input"
                 placeholder="0917 000 0000"
                 value={teacher.contact_number}
@@ -503,9 +544,12 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="reg_password">
                 Password <span className="req">*</span>
               </label>
+              {fieldError('reg_password')}
               <div className="input-group">
                 <input
                   id="reg_password"
+                  {...validationProps('reg_password')}
+                  minLength={8} maxLength={128}
                   className="input"
                   style={{ paddingLeft: '0.75rem' }}
                   type={showPassword ? 'text' : 'password'}
@@ -538,20 +582,18 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="confirm">
                 Confirm password <span className="req">*</span>
               </label>
+              {fieldError('confirm')}
               <input
                 id="confirm"
-                className={`input ${
-                  teacher.confirm && teacher.confirm !== teacher.password ? 'has-error' : ''
-                }`}
+                {...validationProps('confirm')}
+                maxLength={128}
+                className="input"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 value={teacher.confirm}
                 onChange={setTeacherField('confirm')}
                 required
               />
-              {teacher.confirm && teacher.confirm !== teacher.password && (
-                <span className="field-error">The passwords do not match.</span>
-              )}
             </div>
           </>
         ) : (
@@ -563,8 +605,11 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="s_name">
                 School name <span className="req">*</span>
               </label>
+              {fieldError('s_name')}
               <input
                 id="s_name"
+                {...validationProps('s_name')}
+                minLength={3} maxLength={200}
                 className="input"
                 placeholder="Saint Mary's Academy"
                 value={school.name}
@@ -573,10 +618,11 @@ export default function RegisterPage() {
               />
             </div>
 
-            <fieldset className="field" style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+            <fieldset id="s_school_type" {...validationProps('s_school_type')} className="field" style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
               <legend className="field-label" style={{ padding: 0 }}>
                 Is the school public or private? <span className="req">*</span>
               </legend>
+              {fieldError('s_school_type')}
               <div className="stack" style={{ gap: '0.45rem', marginTop: '0.4rem' }}>
                 <label className="checkbox">
                   <input
@@ -604,7 +650,12 @@ export default function RegisterPage() {
             <AddressFields
               idPrefix="s"
               value={school}
-              onChange={(patch) => setSchool((current) => ({ ...current, ...patch }))}
+              errors={fieldErrors}
+              onChange={(patch) => {
+                setSchool((current) => ({ ...current, ...patch }));
+                clearFieldErrors(Object.keys(patch).flatMap((key) => key === 'address'
+                  ? ['s_street', 's_barangay'] : [`s_${key}`]));
+              }}
             />
 
             <div className="form-grid">
@@ -612,8 +663,11 @@ export default function RegisterPage() {
                 <label className="field-label" htmlFor="s_contact">
                   School contact number
                 </label>
+                {fieldError('s_contact')}
                 <input
                   id="s_contact"
+                  {...validationProps('s_contact')}
+                  maxLength={30}
                   className="input"
                   placeholder="(049) 000 0000 — optional"
                   value={school.contact_number}
@@ -624,8 +678,10 @@ export default function RegisterPage() {
                 <label className="field-label" htmlFor="s_email">
                   School contact email
                 </label>
+                {fieldError('s_email')}
                 <input
                   id="s_email"
+                  {...validationProps('s_email')}
                   className="input"
                   type="email"
                   placeholder="office@school.edu.ph"
@@ -640,11 +696,12 @@ export default function RegisterPage() {
                 like afterwards, which is why it gets this much explanation. */}
             <div className="section-title">How your school teaches</div>
 
-            <fieldset className="field" style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+            <fieldset id="s_tracks" {...validationProps('s_tracks')} className="field" style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
               <legend className="field-label" style={{ padding: 0 }}>
                 Do teachers track progress through numbered booklets or modules?{' '}
                 <span className="req">*</span>
               </legend>
+              {fieldError('s_tracks')}
               <div className="stack" style={{ gap: '0.45rem', marginTop: '0.4rem' }}>
                 <label className="checkbox">
                   <input
@@ -672,35 +729,47 @@ export default function RegisterPage() {
                     className="row"
                     style={{ gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}
                   >
-                    <input
-                      className="input"
-                      style={{ maxWidth: '11rem' }}
-                      placeholder="PACEs"
-                      aria-label="What your school calls its booklets"
-                      value={school.unit_label_plural}
-                      onChange={setPlural}
-                      required
-                    />
+                    <div className="field" style={{ maxWidth: '11rem' }}>
+                      {fieldError('s_unit_plural')}
+                      <input
+                        id="s_unit_plural"
+                        {...validationProps('s_unit_plural')}
+                        maxLength={40}
+                        className="input"
+                        placeholder="PACEs"
+                        aria-label="What your school calls its booklets"
+                        value={school.unit_label_plural}
+                        onChange={setPlural}
+                        required
+                      />
+                    </div>
                     <span className="faint">,</span>
-                    <input
-                      className="input"
-                      style={{ maxWidth: '5.5rem' }}
-                      type="number"
-                      min="1"
-                      max="200"
-                      aria-label="How many per subject"
-                      value={school.default_units_per_subject}
-                      onChange={setSchoolField('default_units_per_subject')}
-                      required
-                    />
+                    <div className="field" style={{ maxWidth: '5.5rem' }}>
+                      {fieldError('s_unit_count')}
+                      <input
+                        id="s_unit_count"
+                        {...validationProps('s_unit_count')}
+                        className="input"
+                        type="number"
+                        min="1"
+                        max="200"
+                        aria-label="How many per subject"
+                        value={school.default_units_per_subject}
+                        onChange={setSchoolField('default_units_per_subject')}
+                        required
+                      />
+                    </div>
                     <span className="faint">per subject</span>
                   </div>
                   <div className="field">
                     <label className="field-label" htmlFor="s_unit_singular">
                       And just one of them is a… <span className="req">*</span>
                     </label>
+                    {fieldError('s_unit_singular')}
                     <input
                       id="s_unit_singular"
+                      {...validationProps('s_unit_singular')}
+                      maxLength={40}
                       className="input"
                       style={{ maxWidth: '11rem' }}
                       placeholder="PACE"
@@ -730,8 +799,10 @@ export default function RegisterPage() {
                 <label className="field-label" htmlFor="s_passing">
                   Passing mark <span className="req">*</span>
                 </label>
+                {fieldError('s_passing')}
                 <input
                   id="s_passing"
+                  {...validationProps('s_passing')}
                   className="input"
                   type="number"
                   min="1"
@@ -747,8 +818,10 @@ export default function RegisterPage() {
                 <label className="field-label" htmlFor="s_periods">
                   Grading periods in a year <span className="req">*</span>
                 </label>
+                {fieldError('s_periods')}
                 <input
                   id="s_periods"
+                  {...validationProps('s_periods')}
                   className="input"
                   type="number"
                   min="1"
@@ -765,8 +838,11 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="s_period_label">
                 What you call one of them <span className="req">*</span>
               </label>
+              {fieldError('s_period_label')}
               <input
                 id="s_period_label"
+                {...validationProps('s_period_label')}
+                maxLength={30}
                 className="input"
                 placeholder="Quarter"
                 value={school.grading_period_label}
@@ -784,8 +860,11 @@ export default function RegisterPage() {
                 <label className="field-label" htmlFor="a_first">
                   First name <span className="req">*</span>
                 </label>
+                {fieldError('a_first')}
                 <input
                   id="a_first"
+                  {...validationProps('a_first')}
+                  maxLength={100}
                   className="input"
                   value={admin.first_name}
                   onChange={setAdminField('first_name')}
@@ -796,8 +875,11 @@ export default function RegisterPage() {
                 <label className="field-label" htmlFor="a_last">
                   Last name <span className="req">*</span>
                 </label>
+                {fieldError('a_last')}
                 <input
                   id="a_last"
+                  {...validationProps('a_last')}
+                  maxLength={100}
                   className="input"
                   value={admin.last_name}
                   onChange={setAdminField('last_name')}
@@ -810,8 +892,11 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="a_middle">
                 Middle name
               </label>
+              {fieldError('a_middle')}
               <input
                 id="a_middle"
+                {...validationProps('a_middle')}
+                maxLength={100}
                 className="input"
                 placeholder="Optional"
                 value={admin.middle_name}
@@ -823,8 +908,10 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="a_email">
                 Your email <span className="req">*</span>
               </label>
+              {fieldError('a_email')}
               <input
                 id="a_email"
+                {...validationProps('a_email')}
                 className="input"
                 type="email"
                 placeholder="you@school.edu.ph"
@@ -839,8 +926,11 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="a_contact">
                 Contact number <span className="req">*</span>
               </label>
+              {fieldError('a_contact')}
               <input
                 id="a_contact"
+                {...validationProps('a_contact')}
+                minLength={7} maxLength={20}
                 className="input"
                 placeholder="0917 000 0000"
                 value={admin.contact_number}
@@ -853,9 +943,12 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="a_password">
                 Password <span className="req">*</span>
               </label>
+              {fieldError('a_password')}
               <div className="input-group">
                 <input
                   id="a_password"
+                  {...validationProps('a_password')}
+                  minLength={8} maxLength={128}
                   className="input"
                   style={{ paddingLeft: '0.75rem' }}
                   type={showPassword ? 'text' : 'password'}
@@ -888,20 +981,18 @@ export default function RegisterPage() {
               <label className="field-label" htmlFor="a_confirm">
                 Confirm password <span className="req">*</span>
               </label>
+              {fieldError('a_confirm')}
               <input
                 id="a_confirm"
-                className={`input ${
-                  admin.confirm && admin.confirm !== admin.password ? 'has-error' : ''
-                }`}
+                {...validationProps('a_confirm')}
+                maxLength={128}
+                className="input"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 value={admin.confirm}
                 onChange={setAdminField('confirm')}
                 required
               />
-              {admin.confirm && admin.confirm !== admin.password && (
-                <span className="field-error">The passwords do not match.</span>
-              )}
             </div>
           </>
         )}

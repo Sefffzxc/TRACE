@@ -198,6 +198,14 @@
   margin-block: auto;
 }
 
+.registration-form .field { scroll-margin-block: 1.5rem; }
+.registration-form .input[aria-invalid="true"],
+.registration-form .select[aria-invalid="true"] { border-color: var(--crit-500); }
+.registration-form .input[aria-invalid="true"]:focus,
+.registration-form .select[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--crit-500) 18%, transparent);
+}
+
 /* ── Moving between signed-out screens ─────────────────────────────────────
    The photograph, the brand mark and the headline belong to the frame and
    must not move when the form changes, so nothing here touches them. Only
