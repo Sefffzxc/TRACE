@@ -99,6 +99,7 @@ function readDetail(payload, fallback) {
   if (!payload) return fallback;
   const { detail } = payload;
   if (typeof detail === 'string') return detail;
+  if (detail && typeof detail.message === 'string') return detail.message;
   if (Array.isArray(detail)) {
     return detail
       .map((item) => {

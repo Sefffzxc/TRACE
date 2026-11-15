@@ -12,6 +12,8 @@ import {
 import AuthLayout from './AuthLayout';
 import { authApi, schoolApi } from '../../api/endpoints';
 import AddressFields from '../../components/common/AddressFields';
+import CaptchaField from '../../components/common/CaptchaField';
+import useCaptchaConfig from '../../hooks/useCaptchaConfig';
 import { ErrorNote, FieldError } from '../../components/common/ui';
 import { registrationApiErrors, validateRegistration } from './registrationValidation';
 
@@ -121,6 +123,9 @@ export default function RegisterPage() {
   const errorRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
+  const captcha = useCaptchaConfig();
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   /* `null` means "not fetched yet", which is different from an empty list: the
      first shows a loading note, the second means no school has been approved
@@ -214,6 +219,8 @@ export default function RegisterPage() {
     setMode(next);
     setError('');
     setFieldErrors({});
+    setCaptchaToken('');
+    setCaptchaReset((current) => current + 1);
   };
 
   const schoolOptions = useMemo(
@@ -235,6 +242,7 @@ export default function RegisterPage() {
 
   const submitTeacher = async () => {
     const result = await authApi.register({
+      ...(captcha.config?.enabled ? { captcha_token: captchaToken } : {}),
       school_id: Number(teacher.school_id),
       role: 'teacher',
       email: teacher.email.trim(),
@@ -254,6 +262,7 @@ export default function RegisterPage() {
   const submitSchool = async () => {
     const tracks = school.tracks_units === true;
     const result = await schoolApi.register({
+      ...(captcha.config?.enabled ? { captcha_token: captchaToken } : {}),
       /* The school's own fields are nested, because this one call creates two
          records — the school and the person who will run it — and keeping them
          apart in the payload is what makes that readable on the server. */
@@ -290,9 +299,15 @@ export default function RegisterPage() {
     event.preventDefault();
     if (busy) return;
     setError('');
+    if (captcha.loading || captcha.error || !captcha.config) {
+      setError('Security verification settings are unavailable. Use Retry below and submit again.');
+      setFocusRequest((current) => current + 1);
+      return;
+    }
     const errors = validateRegistration(event.currentTarget, {
       mode, school, password, confirm, passwordScore: strength.score,
     });
+    if (captcha.config.enabled && !captchaToken) errors.captcha = 'Please complete the human verification.';
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
       setFocusRequest((current) => current + 1);
@@ -305,11 +320,14 @@ export default function RegisterPage() {
       else await submitSchool();
     } catch (err) {
       const { fields, unmapped } = registrationApiErrors(err, mode);
+      if (err.payload?.detail?.code?.startsWith('captcha_')) fields.captcha = err.message;
       setFieldErrors(fields);
       if (unmapped || !Object.keys(fields).length) setError(readSubmitError(err));
       setFocusRequest((current) => current + 1);
     } finally {
       setBusy(false);
+      setCaptchaToken('');
+      setCaptchaReset((current) => current + 1);
     }
   };
 
@@ -997,7 +1015,26 @@ export default function RegisterPage() {
           </>
         )}
 
-        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy}>
+        {captcha.loading && <p className="field-hint" role="status">Loading security verification…</p>}
+        {captcha.error && (
+          <div className="field">
+            <ErrorNote message={captcha.error} />
+            <button type="button" className="btn btn-secondary" onClick={captcha.retry}>Retry security settings</button>
+          </div>
+        )}
+        {captcha.config?.enabled && (
+          <CaptchaField
+            siteKey={captcha.config.site_key}
+            action={mode === 'teacher' ? 'register_teacher' : 'register_school'}
+            token={captchaToken} resetKey={captchaReset} error={fieldErrors.captcha}
+            onTokenChange={(token) => {
+              setCaptchaToken(token);
+              if (token) clearFieldErrors(['captcha']);
+            }}
+          />
+        )}
+
+        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || captcha.loading || Boolean(captcha.error)}>
           {busy ? (
             <>
               <span className="spinner" /> Submitting…

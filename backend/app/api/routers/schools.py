@@ -57,6 +57,7 @@ from app.schemas.schools import (
 )
 from app.services.audit import Action, log_event
 from app.services.email import EmailDeliveryError, send_account_decision_email
+from app.services.captcha import verify_captcha
 
 router = APIRouter(prefix="/api/schools", tags=["Schools"])
 
@@ -111,6 +112,7 @@ async def register_school(
     Both are created pending. Nothing is usable until the operator approves,
     which is what stops anyone from creating a school and walking straight in.
     """
+    await verify_captcha(payload.captcha_token, action="register_school")
     email = str(payload.email).lower()
     existing = (
         await db.execute(select(Staff).where(Staff.email == email))

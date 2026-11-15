@@ -5,6 +5,8 @@ import AuthLayout from './AuthLayout';
 import { authApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { ErrorNote } from '../../components/common/ui';
+import CaptchaField from '../../components/common/CaptchaField';
+import useCaptchaConfig from '../../hooks/useCaptchaConfig';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -15,13 +17,29 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const captcha = useCaptchaConfig();
+  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaReset, setCaptchaReset] = useState(0);
+  const [captchaError, setCaptchaError] = useState('');
 
   const submit = async (event) => {
     event.preventDefault();
+    if (busy) return;
     setError('');
+    if (captcha.loading || captcha.error || !captcha.config) {
+      setError('Security verification settings are unavailable. Please retry below.');
+      return;
+    }
+    if (captchaRequired && captcha.config.enabled && !captchaToken) {
+      setCaptchaError('Please complete the human verification.');
+      document.getElementById('captcha')?.focus();
+      return;
+    }
+    setCaptchaError('');
     setBusy(true);
     try {
-      const result = await authApi.login(email.trim(), password);
+      const result = await authApi.login(email.trim(), password, captchaToken);
 
       if (result.requires_2fa) {
         // Unknown device — the server has issued a 6-digit code.
@@ -36,9 +54,14 @@ export default function LoginPage() {
         replace: true,
       });
     } catch (err) {
-      setError(err.message);
+      const detail = err.payload?.detail;
+      if (detail?.captcha_required) setCaptchaRequired(true);
+      if (detail?.code?.startsWith('captcha_')) setCaptchaError(err.message);
+      else setError(err.message);
     } finally {
       setBusy(false);
+      setCaptchaToken('');
+      setCaptchaReset((current) => current + 1);
     }
   };
 
@@ -110,7 +133,25 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy}>
+        {captcha.loading && <p className="field-hint" role="status">Loading security verification…</p>}
+        {captcha.error && (
+          <div className="field">
+            <ErrorNote message={captcha.error} />
+            <button type="button" className="btn btn-secondary" onClick={captcha.retry}>Retry security settings</button>
+          </div>
+        )}
+        {captcha.config?.enabled && captchaRequired && (
+          <CaptchaField
+            siteKey={captcha.config.site_key} action="login" token={captchaToken}
+            resetKey={captchaReset} error={captchaError}
+            onTokenChange={(token) => {
+              setCaptchaToken(token);
+              if (token) setCaptchaError('');
+            }}
+          />
+        )}
+
+        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || captcha.loading || Boolean(captcha.error)}>
           {busy ? (
             <>
               <span className="spinner" /> Signing in…

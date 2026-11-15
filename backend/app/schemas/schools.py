@@ -55,6 +55,7 @@ class SchoolRegisterRequest(BaseModel):
     """
 
     school: SchoolProfile
+    captcha_token: Optional[str] = Field(default=None, max_length=2048, repr=False)
 
     # The principal's own account.
     first_name: str = Field(min_length=1, max_length=100)

@@ -26,6 +26,7 @@ class StaffRegisterRequest(BaseModel):
     """
 
     school_id: int = Field(description="Chosen from GET /api/schools/directory")
+    captcha_token: Optional[str] = Field(default=None, max_length=2048, repr=False)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)
@@ -100,6 +101,7 @@ class ChangePasswordRequest(BaseModel):
 
 # ── Login / 2FA ───────────────────────────────────────────────────────────────
 class StaffLoginRequest(BaseModel):
+    captcha_token: Optional[str] = Field(default=None, max_length=2048, repr=False)
     email: EmailStr
     password: str
     device_id: str = Field(min_length=4, max_length=255)

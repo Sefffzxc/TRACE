@@ -53,7 +53,8 @@ export function registrationApiErrors(error, mode) {
   if (error?.status === 422 && Array.isArray(error.payload?.detail)) {
     for (const issue of error.payload.detail) {
       const location = Array.isArray(issue.loc) ? issue.loc.filter((part) => part !== 'body') : [];
-      const id = location[0] === 'school' && mode === 'school' ? school[location[1]] : account[location[0]];
+      const id = location[0] === 'captcha_token' ? 'captcha' :
+        location[0] === 'school' && mode === 'school' ? school[location[1]] : account[location[0]];
       if (id) fields[id] = (issue.msg || 'Please check this value.').replace(/^Value error, /, '');
       else unmapped = true;
     }

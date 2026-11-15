@@ -58,8 +58,46 @@ from app.schemas.staff import (
 )
 from app.services.audit import Action, client_ip, log_event
 from app.services.email import EmailDeliveryError, log_otp_code, send_otp_email
+from app.services.captcha import verify_captcha
+from app.services.login_captcha import login_risk
 
 router = APIRouter(tags=["Authentication"])
+
+
+def _login_ip(request: Request) -> str:
+    # Uvicorn accepts proxy headers only from the trusted local Caddy proxy.
+    # Do not use arbitrary request headers as an anti-abuse identity.
+    return request.client.host if request.client else "unknown"
+
+
+def _needs_login_captcha(request: Request, staff: Staff | None) -> bool:
+    return settings.CAPTCHA_ENABLED and (
+        login_risk.requires_captcha(_login_ip(request), settings.CAPTCHA_LOGIN_THRESHOLD)
+        or bool(staff and (
+            (staff.login_attempts or 0) >= settings.CAPTCHA_LOGIN_THRESHOLD
+            or (staff.lockout_count or 0) > 0
+        ))
+    )
+
+
+def _login_failure(request, staff, message, status_code=401):
+    detail = message
+    if settings.CAPTCHA_ENABLED:
+        detail = {"code": "invalid_credentials", "message": message,
+                  "captcha_required": _needs_login_captcha(request, staff)}
+    return HTTPException(status_code=status_code, detail=detail)
+
+
+@router.get("/api/auth/captcha-config")
+async def captcha_config():
+    """Public widget settings; the private verification key is never returned."""
+    if settings.CAPTCHA_ENABLED and not (
+        settings.TURNSTILE_SITE_KEY.strip() and settings.TURNSTILE_SECRET_KEY.strip()
+        and any(host.strip() for host in settings.TURNSTILE_ALLOWED_HOSTNAMES.split(","))
+    ):
+        raise HTTPException(status_code=503, detail="Security verification is unavailable. Please try again later.")
+    return {"enabled": settings.CAPTCHA_ENABLED,
+            "site_key": settings.TURNSTILE_SITE_KEY.strip() if settings.CAPTCHA_ENABLED else None}
 
 
 def _now() -> datetime:
@@ -134,6 +172,7 @@ async def register(
     school's first administrator is created with the school itself at
     `POST /api/schools/register`.
     """
+    await verify_captcha(payload.captcha_token, action="register_teacher")
     existing = await db.execute(select(Staff).where(Staff.email == payload.email))
     if existing.scalar_one_or_none():
         raise HTTPException(
@@ -208,10 +247,15 @@ async def login(
     )
     staff = result.scalar_one_or_none()
 
+    if _needs_login_captcha(request, staff) or payload.captcha_token:
+        await verify_captcha(payload.captcha_token, action="login")
+
     # Same message whether the email exists or not, so accounts cannot be
     # enumerated from the login form.
     if staff is None:
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+        if settings.CAPTCHA_ENABLED:
+            login_risk.record_failure(_login_ip(request))
+        raise _login_failure(request, staff, "Invalid email or password.")
 
     if staff.permanent_lock:
         raise HTTPException(
@@ -230,6 +274,8 @@ async def login(
 
     # ── wrong password ────────────────────────────────────────────────────────
     if not verify_password(payload.password, staff.password_hash):
+        if settings.CAPTCHA_ENABLED:
+            login_risk.record_failure(_login_ip(request))
         staff.login_attempts = (staff.login_attempts or 0) + 1
 
         if staff.login_attempts >= settings.MAX_LOGIN_ATTEMPTS:
@@ -275,10 +321,9 @@ async def login(
         )
         await db.commit()
         left = settings.MAX_LOGIN_ATTEMPTS - staff.login_attempts
-        raise HTTPException(
-            status_code=401,
-            detail=f"Invalid email or password. {left} attempt(s) left before lockout.",
-        )
+        raise _login_failure(request, staff,
+            "Invalid email or password." if settings.CAPTCHA_ENABLED else
+            f"Invalid email or password. {left} attempt(s) left before lockout.")
 
     # ── correct password — clear the lockout ladder ───────────────────────────
     # Only disclose decisions/reasons after the password proves identity.

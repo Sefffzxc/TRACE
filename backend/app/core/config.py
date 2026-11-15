@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     LOCKOUT_LADDER_MINUTES: str = "5,15,60"
     MAX_LOCKOUTS: int = 3
 
+    # Enable only after adding the matching production Turnstile widget keys.
+    CAPTCHA_ENABLED: bool = False
+    TURNSTILE_SITE_KEY: str = ""
+    TURNSTILE_SECRET_KEY: str = Field(default="", repr=False)
+    TURNSTILE_ALLOWED_HOSTNAMES: str = ""
+    CAPTCHA_LOGIN_THRESHOLD: int = Field(default=3, ge=1, le=20)
+    CAPTCHA_TIMEOUT_SECONDS: float = Field(default=10.0, gt=0, le=30)
+
     # ── Two-factor / OTP ──────────────────────────────────────────────────
     OTP_EXPIRY_MINUTES: int = 5
     OTP_MAX_ATTEMPTS: int = 5

@@ -481,3 +481,13 @@
   .auth-card .auth-mobile-brand { display: flex; }
   .otp-inputs { gap: 0.4rem; }
 }
+
+/* Turnstile verification ------------------------------------------------- */
+.captcha-field { min-width: 0; }
+.captcha-label { color: var(--text-strong); font-weight: 600; }
+.captcha-control { min-width: 0; border-radius: var(--radius-md); }
+.captcha-control:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 4px; }
+.captcha-control.is-invalid { outline: 1px solid var(--crit-500); outline-offset: 4px; }
+.captcha-widget { width: 100%; min-height: 65px; }
+.captcha-control .field-hint { margin-top: 0.5rem; }
+.captcha-control .btn { margin-top: 0.5rem; }

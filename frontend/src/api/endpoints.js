@@ -27,14 +27,16 @@ export const schoolApi = {
 
 /* ── Authentication ──────────────────────────────────────────────────────── */
 export const authApi = {
+  captchaConfig: () => api.get('/api/auth/captcha-config', undefined, { auth: false }),
   register: (payload) => api.post('/api/auth/register', payload, { auth: false }),
 
-  login: (email, password) =>
+  login: (email, password, captchaToken) =>
     api.post(
       '/api/auth/login',
       {
         email,
         password,
+        ...(captchaToken ? { captcha_token: captchaToken } : {}),
         device_id: deviceId(),
         device_name: navigator.userAgent.slice(0, 120),
       },

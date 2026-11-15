@@ -4,6 +4,10 @@
 columns from the database. Follow the [one-time migration and deployment steps](backend/ACADEMIC_STRUCTURE_MIGRATION.md)
 before using the new forms on the live site. Pushing alone does not update the VM or its database.
 
+**CAPTCHA setup:** follow [the Turnstile setup and activation steps](CAPTCHA_SETUP.md)
+to enable registration and conditional login verification. It stays disabled
+until the Azure API has the widget keys and `CAPTCHA_ENABLED=true`.
+
 Updated **9 November 2026**. Your domain is **traceedu.app**.
 The frontend will use **https://www.traceedu.app**, the API and AI will run on
 one Azure Ubuntu VM, and your existing database will stay on Render.
