@@ -34,6 +34,7 @@ from app.core.security import async_get_password_hash
 from app.db.session import get_db
 from app.models.schools import (
     SCHOOL_APPROVED,
+    SCHOOL_BLOCKED,
     SCHOOL_DEACTIVATED,
     SCHOOL_PENDING,
     SCHOOL_REJECTED,
@@ -42,11 +43,15 @@ from app.models.schools import (
 from app.models.staff import (
     ROLE_ADMIN,
     STATUS_APPROVED,
+    STATUS_BLOCKED,
+    STATUS_DEACTIVATED,
     STATUS_PENDING,
     STATUS_REJECTED,
     Staff,
 )
 from app.models.students import Student
+from app.models.applications import ApplicationEvent
+from app.schemas.staff import ApplicationHistoryResponse
 from app.schemas.schools import (
     SchoolAdminView,
     SchoolDecision,
@@ -56,6 +61,7 @@ from app.schemas.schools import (
     SchoolUpdate,
 )
 from app.services.audit import Action, log_event
+from app.services.applications import ensure_legacy_rejection_event, record_application_event
 from app.services.email import EmailDeliveryError, send_account_decision_email
 from app.services.captcha import verify_captcha
 
@@ -164,6 +170,10 @@ async def register_school(
     )
     db.add(principal)
     await db.flush()
+    await record_application_event(
+        db, principal, action="submitted", from_status=None,
+        to_status=STATUS_PENDING, actor_id=None,
+    )
 
     await log_event(
         db,
@@ -300,6 +310,47 @@ async def list_schools(
     return out
 
 
+@router.get("/{school_id}/application-history", response_model=List[ApplicationHistoryResponse])
+async def school_application_history(
+    school_id: int,
+    _: Staff = Depends(get_super_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    school = (
+        await db.execute(select(School).where(School.school_id == school_id).with_for_update())
+    ).scalar_one_or_none()
+    if school is None:
+        raise HTTPException(status_code=404, detail="School not found.")
+    principals = (
+        await db.execute(
+            select(Staff).where(Staff.school_id == school_id, Staff.role == ROLE_ADMIN)
+            .order_by(Staff.id).with_for_update()
+        )
+    ).scalars().all()
+    for principal in principals:
+        await ensure_legacy_rejection_event(db, principal)
+    await db.commit()
+    events = (
+        await db.execute(
+            select(ApplicationEvent).where(
+                ApplicationEvent.school_id == school_id,
+                ApplicationEvent.staff_id.in_([principal.id for principal in principals]),
+            ).order_by(ApplicationEvent.created_at.desc(), ApplicationEvent.id.desc())
+        )
+    ).scalars().all()
+    actor_ids = {event.actor_id for event in events if event.actor_id is not None}
+    names = {}
+    if actor_ids:
+        actors = (await db.execute(select(Staff).where(Staff.id.in_(actor_ids)))).scalars().all()
+        names = {actor.id: actor.full_name for actor in actors}
+    output = []
+    for event in events:
+        item = ApplicationHistoryResponse.model_validate(event)
+        item.actor_name = names.get(event.actor_id)
+        output.append(item)
+    return output
+
+
 @router.patch("/{school_id}", response_model=SchoolAdminView)
 async def decide_school(
     school_id: int,
@@ -314,7 +365,9 @@ async def decide_school(
     together and are released together, so there is no second step where a
     school exists but nobody can sign in to it.
     """
-    school = await db.get(School, school_id)
+    school = (
+        await db.execute(select(School).where(School.school_id == school_id).with_for_update())
+    ).scalar_one_or_none()
     if school is None:
         raise HTTPException(status_code=404, detail="School not found.")
 
@@ -322,10 +375,20 @@ async def decide_school(
         await db.execute(
             select(Staff).where(
                 Staff.school_id == school_id, Staff.role == ROLE_ADMIN
-            )
+            ).order_by(Staff.id).with_for_update()
         )
     ).scalars().all()
     principal = principals[0] if principals else None
+    previous_status = school.status
+    previous_person_statuses = {person.id: person.account_status for person in principals}
+    if school.status == SCHOOL_BLOCKED and payload.action not in {"reopen", "block"}:
+        raise HTTPException(status_code=409, detail="Reopen the blocked school application before making another decision.")
+    if any(person.account_status == STATUS_BLOCKED for person in principals) and payload.action not in {"reopen", "block"}:
+        raise HTTPException(status_code=409, detail="Reopen the blocked principal application before making another decision.")
+    if payload.action == "reopen" and school.status not in {SCHOOL_REJECTED, SCHOOL_BLOCKED}:
+        raise HTTPException(status_code=409, detail="Only rejected or blocked school applications can be reopened.")
+    for person in principals:
+        await ensure_legacy_rejection_event(db, person)
     approves_account = payload.action == "approve" or (
         payload.action == "reactivate"
         and (
@@ -339,34 +402,56 @@ async def decide_school(
         school.rejection_reason = None
 
     elif payload.action == "reject":
-        if not payload.reason:
-            raise HTTPException(
-                status_code=400,
-                detail="A reason is required so the school knows what to correct.",
-            )
         school.status = SCHOOL_REJECTED
         school.rejection_reason = payload.reason
         for person in principals:
+            person.is_active = True
             person.is_approved = False
             person.account_status = STATUS_REJECTED
+            person.rejection_reason = payload.reason
+
+    elif payload.action == "reopen":
+        school.status = SCHOOL_PENDING
+        school.rejection_reason = None
+        for person in principals:
+            person.is_approved = False
+            person.is_active = True
+            person.account_status = STATUS_PENDING
+            person.rejection_reason = None
+
+    elif payload.action == "block":
+        school.status = SCHOOL_BLOCKED
+        school.rejection_reason = payload.reason
+        for person in principals:
+            person.is_approved = False
+            person.is_active = False
+            person.account_status = STATUS_BLOCKED
             person.rejection_reason = payload.reason
 
     elif payload.action == "deactivate":
         school.status = SCHOOL_DEACTIVATED
         school.rejection_reason = payload.reason
+        for person in principals:
+            person.is_active = False
+            person.account_status = STATUS_DEACTIVATED
 
     elif payload.action == "reactivate":
         school.status = SCHOOL_APPROVED
         school.rejection_reason = None
+        for person in principals:
+            person.is_active = True
+            person.account_status = STATUS_APPROVED
+            person.rejection_reason = None
 
     if approves_account:
-        school.approved_at = _now()
+        school.approved_at = school.approved_at or _now()
         school.approved_by = operator.id
         for person in principals:
             person.is_approved = True
+            person.is_active = True
             person.account_status = STATUS_APPROVED
             person.rejection_reason = None
-            person.approved_at = _now()
+            person.approved_at = person.approved_at or _now()
             person.approved_by = operator.id
 
     school.updated_at = _now()
@@ -377,6 +462,8 @@ async def decide_school(
             "reject": Action.SCHOOL_REJECTED,
             "deactivate": Action.SCHOOL_DEACTIVATED,
             "reactivate": Action.SCHOOL_REACTIVATED,
+            "reopen": "school_application_reopened",
+            "block": "school_application_blocked",
         }[payload.action],
         actor_id=operator.id,
         target_user_id=principal.id if principal is not None else None,
@@ -384,14 +471,20 @@ async def decide_school(
                + (f" — {payload.reason}" if payload.reason else ""),
         request=request,
     )
-    if approves_account or payload.action == "reject":
+    for person in principals:
+        await record_application_event(
+            db, person, action=payload.action, from_status=previous_person_statuses[person.id],
+            to_status=person.account_status, actor_id=operator.id, reason=payload.reason,
+            detail=f"School {school.name} (#{school.school_id}): {previous_status} → {school.status}",
+        )
+    if approves_account or payload.action in {"reject", "reopen", "block"}:
         try:
             for person in principals:
                 await send_account_decision_email(
                     person.email, full_name=person.full_name, role=person.role,
-                    decision="rejected" if payload.action == "reject" else "approved",
+                    decision={"reject": "rejected", "reopen": "reopened", "block": "blocked"}.get(payload.action, "approved"),
                     school_name=school.name,
-                    reason=school.rejection_reason if payload.action == "reject" else None,
+                    reason=school.rejection_reason if payload.action in {"reject", "block"} else payload.reason,
                 )
         except EmailDeliveryError:
             await db.rollback()

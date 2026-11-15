@@ -42,7 +42,7 @@ class DecisionEmailTests(unittest.IsolatedAsyncioTestCase):
             EMAIL_FROM="TRACE <noreply@example.com>", DEBUG_OTP=False, LOG_OTP_CODES=False,
         ):
             for role in ("admin", "teacher"):
-                for decision in ("approved", "rejected"):
+                for decision in ("approved", "rejected", "reopened", "blocked"):
                     with self.subTest(role=role, decision=decision):
                         sent = []
 
@@ -64,12 +64,58 @@ class DecisionEmailTests(unittest.IsolatedAsyncioTestCase):
                         self.assertIn("Alex &lt;Teacher&gt;", payload["html"])
                         self.assertIn("Test &amp; Example School", payload["html"])
                         self.assertNotIn("<script>", payload["html"])
-                        self.assertIn("Reason:" if decision == "rejected" else "sign in", payload["text"])
-                        if decision == "rejected":
+                        if decision == "approved":
+                            self.assertIn("sign in", payload["text"])
+                        elif decision in ("rejected", "blocked"):
+                            self.assertIn("Reason:", payload["text"])
                             self.assertIn("&lt;script&gt;", payload["html"])
+                            self.assertIn("system operator" if role == "admin" else "school administrator", payload["text"])
+                            if decision == "rejected":
+                                for content in (payload["text"], payload["html"]):
+                                    self.assertIn("Correct and resubmit", content)
+                                    self.assertIn("Verify this email address", content)
+                                    self.assertIn("approval again", content)
+                            else:
+                                self.assertNotIn("Correct and resubmit", payload["text"])
+                        else:
+                            for content in (payload["text"], payload["html"]):
+                                self.assertIn("Pending", content)
+                                self.assertIn("awaiting review", content)
+                            self.assertNotIn("You can now sign in", payload["text"])
                         logo, = payload["attachments"]
                         self.assertIn(f'src="cid:{logo["content_id"]}"', payload["html"])
                         self.assertTrue(b64decode(logo["content"]).startswith(b"\x89PNG\r\n\x1a\n"))
+
+    async def test_resubmission_verification_email_has_distinct_purpose_five_minute_expiry_and_inline_logo(self):
+        sent = []
+
+        def handle(request):
+            sent.append(json.loads(request.content))
+            return httpx.Response(200, json={"id": "fake-resubmission-message-id"})
+
+        provider = HTTPClient(transport=httpx.MockTransport(handle))
+        with patch.multiple(
+            settings, EMAIL_ENABLED=True, RESEND_API_KEY="fake-test-key",
+            EMAIL_FROM="TRACE <noreply@example.com>", OTP_EXPIRY_MINUTES=5,
+            DEBUG_OTP=False, LOG_OTP_CODES=False,
+        ):
+            with patch.object(email_service.httpx, "AsyncClient", return_value=provider):
+                await email_service.send_otp_email(
+                    "rejected-applicant@example.com", "927164", purpose="resubmission",
+                )
+        payload, = sent
+        self.assertEqual(payload["to"], ["rejected-applicant@example.com"])
+        self.assertIn("application correction", payload["subject"])
+        self.assertNotIn("password reset", payload["subject"])
+        self.assertNotIn("sign-in", payload["subject"])
+        for content in (payload["text"], payload["html"]):
+            self.assertIn("application correction", content)
+            self.assertIn("927164", content)
+            self.assertIn("expires in 5 minutes", content)
+            self.assertIn("used once", content)
+        logo, = payload["attachments"]
+        self.assertIn(f'src="cid:{logo["content_id"]}"', payload["html"])
+        self.assertTrue(b64decode(logo["content"]).startswith(b"\x89PNG\r\n\x1a\n"))
 
 
 class AccountDecisionRouteTests(unittest.IsolatedAsyncioTestCase):

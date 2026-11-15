@@ -48,6 +48,7 @@ TYPE_PRIVATE = "private"
 SCHOOL_PENDING = "pending"
 SCHOOL_APPROVED = "approved"
 SCHOOL_REJECTED = "rejected"
+SCHOOL_BLOCKED = "blocked"
 SCHOOL_DEACTIVATED = "deactivated"
 
 

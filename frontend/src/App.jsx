@@ -12,6 +12,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import VerifyOtpPage from './pages/auth/VerifyOtpPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import ResubmitPage from './pages/auth/ResubmitPage';
 
 import DashboardPage from './pages/app/DashboardPage';
 import StudentsPage from './pages/app/StudentsPage';
@@ -146,6 +147,14 @@ function Router() {
         element={
           <RequireGuest>
             <RegisterPage />
+          </RequireGuest>
+        }
+      />
+      <Route
+        path="/resubmit"
+        element={
+          <RequireGuest>
+            <ResubmitPage />
           </RequireGuest>
         }
       />

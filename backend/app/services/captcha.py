@@ -14,7 +14,7 @@ from app.core.config import settings
 
 
 _SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
-_ACTIONS = frozenset({"register_teacher", "register_school", "login"})
+_ACTIONS = frozenset({"register_teacher", "register_school", "login", "resubmit"})
 _PROVIDER_ERRORS = frozenset({
     "missing-input-secret", "invalid-input-secret", "bad-request", "internal-error",
 })

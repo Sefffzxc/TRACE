@@ -58,6 +58,7 @@ from app.schemas.staff import (
     VerifyResetOTPRequest,
 )
 from app.services.audit import Action, client_ip, log_event
+from app.services.applications import record_application_event
 from app.services.email import EmailDeliveryError, log_otp_code, send_otp_email
 from app.services.captcha import verify_captcha
 from app.services.login_captcha import login_risk
@@ -207,6 +208,9 @@ async def register(
     )
     db.add(staff)
     await db.flush()
+    await record_application_event(
+        db, staff, "submitted", None, STATUS_PENDING, actor_id=None,
+    )
     await log_event(
         db,
         Action.REGISTER,

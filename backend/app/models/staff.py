@@ -37,6 +37,7 @@ ROLE_TEACHER = "teacher"
 STATUS_PENDING = "pending"
 STATUS_APPROVED = "approved"
 STATUS_REJECTED = "rejected"
+STATUS_BLOCKED = "blocked"
 STATUS_DEACTIVATED = "deactivated"
 
 

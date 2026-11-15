@@ -105,7 +105,7 @@ Copy `.env.example` to `.env`. The important ones:
 | `SECRET_KEY` | placeholder | **Change this before deploying** |
 | `DEBUG_OTP` | `false` | Returns the code in the response only when explicitly enabled for local development. The example .env enables it locally. |
 | `LOG_OTP_CODES` | `false` | Copies codes to API logs independently of on-screen debug. Enable temporarily for the defense, then disable. |
-| `OTP_EXPIRY_MINUTES` | `5` | Login and password-reset code lifetime. |
+| `OTP_EXPIRY_MINUTES` | `5` | Login, password-reset and application-correction code lifetime. |
 | `EMAIL_ENABLED` | `false` | Send verification codes and account approval/rejection notices through Resend. |
 | `RESEND_API_KEY` | empty | API-server secret, never a frontend variable. |
 | `EMAIL_FROM` | empty | Verified sender, e.g. `TRACE <noreply@auth.yourtrace.app>`. |
@@ -151,3 +151,20 @@ new-device login fails rather than issuing an inaccessible code.
 
 See [the Student Pack guide](../STUDENT_HOSTING_GUIDE.md) for the domain/DNS,
 Resend account and Ubuntu server configuration.
+
+## Correcting rejected applications
+
+Teachers and principals can verify ownership of their existing email and correct
+a rejected application through `/resubmit`. The account returns to Pending with
+the same ID, email, role, and password. School administrators review teacher
+applications; the operator reviews school/principal applications. Both have
+Rejected and Blocked queues, required rejection/block reasons, and decision
+history. Blocked applications require an administrator to reopen them.
+
+The API adds `application_events` and `resubmission_challenges` through the
+existing `init_models()` startup. This feature adds no existing-table columns
+and requires no destructive migration. Correction codes expire in five minutes;
+hashed, single-use correction tokens expire in fifteen minutes and never grant
+normal account access. CAPTCHA uses the existing configuration with the
+`resubmit` action. See [the resubmission guide](../APPLICATION_RESUBMISSION_GUIDE.md)
+for school-change restrictions, deployment, and acceptance checks.

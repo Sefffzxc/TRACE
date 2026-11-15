@@ -21,6 +21,7 @@ export const schoolApi = {
 
   // System operator only.
   list: (params) => api.get('/api/schools', params),
+  applicationHistory: (schoolId) => api.get(`/api/schools/${schoolId}/application-history`),
   decide: (schoolId, action, reason) =>
     api.patch(`/api/schools/${schoolId}`, { action, reason }),
 };
@@ -29,6 +30,16 @@ export const schoolApi = {
 export const authApi = {
   captchaConfig: () => api.get('/api/auth/captcha-config', undefined, { auth: false }),
   register: (payload) => api.post('/api/auth/register', payload, { auth: false }),
+
+  requestResubmission: (email, captchaToken) => api.post(
+    '/api/auth/resubmission/request',
+    { email, ...(captchaToken ? { captcha_token: captchaToken } : {}) },
+    { auth: false },
+  ),
+  verifyResubmission: (email, challengeId, code) => api.post(
+    '/api/auth/resubmission/verify', { email, challenge_id: challengeId, code }, { auth: false },
+  ),
+  resubmitApplication: (payload) => api.post('/api/auth/resubmission/submit', payload, { auth: false }),
 
   login: (email, password, captchaToken) =>
     api.post(
@@ -76,6 +87,8 @@ export const staffApi = {
   list: (params) => api.get('/api/staff', params),
   teachers: () => api.get('/api/staff/teachers'),
   pending: () => api.get('/api/staff/pending'),
+  applicationList: (status) => api.get('/api/staff/applications', { status }),
+  applicationHistory: (staffId) => api.get(`/api/staff/${staffId}/application-history`),
   auditLogs: (params) => api.get('/api/staff/audit-logs', params),
   me: () => api.get('/api/staff/me'),
   updateMe: (payload) => api.patch('/api/staff/me', payload),

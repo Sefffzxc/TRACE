@@ -6,7 +6,7 @@ import pathlib
 import secrets
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import (
     APIRouter,
@@ -30,11 +30,14 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models.academic import Section, TeacherAssignment
+from app.models.applications import ApplicationEvent
 from app.models.schools import School
 from app.models.staff import (
+    ROLE_ADMIN,
     ROLE_SUPER_ADMIN,
     ROLE_TEACHER,
     STATUS_APPROVED,
+    STATUS_BLOCKED,
     STATUS_DEACTIVATED,
     STATUS_PENDING,
     STATUS_REJECTED,
@@ -42,6 +45,7 @@ from app.models.staff import (
     Staff,
 )
 from app.schemas.staff import (
+    ApplicationHistoryResponse,
     AuditLogResponse,
     ChangePasswordRequest,
     StaffAdminUpdate,
@@ -49,6 +53,7 @@ from app.schemas.staff import (
     StaffUpdateProfile,
 )
 from app.services.audit import Action, log_event
+from app.services.applications import ensure_legacy_rejection_event, record_application_event
 from app.services.email import EmailDeliveryError, send_account_decision_email
 
 router = APIRouter(tags=["Staff"])
@@ -188,6 +193,8 @@ async def list_staff(
     so this filter can never return the operator account either.
     """
     stmt = select(Staff).where(Staff.school_id == scope)
+    if account_status in {STATUS_REJECTED, STATUS_BLOCKED} and current.role != ROLE_ADMIN:
+        raise HTTPException(status_code=403, detail="Administrator access is required to review applications.")
     if role:
         stmt = stmt.where(Staff.role == role)
     elif current.role != "admin":
@@ -197,7 +204,7 @@ async def list_staff(
     else:
         # Retain rejected registrations for their decision and audit history,
         # while excluding them from the ordinary staff directory.
-        stmt = stmt.where(Staff.account_status != STATUS_REJECTED)
+        stmt = stmt.where(Staff.account_status.notin_([STATUS_REJECTED, STATUS_BLOCKED]))
     if search:
         pattern = f"%{search.lower()}%"
         stmt = stmt.where(
@@ -224,7 +231,7 @@ async def list_teachers(
                 Staff.school_id == scope,
                 Staff.role == ROLE_TEACHER,
                 Staff.is_approved.is_(True),
-                Staff.account_status != STATUS_REJECTED,
+                Staff.account_status.notin_([STATUS_REJECTED, STATUS_BLOCKED]),
             )
             .order_by(Staff.last_name, Staff.first_name)
         )
@@ -270,11 +277,76 @@ async def list_pending(
             .where(
                 Staff.school_id == scope,
                 Staff.account_status == STATUS_PENDING,
+                Staff.role == ROLE_TEACHER,
             )
             .order_by(Staff.created_at.desc())
         )
     ).scalars().all()
     return [StaffResponse.model_validate(r) for r in rows]
+
+
+@router.get("/api/staff/applications", response_model=List[StaffResponse])
+async def list_applications(
+    status_filter: Literal["pending", "rejected", "blocked"] = Query(default="pending", alias="status"),
+    _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (
+        await db.execute(
+            select(Staff)
+            .where(
+                Staff.school_id == scope,
+                Staff.role == ROLE_TEACHER,
+                Staff.account_status == status_filter,
+            )
+            .order_by(Staff.updated_at.desc(), Staff.created_at.desc())
+        )
+    ).scalars().all()
+    return [StaffResponse.model_validate(row) for row in rows]
+
+
+@router.get("/api/staff/{staff_id}/application-history", response_model=List[ApplicationHistoryResponse])
+async def application_history(
+    staff_id: uuid.UUID,
+    _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    # History may import legacy events. Their school foreign key must follow
+    # the same school-then-applicant lock order as corrections and decisions.
+    await db.execute(select(School.school_id).where(School.school_id == scope).with_for_update())
+    person = (
+        await db.execute(
+            select(Staff).where(
+                Staff.id == staff_id, Staff.school_id == scope, Staff.role == ROLE_TEACHER,
+            ).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if person is None:
+        raise HTTPException(status_code=404, detail="Staff member not found.")
+    await ensure_legacy_rejection_event(db, person)
+    await db.commit()
+    events = (
+        await db.execute(
+            select(ApplicationEvent).where(
+                ApplicationEvent.staff_id == person.id, ApplicationEvent.school_id == scope,
+            ).order_by(ApplicationEvent.created_at.desc(), ApplicationEvent.id.desc())
+        )
+    ).scalars().all()
+    actor_ids = {event.actor_id for event in events if event.actor_id is not None}
+    names = {}
+    if actor_ids:
+        actors = (
+            await db.execute(select(Staff).where(Staff.id.in_(actor_ids), Staff.school_id == scope))
+        ).scalars().all()
+        names = {actor.id: actor.full_name for actor in actors}
+    output = []
+    for event in events:
+        item = ApplicationHistoryResponse.model_validate(event)
+        item.actor_name = names.get(event.actor_id)
+        output.append(item)
+    return output
 
 
 @router.get("/api/staff/audit-logs", response_model=List[AuditLogResponse])
@@ -340,6 +412,8 @@ async def read_staff(
     ).scalar_one_or_none()
     if staff is None or staff.role == ROLE_SUPER_ADMIN:
         raise HTTPException(status_code=404, detail="Staff member not found.")
+    if staff.account_status in {STATUS_REJECTED, STATUS_BLOCKED} and current.role != ROLE_ADMIN:
+        raise HTTPException(status_code=404, detail="Staff member not found.")
     return StaffResponse.model_validate(staff)
 
 
@@ -355,28 +429,44 @@ async def admin_update_staff(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    await db.execute(select(School.school_id).where(School.school_id == scope).with_for_update())
     # Scoped lookup: a staff member in another school is reported as simply not
     # existing, so a principal cannot discover other schools' accounts by id.
     staff = (
         await db.execute(
-            select(Staff).where(Staff.id == staff_id, Staff.school_id == scope)
+            select(Staff).where(Staff.id == staff_id, Staff.school_id == scope).with_for_update()
         )
     ).scalar_one_or_none()
     if staff is None or staff.role == ROLE_SUPER_ADMIN:
         raise HTTPException(status_code=404, detail="Staff member not found.")
-    if staff.id == admin.id and payload.action in {"deactivate", "reject"}:
+    if staff.id == admin.id and payload.action in {"deactivate", "reject", "reopen", "block"}:
         raise HTTPException(
-            status_code=400, detail="You cannot deactivate your own account."
+            status_code=400, detail="You cannot change your own application status."
         )
+    if staff.role != ROLE_TEACHER and not (
+        staff.id == admin.id and payload.action in {"unlock", "force_reset"}
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Principal applications must be managed by the system operator.",
+        )
+    if payload.role and payload.role != ROLE_TEACHER:
+        raise HTTPException(status_code=403, detail="A teacher application cannot grant administrator access.")
 
     action = payload.action
     previous_status = staff.account_status
     response: dict = {}
+    if previous_status == STATUS_BLOCKED and action not in {"reopen", "block", "unlock", "force_reset"}:
+        raise HTTPException(status_code=409, detail="Reopen the blocked application before making another decision.")
+    if action == "reopen" and previous_status not in {STATUS_REJECTED, STATUS_BLOCKED}:
+        raise HTTPException(status_code=409, detail="Only rejected or blocked applications can be reopened.")
+    await ensure_legacy_rejection_event(db, staff)
 
     if action == "approve":
+        staff.is_active = True
         staff.is_approved = True
         staff.account_status = STATUS_APPROVED
-        staff.approved_at = _now()
+        staff.approved_at = staff.approved_at or _now()
         staff.approved_by = admin.id
         staff.rejection_reason = None
         if payload.role:
@@ -388,14 +478,37 @@ async def admin_update_staff(
         response = {"message": f"{staff.full_name} approved."}
 
     elif action == "reject":
+        staff.is_active = True
         staff.is_approved = False
         staff.account_status = STATUS_REJECTED
-        staff.rejection_reason = payload.reason or "No reason given."
+        staff.rejection_reason = payload.reason
         await log_event(
             db, Action.REJECT_USER, actor_id=admin.id, target_user_id=staff.id,
             detail=staff.rejection_reason, request=request,
         )
         response = {"message": f"Registration for {staff.full_name} rejected."}
+
+    elif action == "reopen":
+        staff.account_status = STATUS_PENDING
+        staff.is_approved = False
+        staff.is_active = True
+        staff.rejection_reason = None
+        await log_event(
+            db, "reopen_application", actor_id=admin.id, target_user_id=staff.id,
+            detail=payload.reason, request=request,
+        )
+        response = {"message": f"Application for {staff.full_name} reopened for review."}
+
+    elif action == "block":
+        staff.account_status = STATUS_BLOCKED
+        staff.is_approved = False
+        staff.is_active = False
+        staff.rejection_reason = payload.reason
+        await log_event(
+            db, "block_application", actor_id=admin.id, target_user_id=staff.id,
+            detail=payload.reason, request=request,
+        )
+        response = {"message": f"Application for {staff.full_name} blocked."}
 
     elif action == "deactivate":
         staff.is_active = False
@@ -412,7 +525,7 @@ async def admin_update_staff(
         staff.is_approved = True
         staff.rejection_reason = None
         if previous_status in {STATUS_PENDING, STATUS_REJECTED}:
-            staff.approved_at = _now()
+            staff.approved_at = staff.approved_at or _now()
             staff.approved_by = admin.id
         await log_event(
             db, Action.REACTIVATE_USER, actor_id=admin.id, target_user_id=staff.id,
@@ -449,16 +562,22 @@ async def admin_update_staff(
             "temporary_password": temp_password,
         }
 
-    if action in {"approve", "reject"} or (
+    if action in {"approve", "reject", "reopen", "block", "deactivate", "reactivate"}:
+        await record_application_event(
+            db, staff, action=action, from_status=previous_status,
+            to_status=staff.account_status, actor_id=admin.id, reason=payload.reason,
+        )
+
+    if action in {"approve", "reject", "reopen", "block"} or (
         action == "reactivate" and previous_status in {STATUS_PENDING, STATUS_REJECTED}
     ):
         school = await db.get(School, staff.school_id) if staff.school_id is not None else None
         try:
             await send_account_decision_email(
                 staff.email, full_name=staff.full_name, role=staff.role,
-                decision="rejected" if action == "reject" else "approved",
+                decision={"reject": "rejected", "reopen": "reopened", "block": "blocked"}.get(action, "approved"),
                 school_name=school.name if school is not None else None,
-                reason=staff.rejection_reason if action == "reject" else None,
+                reason=staff.rejection_reason if action in {"reject", "block"} else payload.reason,
             )
         except EmailDeliveryError:
             await db.rollback()
@@ -489,6 +608,8 @@ async def delete_staff(
     ).scalar_one_or_none()
     if staff is None or staff.role == ROLE_SUPER_ADMIN:
         raise HTTPException(status_code=404, detail="Staff member not found.")
+    if staff.role != ROLE_TEACHER:
+        raise HTTPException(status_code=403, detail="Principal accounts must be managed by the system operator.")
     if staff.id == admin.id:
         raise HTTPException(status_code=400, detail="You cannot delete your own account.")
     await log_event(

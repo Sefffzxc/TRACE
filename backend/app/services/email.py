@@ -24,9 +24,9 @@ from app.core.config import settings
 
 
 log = logging.getLogger("trace.email")
-OTPPurpose = Literal["login", "password-reset"]
-AccountDecision = Literal["approved", "rejected"]
-_PURPOSES = {"login": "sign-in", "password-reset": "password reset"}
+OTPPurpose = Literal["login", "password-reset", "resubmission"]
+AccountDecision = Literal["approved", "rejected", "reopened", "blocked"]
+_PURPOSES = {"login": "sign-in", "password-reset": "password reset", "resubmission": "application correction"}
 _LOGO_CONTENT_ID = "trace-logo"
 _LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "email" / "trace-logo.png"
 
@@ -231,7 +231,7 @@ async def send_account_decision_email(
     school_name: str | None = None, reason: str | None = None,
 ) -> None:
     """Notify a principal or teacher of their registration decision."""
-    if decision not in ("approved", "rejected"):
+    if decision not in ("approved", "rejected", "reopened", "blocked"):
         raise ValueError("Unsupported account decision.")
     role_label = "principal" if role == "admin" else "teacher"
     school = f" for {school_name}" if school_name else ""
@@ -245,7 +245,7 @@ async def send_account_decision_email(
         )
         text += next_step
         body += f"<p>{next_step}</p>"
-    else:
+    elif decision in ("rejected", "blocked"):
         explanation = reason or "No reason was provided."
         contact = "system operator" if role == "admin" else "school administrator"
         next_step = f"Please contact your {contact} if you have questions about this decision."
@@ -254,6 +254,21 @@ async def send_account_decision_email(
             '<p style="padding:16px;background-color:#f3f5f9;white-space:pre-wrap">'
             f"<strong>Reason:</strong> {escape(explanation)}</p><p>{next_step}</p>"
         )
+        if decision == "rejected":
+            correction = (
+                "To correct this application, open TRACE's sign-in page and select "
+                "Correct and resubmit. Verify this email address to update your existing "
+                "application; the corrected request will need approval again."
+            )
+            text += f"\n\n{correction}"
+            body += f"<p>{escape(correction)}</p>"
+    else:
+        next_step = (
+            "Your application has returned to Pending and is awaiting review. "
+            "You will receive another email when a decision is made."
+        )
+        text += next_step
+        body += f"<p>{next_step}</p>"
     text += f"\n\nTRACE - {settings.SYSTEM_LONG_NAME}"
     await _send_email(
         email, subject=f"TRACE: your account has been {decision}", text=text,

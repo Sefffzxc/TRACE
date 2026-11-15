@@ -119,6 +119,7 @@ export default function RegisterPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [duplicateEmail, setDuplicateEmail] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [focusRequest, setFocusRequest] = useState(0);
   const formRef = useRef(null);
@@ -169,6 +170,14 @@ export default function RegisterPage() {
     'aria-describedby': visibleErrors[id] ? `${id}-error` : undefined,
   });
   const fieldError = (id) => <FieldError id={id} message={visibleErrors[id]} />;
+  const resubmissionHint = duplicateEmail && (
+    <p className="field-hint">
+      If this is your rejected application, keep your existing email and{' '}
+      <button type="button" className="link-button" onClick={() => navigate('/resubmit', { state: { email: duplicateEmail } })}>
+        correct and resubmit
+      </button>.
+    </p>
+  );
   const clearFieldErrors = (ids) => setFieldErrors((current) => {
     if (!ids.some((id) => current[id])) return current;
     const next = { ...current };
@@ -221,6 +230,7 @@ export default function RegisterPage() {
   const switchMode = (next) => {
     setMode(next);
     setError('');
+    setDuplicateEmail('');
     setFieldErrors({});
     setCaptchaToken('');
     setCaptchaReset((current) => current + 1);
@@ -302,6 +312,7 @@ export default function RegisterPage() {
     event.preventDefault();
     if (busy || retry.seconds > 0) return;
     setError('');
+    setDuplicateEmail('');
     if (captcha.loading || captcha.error || !captcha.config) {
       setError('Security verification settings are unavailable. Use Retry below and submit again.');
       setFocusRequest((current) => current + 1);
@@ -323,6 +334,9 @@ export default function RegisterPage() {
       else await submitSchool();
     } catch (err) {
       retry.start(err.retryAfter);
+      if (err.status === 409 && /email/i.test(err.message)) {
+        setDuplicateEmail((mode === 'teacher' ? teacher.email : admin.email).trim());
+      }
       const { fields, unmapped } = registrationApiErrors(err, mode);
       if (err.payload?.detail?.code?.startsWith('captcha_')) fields.captcha = err.message;
       setFieldErrors(fields);
@@ -533,6 +547,7 @@ export default function RegisterPage() {
                 Email <span className="req">*</span>
               </label>
               {fieldError('reg_email')}
+              {resubmissionHint}
               <input
                 id="reg_email"
                 {...validationProps('reg_email')}
@@ -931,6 +946,7 @@ export default function RegisterPage() {
                 Your email <span className="req">*</span>
               </label>
               {fieldError('a_email')}
+              {resubmissionHint}
               <input
                 id="a_email"
                 {...validationProps('a_email')}

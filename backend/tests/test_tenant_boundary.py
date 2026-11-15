@@ -77,7 +77,10 @@ def _install_stubs(role_constants: dict) -> None:
     for key, value in role_constants.items():
         setattr(stf, key, value)
     stf.Staff = type("Staff", (), {})
+    stf.StaffSession = type("StaffSession", (), {})
+    stf.StaffSession = type("StaffSession", (), {})
     stf.STATUS_REJECTED = "rejected"
+    stf.STATUS_BLOCKED = "blocked"
     seco = types.ModuleType("app.core.security")
     seco.decode_token = lambda token: None
 

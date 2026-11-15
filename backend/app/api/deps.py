@@ -19,13 +19,18 @@ from app.core.security import decode_token
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.schools import SCHOOL_APPROVED, SCHOOL_PENDING, School
-from app.models.staff import ROLE_ADMIN, ROLE_SUPER_ADMIN, STATUS_REJECTED, Staff
+from app.models.staff import ROLE_ADMIN, ROLE_SUPER_ADMIN, STATUS_BLOCKED, STATUS_REJECTED, Staff, StaffSession
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def require_account_access(staff: Staff, db: AsyncSession) -> None:
     """Check current account and school decisions after verifying identity."""
+    if staff.account_status == STATUS_BLOCKED:
+        raise HTTPException(
+            status_code=403,
+            detail="This application has been blocked. Please contact the administrator to request a review.",
+        )
     if staff.account_status == STATUS_REJECTED:
         detail = "Your account registration has been rejected."
         if staff.rejection_reason:
@@ -81,11 +86,23 @@ async def _staff_from_token(
     except (TypeError, ValueError):
         raise HTTPException(status_code=401, detail="Malformed token.")
 
-    result = await db.execute(select(Staff).where(Staff.id == staff_id))
-    staff = result.scalar_one_or_none()
-    if staff is None:
+    token_column = StaffSession.access_token if expected_type == "access" else StaffSession.refresh_token
+    revoked = select(StaffSession.id).where(
+        StaffSession.staff_id == staff_id, token_column == token,
+        StaffSession.is_active.is_(False),
+    ).exists()
+    active = select(StaffSession.id).where(
+        StaffSession.staff_id == staff_id, token_column == token,
+        StaffSession.is_active.is_(True),
+    ).exists()
+    result = await db.execute(select(Staff, revoked, active).where(Staff.id == staff_id))
+    row = result.one_or_none()
+    if row is None:
         raise HTTPException(status_code=401, detail="Account no longer exists.")
+    staff, has_revoked_session, has_active_session = row
     await require_account_access(staff, db)
+    if has_revoked_session and not has_active_session:
+        raise HTTPException(status_code=401, detail="This session has ended. Please sign in again.")
     return staff
 
 
@@ -308,3 +325,6 @@ limit_login = limiter("login", 10, 60, ip_limit_setting="AUTH_LOGIN_IP_LIMIT")
 limit_otp = limiter("otp", 10, 60, ip_limit_setting="AUTH_OTP_IP_LIMIT")
 limit_password_reset = limiter("reset", 5, 300, ip_limit_setting="AUTH_RESET_IP_LIMIT")
 limit_register = limiter("register", 5, 300, ip_limit_setting="AUTH_REGISTER_IP_LIMIT")
+limit_resubmission_request = limiter("resubmission-request", 5, 300, ip_limit_setting="AUTH_REGISTER_IP_LIMIT")
+limit_resubmission_verify = limiter("resubmission-verify", 10, 60, ip_limit_setting="AUTH_OTP_IP_LIMIT")
+limit_resubmission_submit = limiter("resubmission-submit", 10, 60, ip_limit_setting="AUTH_REGISTER_IP_LIMIT")

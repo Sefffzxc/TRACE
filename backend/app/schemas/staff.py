@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.core.security import validate_password_strength
 
@@ -66,6 +66,7 @@ class StaffResponse(ORMModel):
     locked_until: Optional[datetime] = None
     last_login_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
 
 
 class StaffUpdateProfile(BaseModel):
@@ -80,10 +81,31 @@ class StaffAdminUpdate(BaseModel):
     """Admin-only actions on a staff account."""
 
     action: Literal[
-        "approve", "reject", "deactivate", "reactivate", "unlock", "force_reset"
+        "approve", "reject", "reopen", "block", "deactivate", "reactivate", "unlock", "force_reset"
     ]
     reason: Optional[str] = Field(default=None, max_length=500)
     role: Optional[Literal["admin", "teacher"]] = None
+
+    @model_validator(mode="after")
+    def _decision_reason(self):
+        self.reason = self.reason.strip() if self.reason else None
+        if self.action in {"reject", "block"} and not self.reason:
+            raise ValueError("A reason is required for rejecting or blocking an application.")
+        return self
+
+
+class ApplicationHistoryResponse(ORMModel):
+    id: uuid.UUID
+    staff_id: Optional[uuid.UUID] = None
+    school_id: Optional[int] = None
+    actor_id: Optional[uuid.UUID] = None
+    actor_name: Optional[str] = None
+    action: str
+    from_status: Optional[str] = None
+    to_status: Optional[str] = None
+    reason: Optional[str] = None
+    detail: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 
 class ChangePasswordRequest(BaseModel):

@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routers import (
-    academic, ai, auth, class_import, dashboard, pace, schools, staff, students,
+    academic, ai, auth, class_import, dashboard, pace, schools, staff, students, resubmission,
 )
 from app.core.config import settings
 from app.db.session import init_models
@@ -177,6 +177,7 @@ async def unhandled_handler(request: Request, exc: Exception):
 
 for router in (
     auth.router,
+    resubmission.router,
     staff.router,
     academic.router,
     students.router,

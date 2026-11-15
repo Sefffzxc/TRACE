@@ -1,6 +1,7 @@
 """Importing this package registers every model on ``Base.metadata``."""
 from app.models.schools import (  # noqa: F401
     SCHOOL_APPROVED,
+    SCHOOL_BLOCKED,
     SCHOOL_DEACTIVATED,
     SCHOOL_PENDING,
     SCHOOL_REJECTED,
@@ -22,6 +23,7 @@ from app.models.staff import (  # noqa: F401
     ROLE_SUPER_ADMIN,
     ROLE_TEACHER,
     STATUS_APPROVED,
+    STATUS_BLOCKED,
     STATUS_DEACTIVATED,
     STATUS_PENDING,
     STATUS_REJECTED,
@@ -41,6 +43,7 @@ from app.models.students import (  # noqa: F401
     StudentEnrollment,
     StudentPace,
 )
+from app.models.applications import ApplicationEvent, ResubmissionChallenge  # noqa: F401
 
 __all__ = [
     "School",
@@ -48,6 +51,7 @@ __all__ = [
     "TYPE_PRIVATE",
     "SCHOOL_PENDING",
     "SCHOOL_APPROVED",
+    "SCHOOL_BLOCKED",
     "SCHOOL_REJECTED",
     "SCHOOL_DEACTIVATED",
     "Staff",
@@ -56,6 +60,8 @@ __all__ = [
     "OTPCode",
     "PasswordReset",
     "AuditLog",
+    "ApplicationEvent",
+    "ResubmissionChallenge",
     "SchoolYear",
     "GradeLevel",
     "Section",
@@ -75,6 +81,7 @@ __all__ = [
     "ROLE_TEACHER",
     "STATUS_PENDING",
     "STATUS_APPROVED",
+    "STATUS_BLOCKED",
     "STATUS_REJECTED",
     "STATUS_DEACTIVATED",
 ]

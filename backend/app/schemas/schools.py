@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 class ORMModel(BaseModel):
@@ -40,10 +40,10 @@ class SchoolProfile(BaseModel):
     grading_periods: int = Field(default=4, ge=1, le=6)
     grading_period_label: str = Field(default="Quarter", max_length=30)
 
-    @field_validator("name", "city")
+    @field_validator("name", "city", mode="before")
     @classmethod
     def _strip(cls, value: str) -> str:
-        return value.strip()
+        return value.strip() if isinstance(value, str) else value
 
 
 class SchoolRegisterRequest(BaseModel):
@@ -148,5 +148,12 @@ class SchoolDirectoryEntry(BaseModel):
 
 
 class SchoolDecision(BaseModel):
-    action: Literal["approve", "reject", "deactivate", "reactivate"]
+    action: Literal["approve", "reject", "reopen", "block", "deactivate", "reactivate"]
     reason: Optional[str] = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _decision_reason(self):
+        self.reason = self.reason.strip() if self.reason else None
+        if self.action in {"reject", "block"} and not self.reason:
+            raise ValueError("A reason is required so the school knows the decision.")
+        return self
