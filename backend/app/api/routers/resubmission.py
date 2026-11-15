@@ -207,7 +207,9 @@ async def submit_correction(
     elif payload.school_id not in (None, person.school_id) or payload.confirm_school_change:
         raise HTTPException(422, detail="A principal must correct the existing school application.")
 
-    employee_no = payload.employee_no or None
+    employee_no = (
+        payload.employee_no if "employee_no" in payload.model_fields_set else person.employee_no
+    ) or None
     if employee_no and await db.scalar(select(Staff.id).where(
         Staff.school_id == destination.school_id, Staff.employee_no == employee_no, Staff.id != person.id,
     ).limit(1)) is not None:
@@ -235,8 +237,11 @@ async def submit_correction(
             detail=f"Email owner changed an unapproved application from {school.name} to {destination.name}. Existing school records were not transferred.",
         )
         person.school_id = destination.school_id
-    for field in ("first_name", "middle_name", "last_name", "contact_number", "employee_no", "department"):
+    for field in ("first_name", "middle_name", "last_name", "contact_number"):
         setattr(person, field, getattr(payload, field))
+    for field in ("employee_no", "department"):
+        if field in payload.model_fields_set:
+            setattr(person, field, getattr(payload, field))
     person.account_status = STATUS_PENDING
     person.is_approved = False
     person.rejection_reason = None

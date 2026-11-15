@@ -505,6 +505,54 @@ class ResubmissionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual((await self._submit(token, employee_no="EMP-UNIQUE")).status_code, 200)
 
+    async def test_omitted_staff_metadata_is_preserved_and_checked_when_changing_school(self):
+        async with self.sessions() as db:
+            for name, employee_no, department in (
+                ("Teacher", "EMP-EXISTING", "Mathematics"),
+                ("Second", "EMP-TRANSFER", "Science"),
+                ("Principal", "EMP-PRINCIPAL", "Administration"),
+            ):
+                person = await db.get(Staff, self.people[name].id)
+                person.employee_no, person.department = employee_no, department
+            destination_admin = await db.get(Staff, self.people["DestinationAdmin"].id)
+            destination_admin.employee_no = "EMP-TRANSFER"
+            await db.commit()
+
+        async def submit_without_metadata(token, **extra):
+            return await self.client.post("/api/auth/resubmission/submit", json={
+                "token": token, "first_name": "Corrected", "last_name": "Applicant",
+                "contact_number": "09987654321", **extra,
+            })
+
+        token, _ = await self._proof()
+        response = await submit_without_metadata(token)
+        self.assertEqual(response.status_code, 200, response.text)
+        async with self.sessions() as db:
+            person = await db.get(Staff, self.people["Teacher"].id)
+            self.assertEqual((person.employee_no, person.department), ("EMP-EXISTING", "Mathematics"))
+
+        token, _ = await self._proof("Second")
+        response = await submit_without_metadata(token, school_id=2, confirm_school_change=True)
+        self.assertEqual(response.status_code, 409, response.text)
+        async with self.sessions() as db:
+            destination_admin = await db.get(Staff, self.people["DestinationAdmin"].id)
+            destination_admin.employee_no = None
+            await db.commit()
+        response = await submit_without_metadata(token, school_id=2, confirm_school_change=True)
+        self.assertEqual(response.status_code, 200, response.text)
+        async with self.sessions() as db:
+            person = await db.get(Staff, self.people["Second"].id)
+            self.assertEqual(person.school_id, 2)
+            self.assertEqual((person.employee_no, person.department), ("EMP-TRANSFER", "Science"))
+
+        token, _ = await self._proof("Principal")
+        response = await submit_without_metadata(token, employee_no=None, department=None)
+        self.assertEqual(response.status_code, 200, response.text)
+        async with self.sessions() as db:
+            person = await db.get(Staff, self.people["Principal"].id)
+            self.assertIsNone(person.employee_no)
+            self.assertIsNone(person.department)
+
     async def test_principal_corrects_existing_school_and_cannot_move_to_another_school(self):
         token, application = await self._proof("Principal")
         self.assertFalse(application["can_change_school"])

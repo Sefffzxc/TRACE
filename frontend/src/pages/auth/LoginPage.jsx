@@ -173,7 +173,7 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="auth-switch" style={{ marginBottom: '1rem' }}>
+      <p className="auth-switch" style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
         Application rejected?{' '}
         <button type="button" className="link-button" onClick={() => navigate('/resubmit', { state: { email: email.trim() } })}>
           Correct and resubmit

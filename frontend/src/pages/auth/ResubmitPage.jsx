@@ -14,8 +14,6 @@ const ACCOUNT_FIELDS = [
   ['last_name', 'Last name', 100, true],
   ['middle_name', 'Middle name', 100],
   ['contact_number', 'Contact number', 20, true],
-  ['employee_no', 'Employee number', 30],
-  ['department', 'Department', 100],
 ];
 const SCHOOL_FIELDS = [
   ['name', 'School name', 200, true], ['short_name', 'Short name', 40],
@@ -216,6 +214,9 @@ export default function ResubmitPage() {
       const payload = {
         token: verification.token,
         ...Object.fromEntries(ACCOUNT_FIELDS.map(([key]) => [key, account[key].trim() || null])),
+        // Preserve existing staff metadata with older API deployments too.
+        employee_no: application.employee_no,
+        department: application.department,
         ...(application.role === 'teacher' && changeSchool ? { school_id: Number(schoolId), confirm_school_change: true } : {}),
       };
       if (application.role === 'admin') {
