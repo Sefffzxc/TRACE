@@ -128,6 +128,10 @@ Teachers first complete the [registration steps in Section 3](#3-teacher-request
 
 Approval allows sign-in. Class assignments are a separate step.
 
+Rejected registrations are hidden from the Teachers directory. When a rejected
+applicant signs in with the correct password, TRACE shows the rejection and its
+recorded reason. Pending applicants continue to see the approval-waiting message.
+
 ### Step 9: Assign teachers to sections and subjects
 
 1. Open **Class Management** → **Teacher assignments**.

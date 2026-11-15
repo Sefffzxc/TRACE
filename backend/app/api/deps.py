@@ -14,9 +14,47 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.schools import SCHOOL_APPROVED, SCHOOL_PENDING, School
-from app.models.staff import ROLE_ADMIN, ROLE_SUPER_ADMIN, Staff
+from app.models.staff import ROLE_ADMIN, ROLE_SUPER_ADMIN, STATUS_REJECTED, Staff
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+async def require_account_access(staff: Staff, db: AsyncSession) -> None:
+    """Check current account and school decisions after verifying identity."""
+    if staff.account_status == STATUS_REJECTED:
+        detail = "Your account registration has been rejected."
+        if staff.rejection_reason:
+            detail += f" Reason: {staff.rejection_reason}"
+        contact = "the system operator" if staff.role == ROLE_ADMIN else "your school administrator"
+        raise HTTPException(status_code=403, detail=f"{detail} Please contact {contact}.")
+    if not staff.is_active:
+        raise HTTPException(status_code=403, detail="This account has been deactivated.")
+    if not staff.is_approved:
+        raise HTTPException(
+            status_code=403, detail="Your account is still awaiting administrator approval.",
+        )
+
+    # Recheck the school's decision for both new sign-ins and existing tokens.
+    if staff.school_id is not None:
+        school = await db.get(School, staff.school_id)
+        if school is None:
+            raise HTTPException(status_code=403, detail="This school no longer exists.")
+        if school.status == SCHOOL_PENDING:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"{school.name} is still awaiting approval by the system "
+                    "operator. You will be able to sign in once it is approved."
+                ),
+            )
+        if school.status != SCHOOL_APPROVED:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Access to {school.name} has been suspended."
+                    + (f" Reason: {school.rejection_reason}" if school.rejection_reason else "")
+                ),
+            )
 
 
 async def _staff_from_token(
@@ -42,32 +80,7 @@ async def _staff_from_token(
     staff = result.scalar_one_or_none()
     if staff is None:
         raise HTTPException(status_code=401, detail="Account no longer exists.")
-    if not staff.is_active:
-        raise HTTPException(status_code=403, detail="This account has been deactivated.")
-    if not staff.is_approved:
-        raise HTTPException(status_code=403, detail="Account is pending admin approval.")
-
-    # A school's approval gates every account inside it. Checked on each
-    # request rather than only at sign-in, so that when the operator suspends a
-    # school its staff lose access immediately instead of whenever their token
-    # happens to expire.
-    if staff.school_id is not None:
-        school = await db.get(School, staff.school_id)
-        if school is None:
-            raise HTTPException(status_code=403, detail="This school no longer exists.")
-        if school.status == SCHOOL_PENDING:
-            raise HTTPException(
-                status_code=403,
-                detail="This school is still awaiting approval by the system operator.",
-            )
-        if school.status != SCHOOL_APPROVED:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"Access to {school.name} has been suspended."
-                    + (f" Reason: {school.rejection_reason}" if school.rejection_reason else "")
-                ),
-            )
+    await require_account_access(staff, db)
     return staff
 
 

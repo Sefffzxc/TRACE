@@ -24,14 +24,12 @@ import { useToast } from '../../context/ToastContext';
 const STATUS_BADGE = {
   approved: 'badge-low',
   pending: 'badge-moderate',
-  rejected: 'badge-critical',
   deactivated: 'badge-neutral',
 };
 
 const STATUS_LABEL = {
   approved: 'Approved',
   pending: 'Pending',
-  rejected: 'Rejected',
   deactivated: 'Deactivated',
 };
 
@@ -55,7 +53,7 @@ export default function TeachersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await staffApi.list();
+      const rows = await staffApi.list({ role: 'teacher' });
       setStaff(rows || []);
     } catch (err) {
       setError(err.message);
@@ -73,7 +71,7 @@ export default function TeachersPage() {
     // Teachers only: the administrator's own account is managed from their
     // profile, not listed here among the people they manage.
     return staff.filter((person) => {
-      if (person.role !== 'teacher') return false;
+      if (person.role !== 'teacher' || person.account_status === 'rejected') return false;
       if (!term) return true;
       return `${person.first_name} ${person.last_name} ${person.email}`.toLowerCase().includes(term);
     });

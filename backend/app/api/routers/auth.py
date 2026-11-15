@@ -22,6 +22,7 @@ from app.api.deps import (
     limit_otp,
     limit_password_reset,
     limit_register,
+    require_account_access,
 )
 from app.core.config import settings
 from app.core.security import (
@@ -33,7 +34,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
-from app.models.schools import SCHOOL_APPROVED, SCHOOL_PENDING, School
+from app.models.schools import SCHOOL_APPROVED, School
 from app.models.staff import (
     ROLE_ADMIN,
     ROLE_TEACHER,
@@ -227,40 +228,6 @@ async def login(
             detail=f"Account temporarily locked. Try again in {remaining} minute(s).",
         )
 
-    if not staff.is_active:
-        raise HTTPException(status_code=403, detail="This account has been deactivated.")
-
-    if not staff.is_approved:
-        raise HTTPException(
-            status_code=403,
-            detail="Your account is still awaiting administrator approval.",
-        )
-
-    # The school gates every account inside it. A principal whose school is
-    # still pending is told so plainly — their account is fine, their school
-    # has simply not been approved yet, and saying "awaiting approval" without
-    # saying whose would send them to chase the wrong person.
-    if staff.school_id is not None:
-        school = await db.get(School, staff.school_id)
-        if school is None:
-            raise HTTPException(status_code=403, detail="This school no longer exists.")
-        if school.status == SCHOOL_PENDING:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"{school.name} is still awaiting approval by the system "
-                    "operator. You will be able to sign in once it is approved."
-                ),
-            )
-        if school.status != SCHOOL_APPROVED:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    f"Access to {school.name} has been suspended."
-                    + (f" Reason: {school.rejection_reason}" if school.rejection_reason else "")
-                ),
-            )
-
     # ── wrong password ────────────────────────────────────────────────────────
     if not verify_password(payload.password, staff.password_hash):
         staff.login_attempts = (staff.login_attempts or 0) + 1
@@ -314,6 +281,8 @@ async def login(
         )
 
     # ── correct password — clear the lockout ladder ───────────────────────────
+    # Only disclose decisions/reasons after the password proves identity.
+    await require_account_access(staff, db)
     staff.login_attempts = 0
     staff.locked_until = None
     staff.lockout_count = 0
@@ -430,6 +399,8 @@ async def verify_otp(
             status_code=400, detail=f"Incorrect code. {left} attempt(s) remaining."
         )
 
+    # A decision may have changed after this code was issued.
+    await require_account_access(staff, db)
     otp.is_used = True
 
     device = (

@@ -194,6 +194,10 @@ async def list_staff(
         stmt = stmt.where(Staff.role == ROLE_TEACHER)
     if account_status:
         stmt = stmt.where(Staff.account_status == account_status)
+    else:
+        # Retain rejected registrations for their decision and audit history,
+        # while excluding them from the ordinary staff directory.
+        stmt = stmt.where(Staff.account_status != STATUS_REJECTED)
     if search:
         pattern = f"%{search.lower()}%"
         stmt = stmt.where(
@@ -220,6 +224,7 @@ async def list_teachers(
                 Staff.school_id == scope,
                 Staff.role == ROLE_TEACHER,
                 Staff.is_approved.is_(True),
+                Staff.account_status != STATUS_REJECTED,
             )
             .order_by(Staff.last_name, Staff.first_name)
         )
