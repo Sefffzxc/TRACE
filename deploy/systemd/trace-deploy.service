@@ -1,0 +1,20 @@
+[Unit]
+Description=Deploy reviewed TRACE code from GitHub main
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/python3 -I -B /usr/local/lib/trace/deploy_trace.py
+StateDirectory=trace-deploy
+StateDirectoryMode=0700
+WorkingDirectory=/opt/trace
+UMask=0077
+TimeoutStartSec=10min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/opt/trace /var/lib/trace-deploy

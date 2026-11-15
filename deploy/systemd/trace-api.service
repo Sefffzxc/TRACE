@@ -1,0 +1,19 @@
+[Unit]
+Description=TRACE monitoring API
+Wants=network-online.target trace-ai.service
+After=network-online.target trace-ai.service
+
+[Service]
+User=trace
+Group=trace
+WorkingDirectory=/opt/trace/backend
+EnvironmentFile=/etc/trace/api.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/trace/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=5
+UMask=0027
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -7,8 +7,9 @@ email directly on the new Ubuntu API in step 5 below. Keep the old Render apps
 available during cutover, then retire them after the new setup passes its checks.
 
 Replace `YOURDOMAIN.app` with **`traceedu.app`**, `VM_PUBLIC_IP` with the server's
-static IPv4 address, and the repository/key placeholders with your own. Use the
-same `YOUR_PRODUCTION_BRANCH` for the VM clone and the Cloudflare Pages build.
+static IPv4 address, and the remaining placeholders with your own values. Your
+repository is **`Sefffzxc/TRACE`** (renamed from `Sefffzxc/lbca`) and production branch is **`main`**. Use that
+same branch for the VM clone and the Cloudflare Pages build.
 Buy only one domain; `api`, `ai` and `auth` are subdomains of it.
 
 **Your VM has been created.** Its current public IPv4 is **`23.100.91.187`**,
@@ -49,16 +50,17 @@ Keep the existing database; do not apply `render.yaml` to create another one.
 
 1. **Preserve the existing Render database and uploaded photos.**
 
-   In Render, open the database you already use, currently named `lbca-db` in the
-   repository blueprint. Keep this same database and its data. Upgrade it in
-   place if it is on Free: **Render Free Postgres expires after 30 days** and
-   does not provide backups. Moving the other services will not remove that
-   deadline. [Render free database limits](https://render.com/docs/free)
-
-   Take a database backup before cutover, and verify you can restore it into a
-   separate test database. Use Render's paid backup/export facilities or
-   `pg_dump` with a PostgreSQL client version compatible with the server.
+   In Render, open the existing database used by your API. Keep this same
+   database and its data. You confirmed its plan is **Free**. A manual
+   `pg_dump` backup works on Free; upgrading is not required to take this backup.
+   Render's hosted backup/recovery features require a paid database plan.
    [Render backup and export instructions](https://render.com/docs/postgresql-backups)
+
+   **Render Free Postgres expires 30 days after creation.** Moving the API and
+   AI does not change that deadline. Check this database's expiry date now and
+   arrange an in-place paid upgrade before expiry for continued use on Render.
+   Keep the backup even if you upgrade.
+   [Render free database limits](https://render.com/docs/free#free-postgres)
 
    Copy the database's **External Database URL** from Render's connection panel
    into your password manager. The existing Internal Database URL will not work
@@ -67,13 +69,143 @@ Keep the existing database; do not apply `render.yaml` to create another one.
    and handles its TLS settings; you do not need to rewrite the driver name.
    [Render external connections](https://render.com/docs/postgresql-creating-connecting#external-connections)
 
+   **Create a manual backup before starting the new API.** Your VM already has
+   PostgreSQL client **18.6** at `/usr/lib/postgresql/18/bin/pg_dump`; skip
+   installation on this VM. On a replacement Ubuntu 24.04 VM, install the client
+   from the official PostgreSQL repository:
+
+   ```bash
+   sudo apt-get install -y --no-install-recommends postgresql-common
+   sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+   sudo apt-get update
+   sudo apt-get install -y --no-install-recommends postgresql-client-18
+   /usr/lib/postgresql/18/bin/pg_dump --version
+   ```
+
+   Install only the client package for this export; the live database remains
+   on Render. The dump client must support the database server's major version.
+   [PostgreSQL Ubuntu packages](https://www.postgresql.org/download/linux/ubuntu/),
+   [pg_dump documentation](https://www.postgresql.org/docs/18/app-pgdump.html)
+
+   In Render's database **Info / Connections** panel, identify the full external
+   hostname, database username and **Database** value. The database value can
+   differ from the service's display name. The external hostname ends in
+   `render.com`; the shorter internal `dpg-...-a` hostname will not work from
+   Azure. Keep the password private and paste it only at the hidden prompt.
+
+   Run the following **one command at a time** as `traceadmin` in Ubuntu. Replace
+   the three `YOUR_RENDER_...` values before running `pg_dump`. This creates a
+   private backup outside the repository, with a new UTC filename on each run:
+
+   ```bash
+   install -d -m 700 "$HOME/trace-backups"
+   umask 077
+   trace_backup_path="$HOME/trace-backups/trace-before-azure-$(date -u +%Y%m%dT%H%M%SZ).dump"
+   PGSSLMODE=require /usr/lib/postgresql/18/bin/pg_dump --host="YOUR_RENDER_EXTERNAL_HOST" --port=5432 --username="YOUR_RENDER_DB_USER" --dbname="YOUR_RENDER_DB_NAME" --password --format=custom --file="$trace_backup_path"
+   ```
+
+   At `Password:`, enter the database password saved from Render. No characters
+   appear while you type or paste. The export reads the database; it does not
+   replace its data. A successful run normally returns to the shell without
+   output. Immediately run `echo "Backup exit code: $?"` and require `0`.
+   If it reports an error, stop and fix it before continuing. A failed dump can
+   leave a partial file, so file existence alone is not success.
+
+   After the export finishes without errors, check that its contents can be
+   decoded and inspect the file's size and permissions:
+
+   ```bash
+   /usr/lib/postgresql/18/bin/pg_restore --exit-on-error --file=/dev/null "$trace_backup_path"
+   echo "Archive check exit code: $?"
+   ls -lh "$trace_backup_path"
+   ```
+
+   Require archive check exit code `0`. Your completed export and archive check
+   both returned `0`. The file is **184 KiB**, with owner-only `600` permissions:
+   `/home/traceadmin/trace-backups/trace-before-azure-20261109T082306Z.dump`.
+   The Render service is named `trace-db`; its PostgreSQL database name is
+   `trace_ht2p`.
+
+   This `pg_restore` command generates SQL and discards it without connecting to
+   a database. It checks archive readability, not a full restore. Before cutover,
+   also copy the completed backup to private storage outside the VM and verify
+   restoration into a separate, isolated test database. Never point a restore
+   at the existing Render database. The archive contains school records: keep
+   it out of Git, chat, public folders and screenshots of its contents.
+   [pg_restore output modes](https://www.postgresql.org/docs/18/app-pgrestore.html)
+
+   **Copy the checked backup off the VM.** In the existing Ubuntu SSH session,
+   calculate the source checksum and keep the session open:
+
+   ```bash
+   sha256sum /home/traceadmin/trace-backups/trace-before-azure-20261109T082306Z.dump
+   ```
+
+   Open a separate **Windows PowerShell** window, showing `PS C:\...>` rather
+   than the Ubuntu prompt. Create a folder outside the repository and remove
+   inherited access before downloading. Run one line at a time, and stop if
+   `icacls` reports any failed files:
+
+   ```powershell
+   $traceBackupDir = "$env:USERPROFILE\TRACE-private-backups"
+   New-Item -ItemType Directory -Path $traceBackupDir -Force | Out-Null
+   $traceBackupOwner = (Get-Acl -LiteralPath $traceBackupDir).Owner
+   icacls.exe $traceBackupDir /inheritance:r /grant:r "${traceBackupOwner}:(OI)(CI)F"
+   scp -i "$env:USERPROFILE\Downloads\trace-server_key.pem" traceadmin@23.100.91.187:/home/traceadmin/trace-backups/trace-before-azure-20261109T082306Z.dump $traceBackupDir
+   Get-FileHash -Algorithm SHA256 -LiteralPath "$traceBackupDir\trace-before-azure-20261109T082306Z.dump" | Format-List
+   ```
+
+   Compare the complete SHA-256 values from Ubuntu and Windows; capitalization
+   does not matter. They must match. Keep both copies private: this is a
+   compressed database archive, not an encrypted file. For a later backup,
+   substitute its actual filename in both terminals.
+   Your Windows copy completed successfully, its folder permissions were set
+   with zero failed files, and both checksums matched on 9 November 2026:
+   `38f8dcde4c4f0f2b8383bc1bb7af17ab03ed19a4756e03023153ec37550ce011`.
+   The Windows file is in `C:\Users\macos\TRACE-private-backups`. The isolated
+   restore test remains pending.
+   [Windows folder permissions](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/icacls),
+   [PowerShell file checksums](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash)
+
+   **Rotate the exposed database credential — in progress.** Keep the replacement
+   password and connection URLs out of chat, screenshots, shell command
+   arguments and Git. Use Render's managed credential flow on the existing
+   `trace-db` database:
+
+   - **Completed:** the new default credential `trace_azure` has been created.
+     Keep its password and new Internal and External Database URLs private.
+     The old credential remains active while applications move in stages.
+   - **Next:** finish `/etc/trace/ai.env` using step 5 below. You saved `api.env`;
+     its contents and the new **External Database URL** still need validation.
+     Preserve the existing production `SECRET_KEY`. After configuration, use
+     fresh connections to verify application access and existing records.
+   - Updating the old Render API's credential is optional transition
+     maintenance if you need to keep using that deployment. In that case,
+     update **trace-api > Environment > DATABASE_URL** with the new **Internal
+     Database URL**, save and deploy its existing build, then check `/health`
+     and existing records. This is not a prerequisite for configuring Azure.
+     The final API and AI run on Azure; only the database stays on Render.
+   - After every client has moved and no connections remain under the old
+     username, remove the old credential in **Info > Credentials**. This is
+     when the credential rotation is complete. Render preserves objects owned
+     by the original user by revoking that user's login rather than dropping
+     its role. Keep the existing database and records throughout the process.
+
+   Do not recreate the database or apply the unrelated all-Render Blueprint
+   during this migration. If an environment variable is managed through a
+   Blueprint database reference, account for that reference when updating the
+   client so a later sync cannot bring back stale configuration.
+   [Render credential rotation](https://render.com/docs/postgresql-credentials)
+
    TRACE stores profile photos on the API's local filesystem, outside PostgreSQL.
    Export the current API upload directory if those files are available. Files
    already lost from an ephemeral Render filesystem cannot be recovered by
    moving the database. You will copy available uploads to the VM in step 5.
 
-   Keep the old API and AI available until the replacement passes the checks in
-   step 10. Record their current configuration securely, especially `SECRET_KEY`.
+   Keep the old API and AI available as a fallback until the replacement passes
+   the checks in step 10, then retire those apps and revoke the old database
+   credential promptly. Record the current configuration securely, especially
+   `SECRET_KEY`, so the new Azure deployment can reuse it.
 
 2. **Create the server — completed for your current VM.**
 
@@ -193,8 +325,11 @@ Keep the existing database; do not apply `render.yaml` to create another one.
    First, in **VS Code on Windows**, commit and push the reviewed changes to
    your GitHub production branch, including `backend/app/services/email.py`,
    the updated auth router and configuration. The VM can only clone committed,
-   pushed code. Use that same branch for the frontend later. Replace
-   `YOUR_PRODUCTION_BRANCH` below with its actual name, such as `main`.
+   pushed code. Your VM already cloned this repository under its former name
+   `Sefffzxc/lbca`, branch `main`, at
+   `9c0d625`, and both Python environments have their dependencies installed.
+   These installation commands are recorded for rebuilding the server; do not
+   clone over the existing checkout. Use `main` for the frontend later.
 
    From **Windows PowerShell**, your current connection command is:
 
@@ -251,14 +386,14 @@ Keep the existing database; do not apply `render.yaml` to create another one.
    ```
 
    In the GitHub repository, open **Settings > Deploy keys > Add deploy key**.
-   Paste the public key and leave write access disabled. Clone using that key;
-   replace `YOUR_USERNAME/YOUR_REPOSITORY`. Compare the first connection's host
+   Paste the public key and leave write access disabled. Clone using that key.
+   Compare the first connection's host
    fingerprint against [GitHub's published fingerprints](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints)
    before accepting it.
    [GitHub deploy-key instructions](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys)
 
    ```bash
-   sudo -u trace -H git clone --branch YOUR_PRODUCTION_BRANCH --single-branch git@github.com:YOUR_USERNAME/YOUR_REPOSITORY.git /opt/trace
+   sudo -u trace -H git clone --branch main --single-branch git@github.com:Sefffzxc/TRACE.git /opt/trace
    sudo -u trace python3.12 -m venv /opt/trace/backend/.venv
    sudo -u trace /opt/trace/backend/.venv/bin/python -m pip install -r /opt/trace/backend/requirements.txt
    sudo -u trace python3.12 -m venv /opt/trace/ai-service/.venv
@@ -273,41 +408,65 @@ Keep the existing database; do not apply `render.yaml` to create another one.
 
 5. **Set persistent storage and production configuration.**
 
+   **Both environment files passed the private configuration check.** Continue
+   and both services now pass their local health checks. Continue with step 7
+   for public HTTPS. API and AI run on this Azure VM;
+   only PostgreSQL stays on Render. The new `trace_azure` database credential is
+   ready, and the dump/archive check and matching private Windows copy are done.
+   A full isolated restore test remains pending before cutover.
+
    Use the verified Resend sender and saved API key from main-guide steps 1–4.
    Put them directly on this VM. Email delivery on the old Render API is not a
    prerequisite. The settings below enable email plus the temporary code logging
    you requested for your defense. Set `LOG_OTP_CODES=false` after the defense
    and restart the API; email delivery will continue.
 
-   Create storage outside the source checkout and root-controlled secret files:
+   Storage and configuration files are now prepared on your VM:
+   `/var/lib/trace/uploads` is owned by `trace` with mode `750`, `/etc/trace`
+   is root-owned with mode `700`, and `api.env` / `ai.env` are root-owned with
+   mode `600`. **Both files are saved, and all eight configuration checks
+   returned `OK` on the VM.** Service startup and local health checks also
+   passed. Public HTTPS health and OTP verification using the API log copy
+   have also passed. Existing records load and remain visible after a page
+   refresh. Inference and inbox delivery remain pending.
+   These creation commands are for a
+   replacement VM:
 
    ```bash
    sudo install -d -o trace -g trace -m 750 /var/lib/trace/uploads
    sudo install -d -o root -g root -m 700 /etc/trace
-   sudo install -o root -g root -m 600 /dev/null /etc/trace/api.env
-   sudo install -o root -g root -m 600 /dev/null /etc/trace/ai.env
+   sudo touch /etc/trace/api.env /etc/trace/ai.env
+   sudo chown root:root /etc/trace/api.env /etc/trace/ai.env
+   sudo chmod 600 /etc/trace/api.env /etc/trace/ai.env
    sudo nano /etc/trace/api.env
    ```
 
-   The `install` commands above initialize new files; on later updates **edit
-   the existing files**, because rerunning them would empty your configuration.
+   These commands preserve any existing file contents. Edit existing settings
+   carefully when updating the deployment.
 
-   Put the following in `api.env`, replacing every placeholder. Preserve the
+   The following `api.env` template is a reference; your saved file passed the
+   static check. Replace every placeholder when configuring a new file. Preserve the
    existing production `SECRET_KEY`; generate a key only for a deployment that
-   does not already have one. Reuse or generate a separate strong AI token and
-   put the same AI token in both files. To generate a new value on the VM, use
+   does not already have one. Read that value privately from the existing
+   Render API's **Environment** settings and copy it into the Azure file. Use
+   the new credential's **External Database URL** from Render's database
+   connection panel for `DATABASE_URL`. Reuse or generate a strong AI token and
+   put the same AI token in both files. `SECRET_KEY` signs login tokens;
+   `AI_SERVICE_TOKEN` authenticates the API's requests to the AI service. The
+   following command generates **`AI_SERVICE_TOKEN`**. Save its output privately
+   for both environment files. To generate it on the VM, use
    `python3.12 -c 'import secrets; print(secrets.token_urlsafe(48))'`.
 
    ```dotenv
-   DATABASE_URL=PASTE_THE_EXISTING_RENDER_EXTERNAL_DATABASE_URL
+   DATABASE_URL=PASTE_THE_NEW_RENDER_EXTERNAL_DATABASE_URL
    SECRET_KEY=PASTE_THE_EXISTING_PRODUCTION_SECRET_KEY
-   ALLOWED_ORIGINS=https://www.YOURDOMAIN.app,https://YOURDOMAIN.app
+   ALLOWED_ORIGINS=https://www.traceedu.app,https://traceedu.app
    UPLOAD_DIR=/var/lib/trace/uploads
    DEBUG_OTP=false
    LOG_OTP_CODES=true
    EMAIL_ENABLED=true
    RESEND_API_KEY=PASTE_YOUR_RESEND_SENDING_API_KEY
-   EMAIL_FROM="TRACE <noreply@auth.YOURDOMAIN.app>"
+   EMAIL_FROM="TRACE <noreply@auth.traceedu.app>"
    EMAIL_TIMEOUT_SECONDS=10
    AI_ENABLED=true
    AI_SERVICE_URL=http://127.0.0.1:8001
@@ -322,7 +481,13 @@ Keep the existing database; do not apply `render.yaml` to create another one.
    `KEY=value`, without `export`. Do not commit them or copy secrets into
    frontend settings.
 
-   Then open the AI configuration:
+   These files are loaded by the systemd units in step 6. Running Python or
+   Uvicorn manually does not load `/etc/trace/api.env`; without the production
+   settings the API can fall back to a local SQLite database and default secret.
+   Finish the backup and configuration first, then start through systemd.
+
+   **AI configuration reference.** You reported this file saved. It uses the
+   same `AI_SERVICE_TOKEN` as `api.env`; keep its value private:
 
    ```bash
    sudo nano /etc/trace/ai.env
@@ -340,6 +505,39 @@ Keep the existing database; do not apply `render.yaml` to create another one.
    An empty AI CORS list is appropriate because the browser calls the API, not
    the model. The token protects inference; CORS does not authenticate callers.
    Public AI health and model information endpoints remain readable.
+
+   **Validate the saved files before service startup.** The local repository now
+   includes [scripts/check_trace_vm_config.py](scripts/check_trace_vm_config.py).
+   Your VM run completed with all eight checks reporting `OK`. The instructions
+   below are recorded for rechecking this initial defense configuration.
+   It reads only `/etc/trace/api.env` and `/etc/trace/ai.env`, and prints check
+   names with `OK` / `FAIL`. It checks placeholders, the new external database
+   connection settings, matching AI tokens, email/OTP settings and local paths.
+   It does not connect to the database or import the application. Passing these
+   checks does not prove the credentials work or that the old signing key was
+   copied correctly; those require the service and login tests.
+
+   The checker supports the simple one-line `KEY=value` format shown above,
+   including matching outer quotes. It rejects duplicate keys, `export`,
+   backslash escapes, variable references and multiline values rather than
+   interpreting them differently from systemd. If a check fails, edit the
+   protected file privately and share only the check's name.
+
+   First, in a separate **Windows PowerShell** terminal, upload the checker from
+   this local checkout:
+
+   ```powershell
+   scp -i "$env:USERPROFILE\Downloads\trace-server_key.pem" "$env:USERPROFILE\Desktop\lbca\scripts\check_trace_vm_config.py" traceadmin@23.100.91.187:/home/traceadmin/check_trace_vm_config.py
+   ```
+
+   Then, in the **Ubuntu SSH terminal**, run:
+
+   ```bash
+   sudo python3.12 /home/traceadmin/check_trace_vm_config.py
+   ```
+
+   Continue with systemd only after every check reports `OK`. Keep the files'
+   contents private; only the check labels are intended to be shared.
 
    Copy any exported **contents** of the old upload directory into
    `/var/lib/trace/uploads`, preserving its `profile_pics` subdirectory. For
@@ -364,53 +562,33 @@ Keep the existing database; do not apply `render.yaml` to create another one.
 
 6. **Make the API and AI start at boot and restart after a crash.**
 
-   Create `/etc/systemd/system/trace-ai.service` using
-   `sudo nano /etc/systemd/system/trace-ai.service`:
+   **Completed on the VM:** both units were installed with mode `644`, verified
+   by systemd, enabled at boot and started. Both report `active`; AI health
+   reports `model_loaded: true`, version `v4-2026-10-final-grade` and no error.
+   API health reports `status: ok`, the two frontend origins and no schema
+   mismatch. OTP verification using the API log copy also works. A real
+   reboot and the remaining application checks are pending.
 
-   ```ini
-   [Unit]
-   Description=TRACE AI inference
-   Wants=network-online.target
-   After=network-online.target
+   Reviewed unit files are prepared in the local checkout:
+   [trace-ai.service](deploy/systemd/trace-ai.service) and
+   [trace-api.service](deploy/systemd/trace-api.service). They run as `trace`,
+   load the protected environment files and bind to loopback ports 8001/8000.
+   The API starts after the AI process, and remains available with its fallback
+   if inference is unavailable. Model readiness is checked separately below.
 
-   [Service]
-   User=trace
-   Group=trace
-   WorkingDirectory=/opt/trace/ai-service
-   EnvironmentFile=/etc/trace/ai.env
-   Environment=PYTHONUNBUFFERED=1
-   ExecStart=/opt/trace/ai-service/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8001 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1
-   Restart=always
-   RestartSec=5
-   UMask=0027
-   NoNewPrivileges=true
+   First, in **Windows PowerShell**, upload both files:
 
-   [Install]
-   WantedBy=multi-user.target
+   ```powershell
+   scp -i "$env:USERPROFILE\Downloads\trace-server_key.pem" "$env:USERPROFILE\Desktop\lbca\deploy\systemd\trace-ai.service" "$env:USERPROFILE\Desktop\lbca\deploy\systemd\trace-api.service" traceadmin@23.100.91.187:/home/traceadmin/
    ```
 
-   Create `/etc/systemd/system/trace-api.service`:
+   Then, in the **Ubuntu SSH terminal**, install and verify them. Run one
+   command at a time. Stop if installation or verification reports an error:
 
-   ```ini
-   [Unit]
-   Description=TRACE monitoring API
-   Wants=network-online.target trace-ai.service
-   After=network-online.target trace-ai.service
-
-   [Service]
-   User=trace
-   Group=trace
-   WorkingDirectory=/opt/trace/backend
-   EnvironmentFile=/etc/trace/api.env
-   Environment=PYTHONUNBUFFERED=1
-   ExecStart=/opt/trace/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1
-   Restart=always
-   RestartSec=5
-   UMask=0027
-   NoNewPrivileges=true
-
-   [Install]
-   WantedBy=multi-user.target
+   ```bash
+   sudo install -o root -g root -m 644 /home/traceadmin/trace-ai.service /etc/systemd/system/trace-ai.service
+   sudo install -o root -g root -m 644 /home/traceadmin/trace-api.service /etc/systemd/system/trace-api.service
+   sudo systemd-analyze verify /etc/systemd/system/trace-ai.service /etc/systemd/system/trace-api.service
    ```
 
    Use one worker initially: additional workers duplicate model memory or
@@ -419,9 +597,9 @@ Keep the existing database; do not apply `render.yaml` to create another one.
    ```bash
    sudo systemctl daemon-reload
    sudo systemctl enable --now trace-ai trace-api
-   sudo systemctl status trace-ai trace-api --no-pager
-   curl --fail http://127.0.0.1:8001/health
-   curl --fail http://127.0.0.1:8000/health
+   systemctl is-active trace-ai trace-api
+   curl --fail --retry 12 --retry-connrefused --retry-delay 2 --max-time 10 http://127.0.0.1:8001/health
+   curl --fail --retry 12 --retry-connrefused --retry-delay 2 --max-time 10 http://127.0.0.1:8000/health
    ```
 
    Inspect the JSON, not only HTTP status. The AI must report
@@ -444,36 +622,44 @@ Keep the existing database; do not apply `render.yaml` to create another one.
 
 7. **Put HTTPS in front of both services.**
 
+   **Completed:** Caddy `v2.11.9` serves both domains over HTTPS. Your normal
+   certificate-verified health checks from the VM returned API `status: ok`
+   with both frontend origins, and AI `status: ok`, `model_loaded: true`, the
+   expected model version and no error. API and AI also pass loopback checks.
+   Continue with step 8, then Pages. An independent check from your browser
+   outside the VM remains pending. The instructions below record how to load the prepared
+   [deploy/Caddyfile](deploy/Caddyfile) for `api.traceedu.app` and
+   `ai.traceedu.app`. Both DNS A records should still point directly to
+   `23.100.91.187` with DNS-only proxy status. Azure's NSG must allow public TCP
+   **80 and 443**; the HTTP destination port is **80**, rather than 8080.
+
    **Ubuntu terminal (the SSH connection):** run the stable-package commands
    from [Caddy's official installation guide](https://caddyserver.com/docs/install#debian-ubuntu-raspbian).
-   This is a fresh-server installation; stop if any command fails.
+   These installation commands are recorded for rebuilding the server; your
+   current installation is complete. Stop if any command fails on a replacement VM.
 
    ```bash
    sudo apt install --yes debian-keyring debian-archive-keyring apt-transport-https curl gnupg
-   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
    sudo chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg
    sudo chmod o+r /etc/apt/sources.list.d/caddy-stable.list
    sudo apt update
    sudo apt install --yes caddy
-   sudo nano /etc/caddy/Caddyfile
+   caddy version
    ```
 
-   Installation creates the `caddy` system service. In the editor, replace the
-   default sample site with the following, using your real domain:
+   Installation creates the `caddy` system service. In **Windows PowerShell**,
+   upload the prepared configuration from this checkout:
 
-   ```caddyfile
-   api.YOURDOMAIN.app {
-       reverse_proxy 127.0.0.1:8000 {
-           header_up X-Forwarded-For {remote_host}
-       }
-   }
+   ```powershell
+   scp -i "$env:USERPROFILE\Downloads\trace-server_key.pem" "$env:USERPROFILE\Desktop\lbca\deploy\Caddyfile" traceadmin@23.100.91.187:/home/traceadmin/TRACE-Caddyfile
+   ```
 
-   ai.YOURDOMAIN.app {
-       reverse_proxy 127.0.0.1:8001 {
-           header_up X-Forwarded-For {remote_host}
-       }
-   }
+   Back in **Ubuntu SSH**, install it in place of the default sample site:
+
+   ```bash
+   sudo install -o root -g caddy -m 644 /home/traceadmin/TRACE-Caddyfile /etc/caddy/Caddyfile
    ```
 
    Caddy supplies and renews HTTPS certificates once DNS points to the server
@@ -486,9 +672,13 @@ Keep the existing database; do not apply `render.yaml` to create another one.
    sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
    sudo systemctl enable --now caddy
    sudo systemctl reload caddy
-   curl --fail https://api.YOURDOMAIN.app/health
-   curl --fail https://ai.YOURDOMAIN.app/health
+   curl --fail --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 10 --max-time 20 https://api.traceedu.app/health
+   curl --fail --retry 6 --retry-all-errors --retry-delay 5 --connect-timeout 10 --max-time 20 https://ai.traceedu.app/health
    ```
+
+   Let each health command finish; retries allow time for the first certificate
+   to be issued. TLS certificate verification stays enabled. Both domain health
+   checks have now passed from this VM.
 
    If certificates fail, check DNS, stale AAAA records, cloud firewall rules,
    any active Ubuntu firewall and Caddy's logs. Keep 8000/8001 private. If you
@@ -497,12 +687,15 @@ Keep the existing database; do not apply `render.yaml` to create another one.
 
 8. **Confirm the model is protected and reachable.**
 
+    **This is your next check.** The two HTTPS health endpoints are working;
+    token-protected prediction access still needs the check below.
+
     Both public health URLs should respond. An inference call without the token
     must be refused. From Ubuntu, this deliberately incomplete request should
     return **401**, because the service checks the token before inference:
 
     ```bash
-    curl -i -X POST https://ai.YOURDOMAIN.app/predict -H 'Content-Type: application/json' -d '{}'
+    curl -i --max-time 20 -X POST https://ai.traceedu.app/predict -H 'Content-Type: application/json' -d '{}'
     ```
 
     Keep `AI_SERVICE_URL=http://127.0.0.1:8001` on the API. The public AI domain
@@ -510,9 +703,24 @@ Keep the existing database; do not apply `render.yaml` to create another one.
 
 9. **Deploy the frontend on Cloudflare Pages.**
 
+    **Pages deployment succeeded at `https://trace-285.pages.dev`.** Your next
+    action is finishing the two custom domains below. `www.traceedu.app` now
+    shows **Active / SSL enabled** in Pages; apex-domain activation is not yet
+    confirmed. The rendered app, its
+    embedded API address and authenticated operations still need verification.
+
+    Your earlier `trace` screen was a **Worker** project: it has a deploy command
+    (`npx wrangler deploy`) and a **Delete Worker** button. For this guide,
+    create a separate **Pages** project using the steps below. Leave the Worker
+    in place while setting up Pages. The Pages build form has a **Build output
+    directory** field, which should be `dist`.
+
     In Cloudflare, open **Workers & Pages > Create application > Pages > Import
-    an existing Git repository**. Connect only the GitHub repository needed for
-    TRACE. Choose the same production branch used for the VM clone and enter:
+    an existing Git repository** (or **Connect to Git**). Connect only
+    **`Sefffzxc/TRACE`**, which you confirmed is the renamed repository. In your
+    dashboard's newer layout, **Continue to Pages** appears at the bottom beside
+    **Need to use the legacy Pages workflow?** Use that entry, then Git import.
+    Choose production branch **`main`** and enter:
 
     | Setting | Value for this repository |
     |---|---|
@@ -520,17 +728,24 @@ Keep the existing database; do not apply `render.yaml` to create another one.
     | Framework preset | React/Vite, or None with the explicit settings below |
     | Build command | `npm ci && npm run build` |
     | Build output directory | `dist` |
-    | Production environment variable | `VITE_API_URL=https://api.YOURDOMAIN.app` |
+    | Production environment variable | `VITE_API_URL=https://api.traceedu.app` |
 
     The repository has a committed `frontend/package-lock.json`, so `npm ci`
     installs its locked dependencies. Do not put `/api` at the end of
     `VITE_API_URL`: TRACE's requests already include their API paths.
+    Add this public variable in the Pages production **build environment**.
+    Workers **Runtime variables and secrets** are separate and do not set the
+    value embedded into a Vite build.
     [Cloudflare React deployment](https://developers.cloudflare.com/pages/framework-guides/deploy-a-react-site/)
 
-    Deploy, then open the Pages project's **Custom domains** and attach both
-    `www.YOURDOMAIN.app` and `YOURDOMAIN.app`. Share the `www` address with users;
-    both will serve the same frontend. Let Pages create the DNS records and
-    HTTPS certificates. The API configuration above permits both origins.
+    On your deployment-success screen, click **Add custom domain**, or use
+    **Continue to project > Custom domains > Set up a domain**. Add
+    **`www.traceedu.app`** first, continue through the DNS confirmation and
+    activation, then repeat for **`traceedu.app`**. Let the Pages workflow create
+    the required records pointing to **`trace-285.pages.dev`** and provision
+    HTTPS. Wait until both domains show **Active** with working certificates.
+    Share `https://www.traceedu.app` with users after the application tests.
+    The API configuration above already permits both frontend origins.
     [Pages custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/)
 
     Your earlier DNS screen showed parking A records for the root domain and
@@ -554,6 +769,11 @@ Keep the existing database; do not apply `render.yaml` to create another one.
 
 10. **Validate and switch users to the new address.**
 
+    **Confirmed on 9 November:** the user reports that the OTP code from the
+    API logs works. Existing records load and remain visible after a page
+    refresh. Inbox delivery, inference and the remaining checks below still
+    need verification.
+
     Check the following before retiring the old application services:
 
     - `https://www.YOURDOMAIN.app` and `https://YOURDOMAIN.app` both load with
@@ -565,7 +785,13 @@ Keep the existing database; do not apply `render.yaml` to create another one.
     - Sign in from a new browser, receive the email and complete the
       OTP step, and verify password reset with `DEBUG_OTP=false`.
     - During the defense, the same newly issued code appears in the VM's API
-      logs. View them with `sudo journalctl -u trace-api -n 80 --no-pager`.
+      logs. In Ubuntu SSH, run `sudo journalctl -u trace-api -f -o cat`, then
+      request the login OTP in your browser. Find the newest `[OTP] login code`
+      line for that account and enter its code on the site. This can be used
+      when the account's inbox is unavailable, with its valid login credentials.
+      Keep the code and email address private. Press Ctrl+C to stop viewing logs.
+      With email enabled, a rejected send request rolls back the OTP and no
+      usable code is logged; resolve that error before trying again.
     - Open a student's records, save an authorized test change, then confirm it
       persists after signing out and in.
     - On the AI page, score a suitable existing test record and confirm the
@@ -585,8 +811,11 @@ Keep the existing database; do not apply `render.yaml` to create another one.
     Switch your shared links to the `.app` address. Once verified, retire only
     the old Render frontend/API/AI services, keeping the database and backup.
     Review any Render Blueprint changes carefully so they do not change or
-    recreate `lbca-db`. Do not reapply the old free-tier blueprint over the
-    database plan you just upgraded.
+    recreate the existing `trace-db` database. Its actual database name is
+    `trace_ht2p`; the repository's older blueprint still names `lbca-db`.
+    The current plan is confirmed Free; no paid upgrade has been confirmed.
+    Keep its expiry deadline from step 1 in view and do not apply the old
+    Blueprint as part of this migration.
 
     After the defense, edit `/etc/trace/api.env` to set `LOG_OTP_CODES=false`
     and run `sudo systemctl restart trace-api`. Keep `EMAIL_ENABLED=true`

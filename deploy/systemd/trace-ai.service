@@ -1,0 +1,19 @@
+[Unit]
+Description=TRACE AI inference
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=trace
+Group=trace
+WorkingDirectory=/opt/trace/ai-service
+EnvironmentFile=/etc/trace/ai.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/trace/ai-service/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8001 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=5
+UMask=0027
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
