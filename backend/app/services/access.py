@@ -10,10 +10,11 @@ one rule every screen follows:
   section they ADVISE they see every subject, because following the whole
   class and talking to the parents is the adviser's job, but they still
   grade only their own subjects there.
-* **A blank subject** on an assignment means "every subject in this section".
-  That keeps older set-ups (a teacher attached to a section with no subject)
-  working. Once a teacher has any specific subject in a section, they are
-  limited to those subjects in it.
+* **Legacy blank subjects** need a principal's review. A blank adviser row
+  never grants grading rights. Other legacy blank rows retain their previous
+  teaching access until reviewed. New teaching assignments require a subject.
+* Advisory responsibility comes only from the independent SectionAdviser
+  table, so removing a taught subject cannot remove the section's adviser.
 
 Administrators are not limited: they run the school, and their screens show
 school-level figures rather than individual records.
@@ -27,7 +28,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.academic import Subject, TeacherAssignment
+from app.models.academic import Section, SectionAdviser, Subject, TeacherAssignment
 from app.models.staff import ROLE_ADMIN, Staff
 from app.models.students import StudentEnrollment
 
@@ -105,14 +106,18 @@ async def class_access(db: AsyncSession, current: Staff, school_id: int) -> Clas
         )
     ).scalars().all()
 
-    access = ClassAccess()
+    access = ClassAccess(advisory=set((await db.scalars(
+        select(SectionAdviser.section_id).join(Section, Section.section_id == SectionAdviser.section_id).where(
+            SectionAdviser.school_id == school_id, Section.school_id == school_id,
+            SectionAdviser.teacher_id == current.id,
+        )
+    )).all()))
     specific: dict[int, set[str]] = {}
     blank: set[int] = set()
     for a in rows:
-        if a.is_adviser:
-            access.advisory.add(a.section_id)
         if a.subject_id is None:
-            blank.add(a.section_id)
+            if not a.is_adviser:
+                blank.add(a.section_id)
         elif a.subject_id in subjects:
             specific.setdefault(a.section_id, set()).add(subjects[a.subject_id])
 

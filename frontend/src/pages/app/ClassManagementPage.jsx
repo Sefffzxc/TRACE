@@ -17,6 +17,7 @@ import {
   TableSkeleton,
 } from '../../components/common/ui';
 import {
+  adviserApi,
   assignmentApi,
   gradeLevelApi,
   schoolYearApi,
@@ -32,7 +33,8 @@ const TABS = [
   { key: 'years', label: 'School years', icon: CalendarDays },
   { key: 'levels', label: 'Grades & sections', icon: Layers },
   { key: 'subjects', label: 'Subjects', icon: BookOpen },
-  { key: 'assignments', label: 'Teacher assignments', icon: UserCheck },
+  { key: 'advisers', label: 'Section advisers', icon: UserCheck },
+  { key: 'assignments', label: 'Subject teachers', icon: BookOpen },
 ];
 
 /* Each tab describes its own table and form, so adding a new one later means
@@ -52,24 +54,27 @@ export default function ClassManagementPage() {
     sections: [],
     subjects: [],
     assignments: [],
+    advisers: [],
     teachers: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [reviewing, setReviewing] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [years, levels, sections, subjects, assignments, teachers] = await Promise.all([
+      const [years, levels, sections, subjects, assignments, teachers, advisers] = await Promise.all([
         schoolYearApi.list(),
         gradeLevelApi.list(),
         sectionApi.list(),
         subjectApi.list(),
         assignmentApi.list(),
         staffApi.list({ role: 'teacher' }),
+        adviserApi.list(),
       ]);
       setData({
         years: years || [],
@@ -78,6 +83,7 @@ export default function ClassManagementPage() {
         subjects: subjects || [],
         assignments: assignments || [],
         teachers: teachers || [],
+        advisers: advisers || [],
       });
       setError('');
     } catch (err) {
@@ -96,6 +102,7 @@ export default function ClassManagementPage() {
     levels: { ...gradeLevelApi, create: gradeLevelApi.createWithSections, update: gradeLevelApi.updateWithSections },
     subjects: subjectApi,
     assignments: assignmentApi,
+    advisers: adviserApi,
   }[tab];
 
   const idField = {
@@ -103,6 +110,7 @@ export default function ClassManagementPage() {
     levels: 'grade_level_id',
     subjects: 'subject_id',
     assignments: 'assignment_id',
+    advisers: 'section_id',
   }[tab];
 
   const save = async (payload, existing) => {
@@ -132,7 +140,10 @@ export default function ClassManagementPage() {
     }
     setBusy(true);
     try {
-      if (existing) {
+      if (tab === 'advisers') {
+        await adviserApi.set(existing?.section_id || payload.section_id, { teacher_id: payload.teacher_id });
+        toast.success(existing ? 'Section adviser updated.' : 'Section adviser assigned.');
+      } else if (existing) {
         await apiFor.update(existing[idField], payload);
         toast.success('Changes saved.');
       } else {
@@ -143,6 +154,22 @@ export default function ClassManagementPage() {
       load();
     } catch (err) {
       toast.error(err.message);
+      if (tab === 'advisers') load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const review = async (subjectIds) => {
+    setBusy(true);
+    try {
+      await assignmentApi.review(reviewing.assignment_id, { subject_ids: subjectIds });
+      toast.success('Teaching subjects confirmed. Existing grades and scores were preserved.');
+      setReviewing(null);
+      load();
+    } catch (err) {
+      toast.error(err.message);
+      load();
     } finally {
       setBusy(false);
     }
@@ -167,17 +194,18 @@ export default function ClassManagementPage() {
     levels: data.levels.length,
     subjects: data.subjects.length,
     assignments: data.assignments.length,
+    advisers: data.advisers.length,
   };
 
   return (
     <div className="page">
       <PageHead
         title="Class management"
-        subtitle="School years, grade levels, sections and subjects."
+        subtitle="Manage academic structure, section advisers and subject teachers."
         actions={
           <button type="button" className="btn btn-primary" onClick={() => setEditing({})}>
             <Plus size={16} /> Add{' '}
-            {{ years: 'school year', levels: 'grade & sections', subjects: 'subject', assignments: 'assignment' }[tab]}
+            {{ years: 'school year', levels: 'grade & sections', subjects: 'subject', assignments: 'subject teacher', advisers: 'section adviser' }[tab]}
           </button>
         }
       />
@@ -204,6 +232,8 @@ export default function ClassManagementPage() {
         </nav>
 
         <div className="card">
+          {tab === 'advisers' && <div className="card-body"><p className="muted">Advisers can view every subject in their section. They can edit scores only for subjects assigned separately under Subject teachers.</p></div>}
+          {tab === 'assignments' && <div className="card-body"><p className="muted">Assign one teacher to each section and subject. Adviser access is managed separately and does not reserve any teaching subjects.</p>{data.assignments.some((row) => row.needs_subject_review || row.subject_id == null) && <ErrorNote message="Older All subjects assignments need review. Confirm the actual teaching subjects; existing grades and scores will be kept." />}</div>}
           <div className="card-body flush">
             {loading ? (
               <TableSkeleton rows={5} columns={4} />
@@ -213,6 +243,7 @@ export default function ClassManagementPage() {
                 data={data}
                 onEdit={setEditing}
                 onDelete={setDeleting}
+                onReview={setReviewing}
               />
             )}
           </div>
@@ -240,19 +271,20 @@ export default function ClassManagementPage() {
       {deleting && (
         <ConfirmDialog
           title="Remove this record?"
-          message="This is blocked if anything still uses it."
+          message={tab === 'advisers' ? 'This removes advisory viewing access. Subject teaching assignments and saved grades will remain.' : tab === 'assignments' ? 'This removes this teaching assignment. Advisory access and saved grades will remain.' : 'This is blocked if anything still uses it.'}
           confirmLabel="Remove"
           busy={busy}
           onConfirm={remove}
           onClose={() => setDeleting(null)}
         />
       )}
+      {reviewing && <AssignmentReviewModal record={reviewing} data={data} busy={busy} onSave={review} onClose={() => setReviewing(null)} />}
     </div>
   );
 }
 
 /* ── Tables ──────────────────────────────────────────────────────────────── */
-function SetupTable({ tab, data, onEdit, onDelete }) {
+function SetupTable({ tab, data, onEdit, onDelete, onReview }) {
   // Booklets per subject only mean something at a school that tracks units.
   const { tracksUnits, unitLabelPlural } = useAuth();
   const wrap = (headers, rows) => (
@@ -329,28 +361,43 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
     );
   }
 
+  if (tab === 'advisers') {
+    if (!data.advisers.length) return <EmptyState icon={UserCheck} title="No section advisers yet" description="Choose an adviser to give them viewing access to all subjects in their section." />;
+    return wrap(['Section', 'Adviser', 'Access', 'Actions'], data.advisers.map((row) => (
+      <tr key={row.section_id}>
+        <td className="cell-strong">{row.section_name}{row.grade_level_name ? ` — ${row.grade_level_name}` : ''}</td>
+        <td>{row.teacher_name}</td>
+        <td><span className="badge badge-neutral">View all subjects</span></td>
+        {actions(row)}
+      </tr>
+    )));
+  }
+
   if (!data.assignments.length) {
     return (
       <EmptyState
         icon={UserCheck}
-        title="No teachers assigned yet"
-        description="Assign an adviser to each section."
+        title="No subject teachers assigned yet"
+        description="Assign the teacher who handles each subject. Section advisers are managed separately."
       />
     );
   }
   return wrap(
-    ['Teacher', 'Section', 'Subject', 'Role', 'Actions'],
+    ['Teacher', 'Section', 'Subject', 'Access', 'Actions'],
     data.assignments.map((row) => (
       <tr key={row.assignment_id}>
         <td className="cell-strong">{row.teacher_name}</td>
-        <td>{row.section_name}</td>
+        <td>{row.section_name}{row.grade_level_name ? ` — ${row.grade_level_name}` : ''}</td>
         <td className="muted">{row.subject_name || 'All subjects'}</td>
         <td>
-          <span className={`badge ${row.is_adviser ? 'badge-brand' : 'badge-neutral'}`}>
-            {row.is_adviser ? 'Adviser' : 'Subject teacher'}
+          <span className={`badge ${row.subject_id == null ? 'badge-brand' : 'badge-neutral'}`}>
+            {row.subject_id == null ? 'Review needed' : 'Edit assigned subject'}
           </span>
         </td>
-        {actions(row)}
+        <td className="actions">
+          {(row.needs_subject_review || row.subject_id == null) && <button type="button" className="btn btn-secondary btn-sm" onClick={() => onReview(row)}>Review</button>}
+          <button type="button" className="btn-icon" title="Remove" onClick={() => onDelete(row)}><Trash2 size={15} /></button>
+        </td>
       </tr>
     )),
   );
@@ -365,7 +412,8 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
   const conflictFor = (row, sectionId = row.section_id, subjectId = row.subject_id) => {
     if (!sectionId || !subjectId) return null;
     const existing = data.assignments.find((assignment) => String(assignment.section_id) === String(sectionId)
-      && (subjectId === '*' || assignment.subject_id === null || String(assignment.subject_id) === String(subjectId)));
+      && !(assignment.subject_id == null && assignment.is_adviser)
+      && (assignment.subject_id == null || String(assignment.subject_id) === String(subjectId)));
     if (existing) {
       const teacher = data.teachers.find((person) => String(person.id) === String(existing.teacher_id));
       const name = existing.teacher_name || (teacher ? `${teacher.first_name} ${teacher.last_name}` : 'another teacher');
@@ -373,7 +421,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
     }
     const selected = form.rows.find((other) => other.key !== row.key && other.section_id && other.subject_id
       && String(other.section_id) === String(sectionId)
-      && (subjectId === '*' || other.subject_id === '*' || String(other.subject_id) === String(subjectId)));
+      && String(other.subject_id) === String(subjectId));
     return selected ? { label: 'Already selected in another row', message: 'This class overlaps another assignment in this form. Choose a different class or remove the duplicate row.' } : null;
   };
   const set = (field) => (event) => {
@@ -425,6 +473,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
     years: 'school year',
     subjects: 'subject',
     assignments: 'teacher assignment',
+    advisers: 'section adviser',
   };
 
   return (
@@ -436,7 +485,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          <button type="submit" form="setup-form" className="btn btn-primary" disabled={busy || conflictingRows || (tab === 'assignments' && eligibleTeachers.length === 0)}>
+          <button type="submit" form="setup-form" className="btn btn-primary" disabled={busy || conflictingRows || (['assignments', 'advisers'].includes(tab) && eligibleTeachers.length === 0)}>
             {busy
               ? 'Saving…'
               : record
@@ -449,6 +498,34 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
       }
     >
       <form id="setup-form" className="stack" onSubmit={submit}>
+        {tab === 'advisers' && (
+          <>
+            <p className="muted">This grants viewing access to all subjects in the section. Assign teaching subjects separately to allow score editing.</p>
+            <div className="field">
+              <label className="field-label" htmlFor="adviser_section">Section <span className="req">*</span></label>
+              <select id="adviser_section" className="select" value={form.section_id} onChange={set('section_id')} required disabled={Boolean(record)}>
+                <option value="">Choose a section…</option>
+                {data.sections.map((section) => {
+                  const current = data.advisers.find((item) => String(item.section_id) === String(section.section_id));
+                  return <option key={section.section_id} value={section.section_id} disabled={Boolean(current) && !record}>
+                    {section.name}{section.grade_level_name ? ` — ${section.grade_level_name}` : ''}{current ? ` — ${current.teacher_name}` : ''}
+                  </option>;
+                })}
+              </select>
+              <span className="field-hint">Each section has one adviser. Use Edit to replace an existing adviser.</span>
+            </div>
+            <div className="field">
+              <label className="field-label" htmlFor="adviser_teacher">Adviser <span className="req">*</span></label>
+              <select id="adviser_teacher" className="select" value={form.teacher_id} onChange={set('teacher_id')} required>
+                <option value="">Choose a teacher…</option>
+                {eligibleTeachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.first_name} {teacher.last_name}</option>)}
+              </select>
+              <span className="field-hint">Only approved, active teachers can receive advisory access.</span>
+              {eligibleTeachers.length === 0 && <ErrorNote message="There are no approved, active teachers to assign. Review account approvals first." />}
+            </div>
+            {record && <p className="field-hint">Replacing {record.teacher_name} updates advisory viewing access. Subject teaching assignments and saved grades remain unchanged.</p>}
+          </>
+        )}
         {tab === 'years' && (
           <>
             <div className="field">
@@ -540,8 +617,8 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                 ? data.subjects.filter((subject) => String(subject.grade_level_id) === String(section.grade_level_id) && subject.is_active !== false)
                 : [];
               const conflict = conflictFor(row);
-              const assigned = section ? data.assignments.filter((assignment) => String(assignment.section_id) === String(section.section_id)) : [];
-              const allConflict = conflictFor(row, row.section_id, '*');
+              const assigned = section ? data.assignments.filter((assignment) => String(assignment.section_id) === String(section.section_id) && !(assignment.subject_id == null && assignment.is_adviser)) : [];
+              const adviser = section && data.advisers.find((item) => String(item.section_id) === String(section.section_id));
               return (
                 <div
                   key={row.key}
@@ -585,9 +662,9 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                     >
                       <option value="">Choose…</option>
                       {data.sections.map((item) => {
-                        const wildcard = data.assignments.find((assignment) => String(assignment.section_id) === String(item.section_id) && assignment.subject_id === null);
+                        const wildcard = data.assignments.find((assignment) => String(assignment.section_id) === String(item.section_id) && assignment.subject_id == null && !assignment.is_adviser);
                         return <option key={item.section_id} value={item.section_id} disabled={Boolean(wildcard)}>
-                          {item.name}{item.grade_level_name ? ` — ${item.grade_level_name}` : ''}{wildcard ? ` — All subjects assigned to ${wildcard.teacher_name || 'another teacher'}` : ''}
+                          {item.name}{item.grade_level_name ? ` — ${item.grade_level_name}` : ''}{wildcard ? ` — Review ${wildcard.teacher_name || 'existing teacher'}’s All subjects assignment first` : ''}
                         </option>;
                       })}
                     </select>
@@ -607,7 +684,6 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                       aria-invalid={Boolean(conflict) || undefined}
                     >
                       <option value="">{section ? 'Choose a subject…' : 'Choose a section first…'}</option>
-                      <option value="*" disabled={Boolean(allConflict)}>All subjects in this section{allConflict ? ` — ${allConflict.label}` : ''}</option>
                       {subjects.map((subject) => {
                         const unavailable = conflictFor(row, row.section_id, String(subject.subject_id));
                         return <option key={subject.subject_id} value={subject.subject_id} disabled={Boolean(unavailable)}>
@@ -616,25 +692,16 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                       })}
                     </select>
                     <span className="field-hint">Each section and subject has one teacher. Assigned classes are unavailable until their existing assignment is removed.</span>
+                    {adviser && <span className="field-hint" style={{ display: 'block', marginTop: '.4rem' }}>Section adviser: {adviser.teacher_name}. Advisory access does not reserve any subject.</span>}
                     {assigned.length > 0 && <ul className="field-hint" style={{ paddingLeft: '1.1rem', marginTop: '.4rem', overflowWrap: 'anywhere' }}>
                       {assigned.map((assignment) => <li key={assignment.assignment_id}>{assignment.subject_name || 'All subjects'} — {assignment.teacher_name || 'Assigned teacher'}</li>)}
                     </ul>}
                   </div>
-                  <label className="checkbox">
-                    <input
-                      type="checkbox"
-                      checked={row.is_adviser}
-                      onChange={(event) => setRow(row.key, { is_adviser: event.target.checked })}
-                    />
-                    This teacher is the adviser of this section
-                  </label>
                 </div>
               );
             })}
 
-            {/* Only worth adding more once a specific subject is picked: "All subjects"
-                already covers the whole section. */}
-            {lastRow && lastRow.subject_id && lastRow.subject_id !== '*' && (
+            {lastRow && lastRow.subject_id && (
               <div>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={addRow}>
                   <Plus size={14} /> Add another subject
@@ -644,9 +711,62 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                 </span>
               </div>
             )}
-            <span className="field-hint">An adviser also sees every subject of this section.</span>
+            <span className="field-hint">To give an adviser viewing access, use Section advisers instead.</span>
           </>
         )}
+      </form>
+    </Modal>
+  );
+}
+
+function AssignmentReviewModal({ record, data, busy, onSave, onClose }) {
+  const [subjectIds, setSubjectIds] = useState([]);
+  const [confirmed, setConfirmed] = useState(false);
+  const section = data.sections.find((item) => String(item.section_id) === String(record.section_id));
+  const adviser = data.advisers.find((item) => String(item.section_id) === String(record.section_id)
+    && String(item.teacher_id) === String(record.teacher_id));
+  const hasAdvisoryAccess = Boolean(adviser);
+  const subjects = data.subjects.filter((subject) => section
+    && String(subject.grade_level_id) === String(section.grade_level_id) && subject.is_active !== false);
+  const ownerOf = (subjectId) => data.assignments.find((assignment) => assignment.assignment_id !== record.assignment_id
+    && String(assignment.section_id) === String(record.section_id)
+    && String(assignment.teacher_id) !== String(record.teacher_id)
+    && !(assignment.subject_id == null && assignment.is_adviser)
+    && (assignment.subject_id == null || String(assignment.subject_id) === String(subjectId)));
+  const conflicts = subjectIds.some((id) => ownerOf(id));
+  const toggle = (id) => (event) => {
+    setSubjectIds((current) => event.target.checked ? [...current, id] : current.filter((value) => value !== id));
+    setConfirmed(false);
+  };
+  return (
+    <Modal title="Review All subjects assignment" onClose={onClose} footer={
+      <>
+        <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>Cancel</button>
+        <button type="submit" form="review-assignment-form" className="btn btn-primary" disabled={busy || !confirmed || conflicts}>{busy ? 'Saving…' : 'Confirm teaching subjects'}</button>
+      </>
+    }>
+      <form id="review-assignment-form" className="stack" onSubmit={(event) => { event.preventDefault(); if (!busy && confirmed && !conflicts) onSave(subjectIds); }}>
+        <p><strong>{record.teacher_name}</strong> — {section?.grade_level_name ? `${section.grade_level_name} ` : ''}{record.section_name}</p>
+        <p className="muted">Select only the subjects this teacher actually teaches. This replaces the older All subjects assignment with specific teaching assignments. Existing grades and scores will be kept.</p>
+        <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+          <legend className="field-label" style={{ marginBottom: '.75rem' }}>Teaching subjects</legend>
+          {subjects.map((subject) => {
+            const owner = ownerOf(subject.subject_id);
+            const alreadyAssigned = data.assignments.some((assignment) => String(assignment.section_id) === String(record.section_id)
+              && String(assignment.teacher_id) === String(record.teacher_id) && String(assignment.subject_id) === String(subject.subject_id));
+            return <label className="checkbox" key={subject.subject_id} style={{ alignItems: 'flex-start', overflowWrap: 'anywhere' }}>
+              <input type="checkbox" value={subject.subject_id} checked={subjectIds.includes(subject.subject_id)} disabled={busy || (Boolean(owner) && !subjectIds.includes(subject.subject_id))} onChange={toggle(subject.subject_id)} />
+              <span>{subject.subject_name}{owner && <span className="field-hint" style={{ display: 'block' }}>Already assigned to {owner.teacher_name || 'another teacher'}</span>}{alreadyAssigned && !owner && <span className="field-hint" style={{ display: 'block' }}>Already assigned to this teacher; this assignment will be kept.</span>}</span>
+            </label>;
+          })}
+          {!subjects.length && <p className="muted">No active subjects are available for this section’s grade level.</p>}
+        </fieldset>
+        {conflicts && <ErrorNote message="One of the selected subjects was assigned to another teacher. Refresh your selection before confirming." />}
+        <p className="field-hint">{hasAdvisoryAccess ? 'Advisory viewing access to all subjects will remain. Leave every subject unchecked if this older assignment was only for advisory access.' : 'Leaving every subject unchecked removes this older teaching assignment. This teacher will have no access through this assignment.'} Existing specific-subject assignments remain even when unchecked.</p>
+        <label className="checkbox" style={{ alignItems: 'flex-start' }}>
+          <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={busy} />
+          <span>{subjectIds.length ? `I confirm these ${subjectIds.length} teaching subject${subjectIds.length === 1 ? '' : 's'} for this teacher.` : hasAdvisoryAccess ? 'I confirm this older assignment was for advisory access only. Keep any separate teaching assignments.' : 'I confirm no teaching subjects need to be added from this older assignment.'}</span>
+        </label>
       </form>
     </Modal>
   );
@@ -655,7 +775,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
 let assignmentRowKey = 0;
 function newAssignmentRow() {
   assignmentRowKey += 1;
-  return { key: assignmentRowKey, section_id: '', subject_id: '', is_adviser: false };
+  return { key: assignmentRowKey, section_id: '', subject_id: '' };
 }
 
 function defaultsFor(tab, record) {
@@ -668,6 +788,7 @@ function defaultsFor(tab, record) {
       is_active: true,
     },
     assignments: { teacher_id: '', rows: [newAssignmentRow()] },
+    advisers: { section_id: '', teacher_id: '' },
   };
   const base = shapes[tab];
   if (!record) return base;
@@ -691,9 +812,9 @@ function serialise(tab, form) {
     return form.rows.map((row) => ({
       teacher_id: form.teacher_id,
       section_id: Number(row.section_id),
-      subject_id: row.subject_id === '*' ? null : Number(row.subject_id),
-      is_adviser: row.is_adviser,
+      subject_id: Number(row.subject_id),
     }));
   }
+  if (tab === 'advisers') return { section_id: Number(form.section_id), teacher_id: form.teacher_id };
   return form;
 }

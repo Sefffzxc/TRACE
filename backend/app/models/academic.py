@@ -137,7 +137,7 @@ class Subject(Base):
 
 
 class TeacherAssignment(Base):
-    """Which teacher handles which section (optionally for one subject)."""
+    """Which teacher teaches a subject; blank subjects are legacy review rows."""
 
     __tablename__ = "teacher_assignments"
 
@@ -175,6 +175,26 @@ class TeacherAssignment(Base):
         UniqueConstraint(
             "teacher_id", "section_id", "subject_id", name="uq_teacher_section_subject"
         ),
+    )
+
+
+class SectionAdviser(Base):
+    """Section-wide viewing responsibility, independent of teaching rights."""
+
+    __tablename__ = "section_advisers"
+
+    adviser_id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(Integer, ForeignKey("schools.school_id", ondelete="CASCADE"), nullable=False, index=True)
+    section_id = Column(Integer, ForeignKey("sections.section_id", ondelete="CASCADE"), nullable=False, index=True)
+    teacher_id = Column(GUID(), ForeignKey("staff.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=_utcnow)
+    updated_at = Column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+    section = relationship("Section", backref="adviser_assignments")
+    teacher = relationship("Staff", backref="advisory_assignments")
+
+    __table_args__ = (
+        UniqueConstraint("school_id", "section_id", name="uq_section_adviser_per_school"),
     )
 
 

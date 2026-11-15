@@ -145,7 +145,14 @@ export const assignmentApi = {
   /* The signed-in teacher's own classes: what they may grade. */
   mine: () => api.get('/api/my-classes'),
   create: (payload) => api.post('/api/teacher-assignments', payload),
+  review: (id, payload) => api.post(`/api/teacher-assignments/${id}/review`, payload),
   remove: (id) => api.delete(`/api/teacher-assignments/${id}`),
+};
+
+export const adviserApi = {
+  list: () => api.get('/api/section-advisers'),
+  set: (sectionId, payload) => api.put(`/api/sections/${sectionId}/adviser`, payload),
+  remove: (sectionId) => api.delete(`/api/sections/${sectionId}/adviser`),
 };
 
 /* ── Students ────────────────────────────────────────────────────────────── */

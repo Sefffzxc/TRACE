@@ -66,13 +66,17 @@ function rowProblem(row, head) {
 
 /** One writer for a sheet: snapshot acknowledgements never clear newer typing.
  * Failed/uncertain batches require an edit or explicit retry, preventing loops. */
-export default function useClassRecordAutosave(context, reloadVersion = 0) {
+export default function useClassRecordAutosave(context, reloadVersion = 0, { canEdit = false } = {}) {
   const key = context.section_id && context.subject_id && context.subject_name
     ? `${context.section_id}:${context.subject_id}:${context.grading_period}` : '';
   const [state, setState] = useState({ key: '', context: {}, ready: false, loading: false,
     enrollments: [], paces: [], setup: DEFAULT_RECORD_SETUP, setupDraft: null, drafts: {},
     revision: 0, saving: false, error: '', savedAt: null });
   const stateRef = useRef(state);
+  // Permission is checked at the time of every edit and API mutation, including
+  // callbacks captured before a subject switch or a loss of teaching access.
+  const access = useRef({ key, canEdit });
+  access.current = { key, canEdit };
   const mounted = useRef(true);
   const writer = useRef(null);
   const lastAttempt = useRef(-1);
@@ -98,8 +102,8 @@ export default function useClassRecordAutosave(context, reloadVersion = 0) {
       // A failed refresh must never replace a sheet's still-unsaved entries.
       update((current) => ({ key, context: sheetContext, ready: true, loading: false,
         enrollments: enrollments || [], paces: paces || [], setup: normalizeSetup(setup || DEFAULT_RECORD_SETUP),
-        setupDraft: current.key === key ? current.setupDraft : null,
-        drafts: current.key === key ? current.drafts : {}, revision: current.revision,
+        setupDraft: canEdit && current.key === key ? current.setupDraft : null,
+        drafts: canEdit && current.key === key ? current.drafts : {}, revision: current.revision,
         saving: false, error: '', savedAt: current.key === key ? current.savedAt : null }));
     }).catch((err) => {
       if (live) update((current) => ({ ...current, loading: false, ready: false, error: `Could not load this class record: ${err.message}` }));
@@ -107,20 +111,26 @@ export default function useClassRecordAutosave(context, reloadVersion = 0) {
     return () => { live = false; };
     // The key contains these context values. Reload is explicit after import.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, reloadVersion, update]);
+  }, [key, reloadVersion, canEdit, update]);
 
   const setCell = useCallback((enrollmentId, field, index, value) => {
     update((current) => {
+      if (!mounted.current || !access.current.canEdit || access.current.key !== key || current.key !== key || !current.ready) return current;
       const row = current.drafts[enrollmentId] || {};
       const values = [...(row[field] || [])]; values[index] = value;
       return { ...current, drafts: { ...current.drafts, [enrollmentId]: { ...row, [field]: values } }, revision: current.revision + 1, error: '' };
     });
-  }, [update]);
-  const setSetupDraft = useCallback((value) => update((current) => ({ ...current,
-    setupDraft: typeof value === 'function' ? value(current.setupDraft || current.setup) : value,
-    revision: current.revision + 1, error: '' })), [update]);
+  }, [key, update]);
+  const setSetupDraft = useCallback((value) => update((current) => {
+    if (!mounted.current || !access.current.canEdit || access.current.key !== key || current.key !== key || !current.ready) return current;
+    return { ...current,
+      setupDraft: typeof value === 'function' ? value(current.setupDraft || current.setup) : value,
+      revision: current.revision + 1, error: '' };
+  }), [key, update]);
 
   const save = useCallback(() => {
+    if (!access.current.canEdit) return Promise.resolve(true);
+    if (access.current.key !== key || stateRef.current.key !== key) return Promise.resolve(false);
     if (writer.current) return writer.current;
     const captured = stateRef.current;
     if (!captured.ready) return Promise.resolve(false);
@@ -129,6 +139,11 @@ export default function useClassRecordAutosave(context, reloadVersion = 0) {
     const task = (async () => {
       update((current) => ({ ...current, saving: true, error: '' }));
       try {
+        const requireWriteAccess = () => {
+          if (!mounted.current || !access.current.canEdit || access.current.key !== captured.key || stateRef.current.key !== captured.key) {
+            throw new Error('Teaching access to this record has changed. Reload your assigned classes before editing.');
+          }
+        };
         const head = captured.setupDraft || captured.setup;
         const problem = setupProblem(head);
         if (problem) throw new Error(problem);
@@ -137,7 +152,9 @@ export default function useClassRecordAutosave(context, reloadVersion = 0) {
           if (invalidExisting) {
             throw new Error(`${invalidExisting.enrollment.student_name}: ${rowProblem(invalidExisting, head)} Correct the learner score or highest possible score before saving this setup.`);
           }
+          requireWriteAccess();
           const saved = await classRecordApi.saveSetup(captured.context, normalizeSetup(head));
+          requireWriteAccess();
           update((current) => ({ ...current, setup: normalizeSetup(saved || head), savedAt: Date.now() }));
         }
         const changed = recordRows(captured).filter((row) => row.dirty);
@@ -152,7 +169,9 @@ export default function useClassRecordAutosave(context, reloadVersion = 0) {
             average_score: row.stored?.average_score ?? 0,
             ww_scores: row.ww.map(number), pt_scores: row.pt.map(number), exam_scores: row.exam.map(number),
           }));
+          requireWriteAccess();
           const result = await paceApi.bulkSave(entries, captured.context);
+          requireWriteAccess();
           if (result.saved !== entries.length || result.skipped?.length) {
             throw new Error(`The server saved ${result.saved ?? 0} of ${entries.length} learners. All uncertain entries are retained. ${(result.skipped || []).join(' ')}`);
           }
@@ -171,25 +190,27 @@ export default function useClassRecordAutosave(context, reloadVersion = 0) {
         if (invalid.length) throw new Error(`${invalid.length} learner${invalid.length === 1 ? '' : 's'} still need corrections. ${invalid[0].enrollment.student_name}: ${rowProblem(invalid[0], head)}${valid.length ? ' Other valid learner entries were saved.' : ''}`);
         return !hasChanges(stateRef.current);
       } catch (err) {
-        update((current) => ({ ...current, error: `Not saved: ${err.message} Your edits remain on this page.` }));
+        update((current) => current.key === captured.key && access.current.key === captured.key && access.current.canEdit
+          ? { ...current, error: `Not saved: ${err.message} Your edits remain on this page.` } : current);
         return false;
       } finally {
-        update((current) => ({ ...current, saving: false }));
+        update((current) => current.key === captured.key ? { ...current, saving: false } : current);
       }
     })();
     writer.current = task;
     task.finally(() => { if (writer.current === task) writer.current = null; });
     return task;
-  }, [update]);
+  }, [key, update]);
 
   useEffect(() => {
-    if (!state.ready || state.saving || !hasChanges(state) || lastAttempt.current >= state.revision) return undefined;
+    if (!canEdit || state.key !== key || !state.ready || state.saving || !hasChanges(state) || lastAttempt.current >= state.revision) return undefined;
     const timer = window.setTimeout(save, 1200);
     return () => window.clearTimeout(timer);
-  }, [state, save]);
+  }, [state, save, key, canEdit]);
 
   useEffect(() => {
     const warn = (event) => {
+      if (!access.current.canEdit || access.current.key !== stateRef.current.key) return;
       if (!hasChanges(stateRef.current) && !writer.current) return;
       event.preventDefault(); event.returnValue = '';
     };
@@ -208,12 +229,13 @@ export default function useClassRecordAutosave(context, reloadVersion = 0) {
     return !hasChanges(stateRef.current);
   }, [save]);
   const saveOnBlur = useCallback(() => {
+    if (!access.current.canEdit || access.current.key !== key || stateRef.current.key !== key) return;
     if (stateRef.current.revision > lastAttempt.current && hasChanges(stateRef.current)) save();
-  }, [save]);
+  }, [key, save]);
   return { ...state, allRows, setCell, setSetupDraft, save,
     flush, saveOnBlur,
-    dirtyCount: Object.keys(state.drafts).length, setupDirty: setupChanged(state),
-    pending: hasChanges(state), ready: state.ready && state.key === key,
+    dirtyCount: canEdit ? Object.keys(state.drafts).length : 0, setupDirty: canEdit && setupChanged(state),
+    pending: canEdit && state.key === key && hasChanges(state), ready: state.ready && state.key === key,
     loading: state.loading || Boolean(key && state.key !== key && !state.error),
   };
 }

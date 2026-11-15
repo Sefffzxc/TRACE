@@ -2,6 +2,11 @@
 
 FastAPI + SQLAlchemy (async). SQLite out of the box, PostgreSQL when you want it.
 
+Section advisers and subject teaching assignments are separate. Advisers can
+read every advisory subject; grading rights come only from teaching assignments.
+Existing installations need the one-time
+[adviser backfill and deployment steps](../ADVISER_ASSIGNMENT_GUIDE.md).
+
 ## Run it
 
 ```bash
@@ -67,7 +72,7 @@ in that one file and the whole system moves with them.
 |---|---|
 | Authentication | `/api/auth/*` — register, login, verify-otp, refresh, logout, forgot/reset password |
 | Staff | `/api/staff/*` — directory, own profile and photo, approvals, audit logs |
-| Class management | `/api/school-years`, `/api/grade-levels`, `/api/sections`, `/api/subjects`, `/api/teacher-assignments`, `/api/class-schedules`, `/api/teacher-availabilities` |
+| Class management | `/api/school-years`, `/api/grade-levels`, `/api/sections`, `/api/subjects`, `/api/teacher-assignments`, `/api/section-advisers`, `/api/sections/{section_id}/adviser` |
 | Students | `/api/students`, `/api/students/{id}/profile`, `/api/enrollments` |
 | PACE & warnings | `/api/paces`, `/api/paces/bulk`, `/api/early-warnings` |
 | Dashboard | `/api/dashboard` |

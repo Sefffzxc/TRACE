@@ -23,13 +23,14 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 import app.models
 from app.api import deps
-from app.api.routers import academic, ai, pace
+from app.api.routers import academic, ai, dashboard, pace, staff
 from app.db.session import Base, get_db
-from app.models.academic import GradeLevel, SchoolYear, Section, Subject, TeacherAssignment
+from app.models.academic import GradeLevel, SchoolYear, Section, SectionAdviser, Subject, TeacherAssignment
 from app.models.schools import School
 from app.models.staff import Staff
 from app.models.students import AIRiskPrediction, EarlyWarning, Student, StudentEnrollment
 from app.services import email, ml_client
+from app.services.enrichment import Lookups, sections_for_teacher
 
 
 class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
@@ -47,6 +48,7 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
             await db.flush()
             for name, role, school_id in (
                 ("Teacher", "teacher", 1), ("Adviser", "teacher", 1),
+                ("AdviserOnly", "teacher", 1), ("FormerAdviser", "teacher", 1),
                 ("Unassigned", "teacher", 1), ("Wildcard", "teacher", 1),
                 ("Admin", "admin", 1), ("Foreign", "teacher", 2),
                 ("Operator", "super_admin", None),
@@ -84,7 +86,10 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
             db.add_all([
                 TeacherAssignment(school_id=1, teacher_id=self.people["Teacher"], section_id=10, subject_id=100),
                 TeacherAssignment(school_id=1, teacher_id=self.people["Teacher"], section_id=11, subject_id=111),
-                TeacherAssignment(school_id=1, teacher_id=self.people["Adviser"], section_id=10, subject_id=101, is_adviser=True),
+                TeacherAssignment(school_id=1, teacher_id=self.people["Adviser"], section_id=10, subject_id=101),
+                SectionAdviser(school_id=1, teacher_id=self.people["Adviser"], section_id=10),
+                SectionAdviser(school_id=1, teacher_id=self.people["AdviserOnly"], section_id=11),
+                TeacherAssignment(school_id=1, teacher_id=self.people["FormerAdviser"], section_id=12, subject_id=None, is_adviser=True),
                 TeacherAssignment(school_id=1, teacher_id=self.people["Wildcard"], section_id=12, subject_id=None),
                 TeacherAssignment(school_id=2, teacher_id=self.people["Foreign"], section_id=20, subject_id=None),
             ])
@@ -130,7 +135,7 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
             return await db.get(Staff, self.actor)
 
         self.app = FastAPI()
-        for router in (academic.router, ai.router, pace.router):
+        for router in (academic.router, ai.router, dashboard.router, pace.router, staff.router):
             self.app.include_router(router)
         self.app.dependency_overrides[get_db] = isolated_db
         self.app.dependency_overrides[deps.get_current_user] = current_actor
@@ -189,6 +194,59 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stats["total_flagged"], 2)
         self.assertEqual(stats["students_flagged"], 1)
         self.assertEqual((await self._get("/api/ai/summary"))["total_scored"], 2)
+
+    async def test_adviser_without_teaching_assignments_sees_both_monitoring_pages(self):
+        self.actor = self.people["AdviserOnly"]
+        self.assertEqual(await self._get("/api/my-classes"), {
+            "unrestricted": False, "grade": {}, "advisory": [11],
+        })
+        async with self.sessions() as db:
+            self.assertEqual(await sections_for_teacher(db, self.actor, school_id=1), [11])
+        for path in ("/api/ai/predictions", "/api/early-warnings"):
+            for mine in (False, True):
+                self.assertEqual(await self._monitoring_pairs(path, mine=mine),
+                    {(11, "Mathematics"), (11, "English")})
+        summary = await self._get("/api/dashboard")
+        self.assertEqual(summary["total_students"], 1)
+
+    async def test_old_adviser_flag_alone_does_not_restore_read_or_write_access(self):
+        self.actor = self.people["FormerAdviser"]
+        self.assertEqual(await self._get("/api/my-classes"), {
+            "unrestricted": False, "grade": {}, "advisory": [],
+        })
+        async with self.sessions() as db:
+            self.assertEqual(await sections_for_teacher(db, self.actor, school_id=1), [])
+        for path in ("/api/ai/predictions", "/api/early-warnings"):
+            self.assertEqual(await self._get(path, mine=True), [])
+        self.assertEqual((await self._get("/api/dashboard"))["total_students"], 0)
+
+    async def test_adviser_names_directory_and_principal_counts_use_independent_records(self):
+        async with self.sessions() as db:
+            lookups = await Lookups.load(db, school_id=1)
+        self.assertEqual(lookups.advisers, {10: "Adviser Staff", 11: "AdviserOnly Staff"})
+        self.actor = self.people["Admin"]
+        directory = {row["first_name"]: row for row in await self._get("/api/staff/teachers")}
+        self.assertEqual(directory["AdviserOnly"]["sections"], ["Faith"])
+        self.assertEqual(directory["AdviserOnly"]["advisory_section"], "Faith")
+        self.assertEqual(directory["FormerAdviser"]["sections"], [])
+        self.assertIsNone(directory["FormerAdviser"]["advisory_section"])
+        overview = await self._get("/api/dashboard/admin")
+        self.assertEqual(overview["attention"]["sections_without_adviser"], ["Hope"])
+        adviser_row = next(row for row in overview["teachers"] if row["id"] == str(self.people["AdviserOnly"]))
+        self.assertEqual(adviser_row["classes"], 0)
+
+    async def test_removing_a_teaching_assignment_preserves_advisory_monitoring(self):
+        self.actor = self.people["Admin"]
+        assignments = await self._get("/api/teacher-assignments")
+        own = next(row for row in assignments if row["teacher_id"] == str(self.people["Adviser"]))
+        result = await self.client.delete(f'/api/teacher-assignments/{own["assignment_id"]}')
+        self.assertEqual(result.status_code, 204, result.text)
+        self.actor = self.people["Adviser"]
+        self.assertEqual(await self._get("/api/my-classes"), {
+            "unrestricted": False, "grade": {}, "advisory": [10],
+        })
+        self.assertEqual(await self._monitoring_pairs("/api/ai/predictions", mine=True),
+            {(10, "Mathematics"), (10, "English")})
 
     async def test_wildcard_assignment_covers_its_own_section_only(self):
         self.actor = self.people["Wildcard"]

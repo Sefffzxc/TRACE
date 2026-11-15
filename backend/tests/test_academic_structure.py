@@ -21,7 +21,7 @@ import app.models
 from app.api import deps
 from app.api.routers import academic
 from app.db.session import Base, get_db
-from app.models.academic import GradeLevel, SchoolYear, Section, Subject, TeacherAssignment
+from app.models.academic import GradeLevel, SchoolYear, Section, SectionAdviser, Subject, TeacherAssignment
 from app.models.schools import School
 from app.models.staff import Staff
 from app.models.students import ClassRecordSetup, Student, StudentEnrollment
@@ -150,6 +150,22 @@ class AcademicStructureTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await db.get(Section, 10)).name, "A")
         response = await self.client.delete("/api/sections/11")
         self.assertEqual(response.status_code, 409, response.text)
+
+    async def test_adviser_without_teaching_rows_prevents_accidental_section_removal(self):
+        async with self.sessions() as db:
+            db.add(SectionAdviser(school_id=1, teacher_id=self.teacher_id, section_id=11))
+            await db.commit()
+        response = await self.client.patch("/api/grade-levels/1", json={
+            "name": "Should not save", "sections": [{"section_id": 10, "name": "Changed"}],
+        })
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertIn("adviser", response.json()["detail"])
+        response = await self.client.delete("/api/sections/11")
+        self.assertEqual(response.status_code, 409, response.text)
+        async with self.sessions() as db:
+            self.assertEqual((await db.get(GradeLevel, 1)).name, "Grade 7")
+            self.assertEqual((await db.get(Section, 10)).name, "A")
+            self.assertEqual((await db.get(Section, 11)).name, "B")
 
     async def test_historical_enrollments_prevent_section_and_grade_removal(self):
         async with self.sessions() as db:

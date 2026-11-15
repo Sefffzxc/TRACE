@@ -108,6 +108,7 @@ class AssignmentFixture:
             return await db.get(Staff, self.actor)
 
         application = FastAPI()
+        self.app = application
         application.include_router(academic.router)
         application.dependency_overrides[get_db] = database
         application.dependency_overrides[deps.get_current_user] = user
@@ -179,21 +180,22 @@ class TeacherAssignmentTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase
         self.assertEqual(len(response.json()), 3)
         self.assertTrue(all(row["teacher_name"] and row["section_name"] and row["subject_name"] for row in response.json()))
 
-    async def test_all_subjects_blocks_specific_and_duplicate_wildcard_assignments(self):
-        self.assertEqual((await self._create(subject=None)).status_code, 201)
-        for teacher, subject in (("Teacher A", None), ("Teacher A", 100), ("Teacher B", None), ("Teacher B", 101)):
+    async def test_legacy_all_subjects_blocks_specific_assignments_until_reviewed(self):
+        async with self.sessions() as db:
+            db.add(TeacherAssignment(school_id=1, teacher_id=self.people["Teacher A"].id,
+                                     section_id=10, subject_id=None, is_adviser=False))
+            await db.commit()
+        for teacher, subject in (("Teacher A", 100), ("Teacher B", 101)):
             response = await self._create(teacher, subject=subject)
             self.assertEqual(response.status_code, 409, response.text)
             self.assertIn("all subjects", response.json()["detail"])
         self.assertEqual(await self._count(), 1)
 
-    async def test_specific_subject_blocks_overlapping_all_subjects_assignment(self):
-        self.assertEqual((await self._create()).status_code, 201)
-        for teacher in ("Teacher A", "Teacher B"):
-            response = await self._create(teacher, subject=None)
-            self.assertEqual(response.status_code, 409, response.text)
-            self.assertIn("English", response.json()["detail"])
-        self.assertEqual(await self._count(), 1)
+    async def test_new_assignments_require_specific_subject_and_separate_advice(self):
+        for subject, adviser in ((None, False), (100, True), (None, True)):
+            response = await self._create(subject=subject, adviser=adviser)
+            self.assertEqual(response.status_code, 400, response.text)
+        self.assertEqual(await self._count(), 0)
 
     async def test_remove_then_assign_replaces_teacher_explicitly(self):
         response = await self._create()
@@ -205,18 +207,14 @@ class TeacherAssignmentTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase
         self.assertEqual(response.json()["teacher_id"], str(self.people["Teacher B"].id))
         self.assertEqual(await self._count(), 1)
 
-    async def test_failed_assignment_does_not_remove_an_existing_adviser(self):
-        response = await self._create(adviser=True)
-        identity = response.json()["assignment_id"]
-        response = await self._create("Teacher B", adviser=True)
-        self.assertEqual(response.status_code, 409, response.text)
+    async def test_legacy_adviser_only_row_does_not_occupy_subject(self):
         async with self.sessions() as db:
-            self.assertTrue((await db.get(TeacherAssignment, identity)).is_adviser)
-        response = await self._create("Teacher B", subject=101, adviser=True)
+            db.add(TeacherAssignment(school_id=1, teacher_id=self.people["Teacher A"].id,
+                                     section_id=10, subject_id=None, is_adviser=True))
+            await db.commit()
+        response = await self._create("Teacher B")
         self.assertEqual(response.status_code, 201, response.text)
-        async with self.sessions() as db:
-            self.assertFalse((await db.get(TeacherAssignment, identity)).is_adviser)
-            self.assertTrue((await db.get(TeacherAssignment, response.json()["assignment_id"])).is_adviser)
+        self.assertEqual(await self._count(), 2)
 
     async def test_only_active_approved_teachers_are_assignable(self):
         for role, status, approved, active in (
@@ -265,7 +263,7 @@ class TeacherAssignmentTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase
                 for teacher, subject in (("Teacher A", 100), ("Teacher B", 100), ("Teacher A", None), ("Teacher A", None))
             ])
             await db.commit()
-        for subject in (100, None):
+        for subject in (100, 101):
             response = await self._create("Teacher C", subject=subject)
             self.assertEqual(response.status_code, 409, response.text)
         self.assertEqual(await self._count(), 4)
@@ -283,7 +281,7 @@ class TeacherAssignmentTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase
         await self._assert_race(100, 100, [201, 409])
 
     async def test_concurrent_wildcard_and_subject_cannot_overlap(self):
-        await self._assert_race(None, 100, [201, 409])
+        await self._assert_race(None, 100, [400, 201])
 
     async def test_concurrent_nonoverlapping_subjects_both_save(self):
         await self._assert_race(100, 101, [201, 201])
@@ -297,7 +295,7 @@ class TeacherAssignmentPostgresConcurrencyTests(AssignmentFixture, unittest.Isol
         await self._assert_race(100, 100, [201, 409])
 
     async def test_concurrent_wildcard_and_subject_cannot_overlap(self):
-        await self._assert_race(None, 100, [201, 409])
+        await self._assert_race(None, 100, [400, 201])
 
     async def test_concurrent_nonoverlapping_subjects_both_save(self):
         await self._assert_race(100, 101, [201, 201])

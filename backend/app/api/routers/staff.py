@@ -29,7 +29,7 @@ from app.core.security import (
     async_verify_password,
 )
 from app.db.session import get_db
-from app.models.academic import Section, TeacherAssignment
+from app.models.academic import Section, SectionAdviser, TeacherAssignment
 from app.models.applications import ApplicationEvent
 from app.models.schools import School
 from app.models.staff import (
@@ -251,9 +251,16 @@ async def list_teachers(
     by_teacher: dict[uuid.UUID, list[str]] = {}
     adviser_of: dict[uuid.UUID, str] = {}
     for assignment, section in assignments:
-        by_teacher.setdefault(assignment.teacher_id, []).append(section.name)
-        if assignment.is_adviser:
-            adviser_of[assignment.teacher_id] = section.name
+        if assignment.subject_id is not None or not assignment.is_adviser:
+            by_teacher.setdefault(assignment.teacher_id, []).append(section.name)
+    advisers = (await db.execute(
+        select(SectionAdviser, Section)
+        .join(Section, Section.section_id == SectionAdviser.section_id)
+        .where(SectionAdviser.school_id == scope, Section.school_id == scope)
+    )).all()
+    for adviser, section in advisers:
+        adviser_of[adviser.teacher_id] = section.name
+        by_teacher.setdefault(adviser.teacher_id, []).append(section.name)
 
     out = []
     for teacher in teachers:

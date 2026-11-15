@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Callable, Dict, Iterable, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.academic import GradeLevel, Section, TeacherAssignment
+from app.models.academic import GradeLevel, Section, SectionAdviser, TeacherAssignment
 from app.models.staff import Staff
 from app.models.students import (
     AIRiskPrediction,
@@ -52,9 +52,8 @@ class Lookups:
             self.staff[str(person.id)] = person.full_name
         rows = (
             await db.execute(
-                select(TeacherAssignment).where(
-                    TeacherAssignment.school_id == school_id,
-                    TeacherAssignment.is_adviser.is_(True),
+                select(SectionAdviser).where(
+                    SectionAdviser.school_id == school_id,
                 )
             )
         ).scalars().all()
@@ -410,7 +409,16 @@ async def sections_for_teacher(db: AsyncSession, teacher_id, *, school_id: int) 
             select(TeacherAssignment.section_id).where(
                 TeacherAssignment.school_id == school_id,
                 TeacherAssignment.teacher_id == teacher_id,
+                or_(TeacherAssignment.subject_id.is_not(None), TeacherAssignment.is_adviser.is_(False)),
             )
         )
     ).scalars().all()
-    return list({int(r) for r in rows})
+    advisory = (
+        await db.execute(
+            select(SectionAdviser.section_id).where(
+                SectionAdviser.school_id == school_id,
+                SectionAdviser.teacher_id == teacher_id,
+            )
+        )
+    ).scalars().all()
+    return list({int(r) for r in (*rows, *advisory)})

@@ -30,7 +30,7 @@ from app.api.routers import auth, resubmission, schools, staff
 from app.core.config import settings
 from app.core.security import create_access_token, create_refresh_token
 from app.db.session import Base, get_db
-from app.models.academic import GradeLevel, Section, TeacherAssignment
+from app.models.academic import GradeLevel, Section, SectionAdviser, TeacherAssignment
 from app.models.applications import ApplicationEvent, ResubmissionChallenge
 from app.models.schools import School
 from app.models.staff import OTPCode, Staff, StaffDevice, StaffSession
@@ -456,7 +456,7 @@ class ResubmissionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self._submit(token)).status_code, 200)
 
     async def test_prior_approval_history_or_database_records_prevent_school_change(self):
-        for marker in ("approved_at", "last_login_at", "approval_history", "legacy_approved_from", "device", "assignment"):
+        for marker in ("approved_at", "last_login_at", "approval_history", "legacy_approved_from", "device", "assignment", "advisory"):
             with self.subTest(marker=marker):
                 async with self.sessions() as db:
                     source = self.people["Teacher"]
@@ -484,7 +484,8 @@ class ResubmissionTests(unittest.IsolatedAsyncioTestCase):
                         section = Section(school_id=1, grade_level_id=grade.grade_level_id, name="Records")
                         db.add(section)
                         await db.flush()
-                        db.add(TeacherAssignment(school_id=1, teacher_id=identity, section_id=section.section_id))
+                        assignment_type = SectionAdviser if marker == "advisory" else TeacherAssignment
+                        db.add(assignment_type(school_id=1, teacher_id=identity, section_id=section.section_id))
                     await db.commit()
                     self.people["Teacher"] = person
                 token, application = await self._proof()

@@ -37,7 +37,7 @@ from sqlalchemy import select
 
 from app.core.security import get_password_hash
 from app.db.session import AsyncSessionLocal, Base, async_engine, init_models
-from app.models.academic import GradeLevel, SchoolYear, Section, Subject, TeacherAssignment
+from app.models.academic import GradeLevel, SchoolYear, Section, SectionAdviser, Subject, TeacherAssignment
 from app.models.schools import SCHOOL_APPROVED, TYPE_PUBLIC, School
 from app.models.staff import (
     ROLE_ADMIN,
@@ -113,8 +113,8 @@ SECTIONS = [
     ("G8-NAR", "Grade 8 - Narra", "8", "dan"),
 ]
 
-# Subject assignments: (teacher, section code, subject). A section with an
-# adviser but no subject rows for them means "every subject" (Dan in Narra).
+# Subject assignments: (teacher, section code, subject). Advisory visibility
+# is separate; every teaching right below names a specific subject.
 CLASSES = [
     ("ana", "G7-SAM", "English"),
     ("ana", "G7-ROS", "English"),
@@ -124,6 +124,10 @@ CLASSES = [
     ("carla", "G7-SAM", "Science"),
     ("carla", "G7-ROS", "Filipino"),
     ("carla", "G7-ROS", "Science"),
+    ("dan", "G8-NAR", "Filipino"),
+    ("dan", "G8-NAR", "English"),
+    ("dan", "G8-NAR", "Mathematics"),
+    ("dan", "G8-NAR", "Science"),
 ]
 
 # Five learners per section. The scores are written out rather than generated
@@ -273,7 +277,7 @@ async def build_demo(db, operator_id) -> dict:
 
     The teachers' assignments are chosen to show the access rule in every
     form: an adviser who teaches one subject, a subject teacher with no
-    advisory, and an adviser whose assignment leaves the subject blank.
+    advisory, and an adviser explicitly assigned all four subjects.
     """
     school = School(
         name=DEMO_SCHOOL_NAME,
@@ -350,12 +354,11 @@ async def build_demo(db, operator_id) -> dict:
     await db.flush()
 
     # ── Assignments ─────────────────────────────────────────────────────────
-    # The adviser row carries no subject; a teacher's subjects come from the
-    # rows in CLASSES. Dan has only his adviser row in Narra, which means he
-    # handles every subject there.
+    # Advice grants section-wide viewing only. Each teaching right comes
+    # from CLASSES, including Dan's four explicit subjects in Narra.
     for code, _name, _level, adviser in SECTIONS:
-        db.add(TeacherAssignment(school_id=sid, teacher_id=teachers[adviser].id,
-                                 section_id=sections[code].section_id, is_adviser=True))
+        db.add(SectionAdviser(school_id=sid, teacher_id=teachers[adviser].id,
+                              section_id=sections[code].section_id))
     for teacher, code, subject_name in CLASSES:
         level_no = next(lvl for c, _n, lvl, _a in SECTIONS if c == code)
         db.add(TeacherAssignment(
@@ -366,12 +369,11 @@ async def build_demo(db, operator_id) -> dict:
     await db.flush()
 
     def teacher_of(code: str, subject_name: str) -> Staff:
-        """Who grades this class: the subject's teacher, else the adviser."""
+        """Who grades this class: its explicitly assigned subject teacher."""
         for teacher, c, s in CLASSES:
             if c == code and s == subject_name:
                 return teachers[teacher]
-        adviser = next(a for c, _n, _l, a in SECTIONS if c == code)
-        return teachers[adviser]
+        raise ValueError(f"No subject teacher configured for {code} / {subject_name}.")
 
     # One class-record header per class per term. Without it there is no
     # denominator, so every percentage would stay blank.
@@ -535,7 +537,7 @@ WHO_SEES_WHAT = [
      "Sees Filipino and Science in those two sections only",
      "Grades Filipino and Science there"),
     ("teacher4  Dan Lopez",
-     "Adviser of 8-Narra, subject left blank (= every subject)",
+     "Adviser of 8-Narra; explicitly teaches its four subjects",
      "Sees everything in 8-Narra, and nothing in Grade 7",
      "Grades every subject in 8-Narra"),
 ]

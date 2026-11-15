@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user, school_scope
 from app.db.session import get_db
-from app.models.academic import GradeLevel, SchoolYear, Section, Subject, TeacherAssignment
+from app.models.academic import GradeLevel, SchoolYear, Section, SectionAdviser, Subject, TeacherAssignment
 from app.models.staff import (
     ROLE_ADMIN,
     ROLE_TEACHER,
@@ -444,7 +444,9 @@ async def admin_dashboard(
     assignments = (
         await db.execute(select(TeacherAssignment).where(TeacherAssignment.school_id == scope))
     ).scalars().all()
-    advised = {a.section_id for a in assignments if a.is_adviser}
+    advised = set((await db.scalars(select(SectionAdviser.section_id).where(
+        SectionAdviser.school_id == scope,
+    ))).all())
 
     section_of = {e.enrollment_id: e.section_id for e in enrollments}
     records = (
@@ -500,10 +502,10 @@ async def admin_dashboard(
             tally[str(by)] = tally.get(str(by), 0) + 1
     section_teacher = {}
     for a in assignments:
-        if a.subject_id is None:
-            # Prefer the adviser when a section has several general assignments.
-            if a.is_adviser or a.section_id not in section_teacher:
-                section_teacher[a.section_id] = str(a.teacher_id)
+        if a.subject_id is None and not a.is_adviser:
+            # Legacy teaching-all rows still count as teaching. Advisory-only
+            # legacy rows never make the adviser responsible for every subject.
+            section_teacher.setdefault(a.section_id, str(a.teacher_id))
     for key, tally in recorders.items():
         if key in classes:
             continue

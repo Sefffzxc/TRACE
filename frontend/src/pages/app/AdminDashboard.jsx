@@ -308,7 +308,7 @@ export default function AdminDashboard() {
                       type="button"
                       className="link-button"
                       style={{ marginTop: '.35rem' }}
-                      onClick={() => navigate('/class-management')}
+                      onClick={() => navigate('/class-management?tab=advisers')}
                     >
                       Assign advisers →
                     </button>

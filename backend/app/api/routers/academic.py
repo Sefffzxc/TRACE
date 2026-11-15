@@ -6,7 +6,7 @@ import uuid
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +18,7 @@ from app.models.academic import (
     GradeLevel,
     SchoolYear,
     Section,
+    SectionAdviser,
     Subject,
     TeacherAssignment,
 )
@@ -38,11 +39,14 @@ from app.schemas.academic import (
     SectionCreate,
     SectionResponse,
     SectionUpdate,
+    SectionAdviserResponse,
+    SectionAdviserSet,
     SubjectCreate,
     SubjectResponse,
     SubjectUpdate,
     TeacherAssignmentCreate,
     TeacherAssignmentResponse,
+    TeacherAssignmentReview,
 )
 
 router = APIRouter(tags=["Class management"])
@@ -64,6 +68,7 @@ async def _assert_section_unused(db: AsyncSession, section: Section, scope: int)
     for model, label in (
         (StudentEnrollment, "enrollment records"),
         (TeacherAssignment, "teacher assignments"),
+        (SectionAdviser, "a section adviser"),
         (ClassRecordSetup, "class records"),
         (ClassSchedule, "saved schedules"),
     ):
@@ -472,13 +477,12 @@ async def _decorate_sections(
     for assignment, staff in (
         await db.execute(
             scoped(
-                select(TeacherAssignment, Staff)
-                .join(Staff, Staff.id == TeacherAssignment.teacher_id)
+                select(SectionAdviser, Staff)
+                .join(Staff, Staff.id == SectionAdviser.teacher_id)
                 .where(
-                    TeacherAssignment.is_adviser.is_(True),
                     Staff.school_id == scope,
                 ),
-                TeacherAssignment,
+                SectionAdviser,
                 scope,
             )
         )
@@ -664,6 +668,11 @@ async def delete_subject(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, Subject, subject_id, scope, "Subject")
+    # Deleting a subject must remove its teaching assignments, not turn them
+    # into legacy blank-subject rows with broader access. Advice is separate.
+    await db.execute(delete(TeacherAssignment).where(
+        TeacherAssignment.school_id == scope, TeacherAssignment.subject_id == subject_id,
+    ))
     await db.delete(row)
     await db.commit()
 
@@ -687,6 +696,85 @@ async def _lock_assignment_section(db: AsyncSession, section_id: int, scope: int
     return await db.scalar(select(Section).where(
         Section.section_id == section_id, Section.school_id == scope,
     ).with_for_update().execution_options(populate_existing=True))
+
+
+async def _approved_teacher(db: AsyncSession, teacher_id, scope: int) -> Staff:
+    teacher = await db.scalar(select(Staff).where(
+        Staff.id == teacher_id, Staff.school_id == scope,
+    ).with_for_update().execution_options(populate_existing=True))
+    if teacher is None:
+        raise HTTPException(status_code=400, detail="That teacher does not exist.")
+    if teacher.role != ROLE_TEACHER or not teacher.is_active or not teacher.is_approved or teacher.account_status != STATUS_APPROVED:
+        raise HTTPException(status_code=400, detail="Choose an active, approved teacher.")
+    return teacher
+
+
+async def _adviser_response(db: AsyncSession, row: SectionAdviser, scope: int) -> SectionAdviserResponse:
+    item = SectionAdviserResponse.model_validate(row)
+    teacher = await get_scoped_optional(db, Staff, row.teacher_id, scope)
+    section = await get_scoped_optional(db, Section, row.section_id, scope)
+    grade = await get_scoped_optional(db, GradeLevel, section.grade_level_id, scope) if section else None
+    item.teacher_name = teacher.full_name if teacher else None
+    item.section_name = section.name if section else None
+    item.grade_level_name = grade.name if grade else None
+    return item
+
+
+@router.get("/api/section-advisers", response_model=List[SectionAdviserResponse])
+async def list_section_advisers(
+    _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (await db.scalars(select(SectionAdviser).where(
+        SectionAdviser.school_id == scope,
+    ).order_by(SectionAdviser.section_id))).all()
+    return [await _adviser_response(db, row, scope) for row in rows]
+
+
+@router.put("/api/sections/{section_id}/adviser", response_model=SectionAdviserResponse)
+async def set_section_adviser(
+    section_id: int,
+    payload: SectionAdviserSet,
+    _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    if await _lock_assignment_section(db, section_id, scope) is None:
+        raise HTTPException(status_code=404, detail="Section not found.")
+    await _approved_teacher(db, payload.teacher_id, scope)
+    row = await db.scalar(select(SectionAdviser).where(
+        SectionAdviser.school_id == scope, SectionAdviser.section_id == section_id,
+    ).execution_options(populate_existing=True))
+    if row is None:
+        row = SectionAdviser(school_id=scope, section_id=section_id, teacher_id=payload.teacher_id)
+        db.add(row)
+    else:
+        row.teacher_id = payload.teacher_id
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="The section adviser changed. Refresh and try again.") from None
+    await db.refresh(row)
+    return await _adviser_response(db, row, scope)
+
+
+@router.delete("/api/sections/{section_id}/adviser", status_code=204)
+async def remove_section_adviser(
+    section_id: int,
+    _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    if await _lock_assignment_section(db, section_id, scope) is None:
+        raise HTTPException(status_code=404, detail="Section not found.")
+    row = await db.scalar(select(SectionAdviser).where(
+        SectionAdviser.school_id == scope, SectionAdviser.section_id == section_id,
+    ))
+    if row is not None:
+        await db.delete(row)
+    await db.commit()
 
 
 @router.get("/api/teacher-assignments", response_model=List[TeacherAssignmentResponse])
@@ -723,6 +811,7 @@ async def list_assignments(
         item.teacher_name = teachers.get(row.teacher_id)
         item.section_name = sections.get(row.section_id)
         item.subject_name = subjects.get(row.subject_id)
+        item.needs_subject_review = row.subject_id is None
         out.append(item)
     return out
 
@@ -736,18 +825,16 @@ async def create_assignment(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    if payload.subject_id is None:
+        raise HTTPException(status_code=400, detail="Choose a specific subject. Assign section advisers separately.")
+    if payload.is_adviser:
+        raise HTTPException(status_code=400, detail="Assign section advisers separately from subject teachers.")
     # The teacher, section and subject all have to be this school's own. A
     # Staff row with a NULL school_id — the super admin — never matches.
     section = await _lock_assignment_section(db, payload.section_id, scope)
     if section is None:
         raise HTTPException(status_code=400, detail="That section does not exist.")
-    teacher = await db.scalar(select(Staff).where(
-        Staff.id == payload.teacher_id, Staff.school_id == scope,
-    ).with_for_update().execution_options(populate_existing=True))
-    if teacher is None:
-        raise HTTPException(status_code=400, detail="That teacher does not exist.")
-    if teacher.role != ROLE_TEACHER or not teacher.is_active or not teacher.is_approved or teacher.account_status != STATUS_APPROVED:
-        raise HTTPException(status_code=400, detail="Choose an active, approved teacher.")
+    await _approved_teacher(db, payload.teacher_id, scope)
     subject = None
     if payload.subject_id is not None:
         subject = await get_scoped_optional(db, Subject, payload.subject_id, scope)
@@ -763,7 +850,7 @@ async def create_assignment(
     if payload.subject_id is not None:
         occupied = occupied.where(or_(
             TeacherAssignment.subject_id == payload.subject_id,
-            TeacherAssignment.subject_id.is_(None),
+            and_(TeacherAssignment.subject_id.is_(None), TeacherAssignment.is_adviser.is_(False)),
         ))
     existing = (await db.scalars(occupied.order_by(TeacherAssignment.assignment_id).limit(1))).first()
     if existing is not None:
@@ -778,22 +865,6 @@ async def create_assignment(
             "Remove the existing assignment before assigning another teacher."
         ))
 
-    if payload.is_adviser:
-        current = (
-            await db.execute(
-                scoped(
-                    select(TeacherAssignment).where(
-                        TeacherAssignment.section_id == payload.section_id,
-                        TeacherAssignment.is_adviser.is_(True),
-                    ),
-                    TeacherAssignment,
-                    scope,
-                )
-            )
-        ).scalars().all()
-        for other in current:
-            other.is_adviser = False
-
     row = TeacherAssignment(**payload.model_dump(), school_id=scope)
     db.add(row)
     try:
@@ -803,6 +874,75 @@ async def create_assignment(
         raise HTTPException(status_code=409, detail="The assignment changed. Refresh assignments and try again.") from None
     await db.refresh(row)
     return TeacherAssignmentResponse.model_validate(row)
+
+
+@router.post("/api/teacher-assignments/{assignment_id}/review", response_model=List[TeacherAssignmentResponse])
+async def review_legacy_assignment(
+    assignment_id: int,
+    payload: TeacherAssignmentReview,
+    _: Staff = Depends(get_current_admin),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resolve one ambiguous old assignment without touching grades or advice."""
+    old = await get_scoped(db, TeacherAssignment, assignment_id, scope, "Assignment")
+    section = await _lock_assignment_section(db, old.section_id, scope)
+    old = await db.scalar(select(TeacherAssignment).where(
+        TeacherAssignment.assignment_id == assignment_id, TeacherAssignment.school_id == scope,
+    ).execution_options(populate_existing=True))
+    if section is None or old is None:
+        raise HTTPException(status_code=404, detail="Assignment not found.")
+    if old.subject_id is not None:
+        raise HTTPException(status_code=400, detail="Only legacy assignments without a subject need this review.")
+    teacher = await _approved_teacher(db, old.teacher_id, scope) if payload.subject_ids else None
+    subjects = {}
+    for subject_id in payload.subject_ids:
+        subject = await get_scoped_optional(db, Subject, subject_id, scope)
+        if subject is None or subject.grade_level_id != section.grade_level_id:
+            raise HTTPException(status_code=400, detail="Choose subjects from this section's grade level.")
+        subjects[subject_id] = subject
+
+    existing_rows = (await db.scalars(select(TeacherAssignment).where(
+        TeacherAssignment.school_id == scope,
+        TeacherAssignment.section_id == section.section_id,
+        TeacherAssignment.assignment_id != old.assignment_id,
+    ))).all()
+    retained = {}
+    for existing in existing_rows:
+        if existing.subject_id is None and existing.is_adviser:
+            continue
+        if subjects and (existing.subject_id in subjects or existing.subject_id is None):
+            if existing.teacher_id != old.teacher_id:
+                raise HTTPException(status_code=409, detail=(
+                    "A selected subject already has another teacher or an unresolved all-subjects assignment. "
+                    "Resolve that assignment first."
+                ))
+            if existing.subject_id is not None:
+                retained[existing.subject_id] = existing
+
+    replacements = []
+    for subject_id in payload.subject_ids:
+        row = retained.get(subject_id)
+        if row is None:
+            row = TeacherAssignment(school_id=scope, teacher_id=old.teacher_id,
+                                    section_id=section.section_id, subject_id=subject_id, is_adviser=False)
+            db.add(row)
+        replacements.append(row)
+    await db.delete(old)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="The assignments changed. Refresh and review again.") from None
+    result = []
+    for row in replacements:
+        await db.refresh(row)
+        item = TeacherAssignmentResponse.model_validate(row)
+        item.teacher_name = teacher.full_name
+        item.section_name = section.name
+        item.subject_name = subjects[row.subject_id].subject_name
+        result.append(item)
+    return result
 
 
 @router.delete("/api/teacher-assignments/{assignment_id}", status_code=204)

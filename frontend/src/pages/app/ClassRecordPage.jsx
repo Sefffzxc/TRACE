@@ -26,6 +26,7 @@ import {
   periodName,
   show,
 } from '../../lib/grading';
+import { assignedSections, sectionLabel } from '../../lib/classAccess';
 
 /**
  * The MATATAG three-term E-Class Record.
@@ -84,9 +85,9 @@ export default function ClassRecordPage() {
   const [waking, setWaking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  // section id -> subject names this teacher grades there ("*" = all);
-  // null for an administrator, who is not limited.
-  const [myClasses, setMyClasses] = useState(null);
+  // Advisory access permits viewing every subject; grading access remains
+  // separate and permits editing only the teacher's teaching assignments.
+  const [myClasses, setMyClasses] = useState({ unrestricted: false, grade: {}, advisory: [] });
 
   useEffect(() => {
     (async () => {
@@ -96,14 +97,8 @@ export default function ClassRecordPage() {
           subjectApi.list({ is_active: true }),
           assignmentApi.mine(),
         ]);
-        // Only the classes this teacher grades: the sections they are
-        // assigned to, and in each only their own subjects. The server
-        // refuses any other save as well.
-        const grade = mine?.grade || {};
-        const own = mine?.unrestricted
-          ? sectionRows || []
-          : (sectionRows || []).filter((s) => grade[String(s.section_id)]);
-        setMyClasses(mine?.unrestricted ? null : grade);
+        const own = assignedSections(sectionRows, mine);
+        setMyClasses(mine || { unrestricted: false, grade: {}, advisory: [] });
         setSections(own);
         setSubjects(subjectRows || []);
         if (own.length) setSectionId(String(own[0].section_id));
@@ -140,8 +135,8 @@ export default function ClassRecordPage() {
   const subjectOptions = useMemo(() => {
     if (!section) return [];
     const forLevel = subjects.filter((s) => s.grade_level_id === section.grade_level_id);
-    if (!myClasses) return forLevel; // an administrator
-    const taught = myClasses[String(section.section_id)] || [];
+    if (myClasses.unrestricted || myClasses.advisory?.some((id) => String(id) === String(section.section_id))) return forLevel;
+    const taught = myClasses.grade?.[String(section.section_id)] || [];
     return taught.includes('*') ? forLevel : forLevel.filter((s) => taught.includes(s.subject_name));
   }, [subjects, section, myClasses]);
 
@@ -160,11 +155,13 @@ export default function ClassRecordPage() {
     () => subjectOptions.find((s) => String(s.subject_id) === subjectId),
     [subjectOptions, subjectId],
   );
+  const taughtSubjects = myClasses.grade?.[String(sectionId)] || [];
+  const canEdit = Boolean(subject && (myClasses.unrestricted || taughtSubjects.includes('*') || taughtSubjects.includes(subject.subject_name)));
 
   const record = useClassRecordAutosave({
     section_id: sectionId, subject_id: subjectId,
     subject_name: subject?.subject_name, grading_period: term,
-  }, setupVersion);
+  }, setupVersion, { canEdit });
   const { setup, setupDraft, setSetupDraft, setCell, saving, dirtyCount } = record;
   const loadingRoster = record.loading;
   const save = record.save;
@@ -236,7 +233,7 @@ export default function ClassRecordPage() {
 
   const saveSetup = () => changeContext(() => setSetupDraft(null));
 
-  const editing = setupDraft !== null;
+  const editing = canEdit && setupDraft !== null;
   const head = editing ? setupDraft : setup;
   const profile = TEMPLATES[head.template] || TEMPLATES[CORE];
 
@@ -255,7 +252,7 @@ export default function ClassRecordPage() {
       <PageHead
         title="Class record"
         subtitle={
-          `Enter scores by ${periodLabel.toLowerCase()}. Grades compute as you type.`
+          canEdit ? `Enter scores by ${periodLabel.toLowerCase()}. Grades compute as you type.` : 'View your advisory class records. Edit scores only for subjects assigned to you.'
         }
       />
 
@@ -274,7 +271,7 @@ export default function ClassRecordPage() {
         >
           {sections.map((item) => (
             <option key={item.section_id} value={item.section_id}>
-              {item.name}
+              {sectionLabel(item, sections)}
             </option>
           ))}
         </select>
@@ -319,7 +316,7 @@ export default function ClassRecordPage() {
           />
         </div>
 
-        {editing ? (
+        {canEdit && (editing ? (
           <div className="cr-setup-actions">
             <select
               className="select"
@@ -357,8 +354,14 @@ export default function ClassRecordPage() {
               <FileUp size={15} /> Import from Excel
             </button>
           </>
-        )}
+        ))}
       </div>
+
+      {subject && !canEdit && (
+        <p className="cr-template-note" role="note">
+          <strong>Read only — advisory access.</strong> You can view all scores and grades in your advisory section. Only the assigned subject teacher can change scores, assessment setup, or import records.
+        </p>
+      )}
 
       <p className="cr-template-note">
         {editing ? (
@@ -523,6 +526,7 @@ export default function ClassRecordPage() {
                     </th>
 
                     <ScoreCells
+                      readOnly={!canEdit}
                       disabled={changingContext || importing}
                       values={row.ww}
                       highest={head.ww_highest}
@@ -536,6 +540,7 @@ export default function ClassRecordPage() {
                     <Derived value={row.computed.ww_ws} />
 
                     <ScoreCells
+                      readOnly={!canEdit}
                       disabled={changingContext || importing}
                       values={row.pt}
                       highest={head.pt_highest}
@@ -549,6 +554,7 @@ export default function ClassRecordPage() {
                     <Derived value={row.computed.pt_ws} />
 
                     <ScoreCells
+                      readOnly={!canEdit}
                       disabled={changingContext || importing}
                       values={row.exam}
                       highest={head.exam_highest}
@@ -587,15 +593,15 @@ export default function ClassRecordPage() {
       )}
       {section && subject && !loadingRoster && <div className="save-bar cr-save-status">
         <div className="cr-save-message" role="status" aria-live="polite">
-          <strong>{saving ? 'Saving...' : record.error ? 'Not saved' : record.pending ? 'Waiting to save...' : record.savedAt ? 'Saved' : 'Ready to enter scores'}</strong>
-          <span>{record.pending ? dirtyCount ? ` - ${dirtyCount} learner${dirtyCount === 1 ? '' : 's'} with pending scores${record.setupDirty ? ' and setup changes' : ''}.` : ' - Setup changes are waiting to save.' : record.savedAt ? ' - All entered changes are saved.' : ' - Your scores save automatically after a pause.'}</span>
+          <strong>{!canEdit ? 'Read only — advisory access' : saving ? 'Saving...' : record.error ? 'Not saved' : record.pending ? 'Waiting to save...' : record.savedAt ? 'Saved' : 'Ready to enter scores'}</strong>
+          {canEdit && <span>{record.pending ? dirtyCount ? ` - ${dirtyCount} learner${dirtyCount === 1 ? '' : 's'} with pending scores${record.setupDirty ? ' and setup changes' : ''}.` : ' - Setup changes are waiting to save.' : record.savedAt ? ' - All entered changes are saved.' : ' - Your scores save automatically after a pause.'}</span>}
           <span className="cr-foot-note"> - * provisional (scores missing)</span>
         </div>
-        <button type="button" className="btn btn-primary" onClick={save} disabled={saving || changingContext || !record.pending || !record.ready}>
+        {canEdit && <button type="button" className="btn btn-primary" onClick={save} disabled={saving || changingContext || !record.pending || !record.ready}>
           <Save size={15} /> {saving ? 'Saving...' : record.error ? 'Retry save' : 'Save now'}
-        </button>
+        </button>}
       </div>}
-      {importing && section && subject && (
+      {canEdit && importing && section && subject && (
         <ImportClassRecord
           section={section}
           subject={subject}
@@ -660,8 +666,9 @@ function moveTo(row, col) {
   }
 }
 
-function ScoreCells({ values, highest = [], row, colStart, onChange, label, disabled }) {
+function ScoreCells({ values, highest = [], row, colStart, onChange, label, disabled, readOnly = false }) {
   return values.map((value, i) => {
+    if (readOnly) return <td key={i} className="cr-cell" aria-label={`${label} ${i + 1}`}>{value === '' ? show(null) : show(Number(value))}</td>;
     const col = colStart + i;
     const max = Number(highest[i]);
     const score = Number(value);

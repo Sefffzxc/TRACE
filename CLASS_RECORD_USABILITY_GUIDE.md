@@ -1,8 +1,10 @@
 # Class record autosave and assigned classes
 
 This update improves score entry for teachers and assignment management for
-principals. Update both the Azure API and Cloudflare Pages. No database migration,
-new environment variables, credentials, or packages are required.
+principals. Update both the Azure API and Cloudflare Pages. The adviser separation
+follow-up adds a table and a one-time backfill: follow
+[the adviser deployment guide](ADVISER_ASSIGNMENT_GUIDE.md) for the current release.
+No new environment variables, credentials, or packages are required.
 
 ## Entering scores
 
@@ -53,10 +55,16 @@ continues enforcing section and subject permissions on forecasts and warnings.
 
 ## Principal teacher assignments
 
-Each section/subject combination has one teacher. Occupied subjects display the
-current teacher and cannot be selected for another assignment. An explicit
-**All subjects in this section** assignment reserves the entire section; it
-cannot overlap individual subject assignments.
+Each section/subject combination has one teaching owner. Occupied subjects
+display the current teacher and cannot be selected for another assignment.
+**Section advisers** are assigned separately and do not reserve subjects. They
+can view every advisory subject in Class Record but edit only subjects assigned
+to teach. New teaching assignments always name a specific subject.
+
+Older general assignments appear for explicit review in **Subject teachers**.
+Adviser-only general rows never grant all-subject editing. Other legacy general
+teaching rows retain their existing permissions until reviewed. See
+[the adviser guide](ADVISER_ASSIGNMENT_GUIDE.md) before updating an existing system.
 
 Only active, approved teachers can receive new assignments. The API checks
 ownership again and serializes concurrent assignment changes. A conflicting
@@ -69,6 +77,10 @@ unwanted older assignments through Class Management. This update does not change
 existing grades, enrolled learners, or historical teacher records.
 
 ## Deploy and verify
+
+For the current adviser separation release, use
+[the migration and deployment steps](ADVISER_ASSIGNMENT_GUIDE.md#deployment-one-time-adviser-backfill-required).
+The steps below describe the earlier autosave-only release.
 
 1. Review, commit, and push the frontend, backend, tests, and this guide to `main`.
    Your existing Cloudflare Pages integration starts the frontend build.

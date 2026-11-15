@@ -206,3 +206,28 @@ class TeacherAssignmentResponse(ORMModel):
     teacher_name: Optional[str] = None
     section_name: Optional[str] = None
     subject_name: Optional[str] = None
+    needs_subject_review: bool = False
+
+
+class TeacherAssignmentReview(BaseModel):
+    subject_ids: list[int] = Field(max_length=200)
+
+    @field_validator("subject_ids")
+    @classmethod
+    def _unique_subjects(cls, values):
+        if any(value <= 0 for value in values) or len(values) != len(set(values)):
+            raise ValueError("Choose each subject only once.")
+        return values
+
+
+class SectionAdviserSet(BaseModel):
+    teacher_id: uuid.UUID
+
+
+class SectionAdviserResponse(ORMModel):
+    adviser_id: int
+    section_id: int
+    teacher_id: uuid.UUID
+    teacher_name: Optional[str] = None
+    section_name: Optional[str] = None
+    grade_level_name: Optional[str] = None
