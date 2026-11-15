@@ -7,7 +7,7 @@
  * it. The pieces that enforce that live here so no screen can accidentally
  * render a bare probability.
  */
-import { AlertTriangle, Brain, CircleSlash, Info, ServerOff, Sparkles } from 'lucide-react';
+import { AlertTriangle, Brain, ChevronDown, CircleSlash, Info, ServerOff, Sparkles } from 'lucide-react';
 
 export const AI_HELP =
   'Predicts the final grade from the first graded period. A second opinion, not a decision.';
@@ -186,18 +186,17 @@ export function ModelCard({ card }) {
   const baseline = card.baseline_for_comparison || {};
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <div>
-          <h2>About the model</h2>
-          <div className="card-subtitle">
-            {card.algorithm} · {card.features?.length ?? 0} inputs · flags at{' '}
-            {Math.round((card.threshold || 0) * 100)}% chance of failing · version{' '}
-            {card.model_version}
-          </div>
-        </div>
-      </div>
+    <details className="card ai-model-card">
+      <summary className="card-header ai-model-toggle">
+        <h2>About the model</h2>
+        <ChevronDown size={20} className="ai-model-chevron" aria-hidden="true" />
+      </summary>
       <div className="card-body">
+        <p className="ai-model-overview">
+          {card.algorithm} · {card.features?.length ?? 0} inputs · flags at{' '}
+          {Math.round((card.threshold || 0) * 100)}% chance of failing · version{' '}
+          {card.model_version}
+        </p>
         <div className="detail-row">
           <span className="k">Predicts</span>
           <span className="v">{card.target}</span>
@@ -261,7 +260,7 @@ export function ModelCard({ card }) {
           </details>
         )}
       </div>
-    </div>
+    </details>
   );
 }
 

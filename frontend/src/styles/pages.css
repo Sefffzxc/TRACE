@@ -706,6 +706,22 @@
 .ai-reason > svg { flex: none; margin-top: 2px; color: var(--ai-500); }
 .ai-reason > div { display: flex; flex-direction: column; gap: 0.15rem; }
 
+.ai-model-toggle {
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius-lg);
+}
+.ai-model-toggle::-webkit-details-marker { display: none; }
+.ai-model-toggle::marker { content: ''; }
+.ai-model-toggle:hover { background: var(--surface-hover); }
+.ai-model-toggle:focus-visible { outline-offset: -4px; border-radius: var(--radius-lg); }
+.ai-model-card:not([open]) > .ai-model-toggle { border-bottom: 0; }
+.ai-model-card[open] > .ai-model-toggle { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.ai-model-chevron { flex: none; color: var(--text-muted); transition: transform var(--fast); }
+.ai-model-card[open] > .ai-model-toggle .ai-model-chevron { transform: rotate(180deg); }
+.ai-model-overview { font-size: var(--text-xs); color: var(--text-muted); overflow-wrap: anywhere; }
+
 .ai-h3 {
   display: flex;
   align-items: center;
