@@ -78,18 +78,41 @@ def grade_level_rank(level: str) -> int:
     return int(digits.group()) if digits else 0
 
 
+class GradeSectionInput(BaseModel):
+    section_id: Optional[int] = Field(default=None, gt=0)
+    name: str = Field(min_length=1, max_length=40)
+    capacity: int = Field(default=40, ge=1)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _trim_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
 class GradeLevelBase(BaseModel):
-    level: str = Field(max_length=10)
-    name: str = Field(max_length=30)
+    level: str = Field(min_length=1, max_length=10)
+    name: str = Field(min_length=1, max_length=30)
+
+    @field_validator("level", "name", mode="before")
+    @classmethod
+    def _trim_text(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class GradeLevelCreate(GradeLevelBase):
-    pass
+    sections: list[GradeSectionInput] = Field(default_factory=list)
 
 
 class GradeLevelUpdate(BaseModel):
-    level: Optional[str] = None
-    name: Optional[str] = None
+    level: Optional[str] = Field(default=None, min_length=1, max_length=10)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=30)
+    # Omitted/null preserves the current sections; [] requests their removal.
+    sections: Optional[list[GradeSectionInput]] = None
+
+    @field_validator("level", "name", mode="before")
+    @classmethod
+    def _trim_text(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class GradeLevelResponse(ORMModel, GradeLevelBase):
@@ -101,9 +124,13 @@ class GradeLevelResponse(ORMModel, GradeLevelBase):
 # ── Section ───────────────────────────────────────────────────────────────────
 class SectionBase(BaseModel):
     grade_level_id: int
-    section_code: str = Field(max_length=20)
-    name: str = Field(max_length=40)
-    capacity: int = 40
+    name: str = Field(min_length=1, max_length=40)
+    capacity: int = Field(default=40, ge=1)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _trim_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class SectionCreate(SectionBase):
@@ -112,9 +139,13 @@ class SectionCreate(SectionBase):
 
 class SectionUpdate(BaseModel):
     grade_level_id: Optional[int] = None
-    section_code: Optional[str] = None
-    name: Optional[str] = None
-    capacity: Optional[int] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=40)
+    capacity: Optional[int] = Field(default=None, ge=1)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _trim_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class SectionResponse(ORMModel, SectionBase):
@@ -127,10 +158,14 @@ class SectionResponse(ORMModel, SectionBase):
 # ── Subject ───────────────────────────────────────────────────────────────────
 class SubjectBase(BaseModel):
     grade_level_id: int
-    subject_name: str = Field(max_length=255)
-    subject_code: str = Field(max_length=50)
+    subject_name: str = Field(min_length=1, max_length=255)
     total_paces: int = 12
     is_active: bool = True
+
+    @field_validator("subject_name", mode="before")
+    @classmethod
+    def _trim_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class SubjectCreate(SubjectBase):
@@ -139,10 +174,14 @@ class SubjectCreate(SubjectBase):
 
 class SubjectUpdate(BaseModel):
     grade_level_id: Optional[int] = None
-    subject_name: Optional[str] = None
-    subject_code: Optional[str] = None
+    subject_name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     total_paces: Optional[int] = None
     is_active: Optional[bool] = None
+
+    @field_validator("subject_name", mode="before")
+    @classmethod
+    def _trim_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 
 class SubjectResponse(ORMModel, SubjectBase):

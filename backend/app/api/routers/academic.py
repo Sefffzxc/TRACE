@@ -7,12 +7,14 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_current_user, school_scope
 from app.api.scoping import get_scoped, get_scoped_optional, scoped
 from app.db.session import get_db
 from app.models.academic import (
+    ClassSchedule,
     GradeLevel,
     SchoolYear,
     Section,
@@ -20,10 +22,11 @@ from app.models.academic import (
     TeacherAssignment,
 )
 from app.models.staff import Staff
-from app.models.students import StudentEnrollment
+from app.models.students import ClassRecordSetup, StudentEnrollment
 from app.services.access import class_access
 from app.schemas.academic import (
     GradeLevelCreate,
+    GradeSectionInput,
     grade_level_rank,
     school_year_dates,
     GradeLevelResponse,
@@ -42,6 +45,88 @@ from app.schemas.academic import (
 )
 
 router = APIRouter(tags=["Class management"])
+
+
+async def _name_exists(db, model, name_column, name, grade_level_id, scope, exclude_id=None):
+    stmt = select(model).where(
+        model.school_id == scope,
+        model.grade_level_id == grade_level_id,
+        func.lower(func.trim(name_column)) == name.strip().lower(),
+    )
+    if exclude_id is not None:
+        key = Section.section_id if model is Section else Subject.subject_id
+        stmt = stmt.where(key != exclude_id)
+    return (await db.execute(stmt)).scalars().first() is not None
+
+
+async def _assert_section_unused(db: AsyncSession, section: Section, scope: int) -> None:
+    for model, label in (
+        (StudentEnrollment, "enrollment records"),
+        (TeacherAssignment, "teacher assignments"),
+        (ClassRecordSetup, "class records"),
+        (ClassSchedule, "saved schedules"),
+    ):
+        count = (await db.execute(select(func.count()).select_from(model).where(
+            model.school_id == scope, model.section_id == section.section_id,
+        ))).scalar_one()
+        if count:
+            raise HTTPException(
+                status_code=409,
+                detail=f'Cannot remove or move section "{section.name}": it has {label}.',
+            )
+
+
+async def _sync_grade_sections(
+    db: AsyncSession, grade: GradeLevel, sections: list[GradeSectionInput], scope: int,
+) -> None:
+    """Apply a complete section list without replacing existing identities."""
+    existing = {row.section_id: row for row in (await db.execute(
+        select(Section).where(Section.school_id == scope, Section.grade_level_id == grade.grade_level_id)
+    )).scalars().all()}
+    seen_ids = set()
+    seen_names = set()
+    for item in sections:
+        name_key = item.name.casefold()
+        if name_key in seen_names:
+            raise HTTPException(status_code=409, detail="Each section in a grade must have a different name.")
+        seen_names.add(name_key)
+        if item.section_id is not None:
+            if item.section_id not in existing:
+                raise HTTPException(status_code=400, detail="A section does not belong to this grade level.")
+            if item.section_id in seen_ids:
+                raise HTTPException(status_code=400, detail="A section was included more than once.")
+            seen_ids.add(item.section_id)
+
+    removed = [row for key, row in existing.items() if key not in seen_ids]
+    for row in removed:
+        await _assert_section_unused(db, row, scope)
+    for row in removed:
+        await db.delete(row)
+    await db.flush()
+
+    # Temporary names let two existing sections exchange names in one save.
+    for item in sections:
+        if item.section_id is not None and existing[item.section_id].name != item.name:
+            existing[item.section_id].name = f"~{uuid.uuid4().hex}"
+    await db.flush()
+    for item in sections:
+        if item.section_id is None:
+            db.add(Section(
+                school_id=scope, grade_level_id=grade.grade_level_id,
+                name=item.name, capacity=item.capacity,
+            ))
+        else:
+            row = existing[item.section_id]
+            row.name, row.capacity = item.name, item.capacity
+    await db.flush()
+
+
+async def _commit_structure(db: AsyncSession) -> None:
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="That name already exists in this grade level.") from None
 
 
 def _to_minutes(value: str) -> int:
@@ -250,6 +335,7 @@ async def list_grade_levels(
 @router.post(
     "/api/grade-levels", response_model=GradeLevelResponse, status_code=201
 )
+@router.post("/api/grade-levels/with-sections", response_model=GradeLevelResponse, status_code=201)
 async def create_grade_level(
     payload: GradeLevelCreate,
     _: Staff = Depends(get_current_admin),
@@ -259,7 +345,7 @@ async def create_grade_level(
     exists = (
         await db.execute(
             scoped(
-                select(GradeLevel).where(GradeLevel.level == payload.level),
+                select(GradeLevel).where(func.lower(GradeLevel.level) == payload.level.lower()),
                 GradeLevel,
                 scope,
             )
@@ -268,15 +354,24 @@ async def create_grade_level(
     if exists:
         raise HTTPException(status_code=409, detail="That grade level already exists.")
     row = GradeLevel(
-        **payload.model_dump(), sort_order=grade_level_rank(payload.level), school_id=scope
+        **payload.model_dump(exclude={"sections"}), sort_order=grade_level_rank(payload.level), school_id=scope
     )
     db.add(row)
-    await db.commit()
+    try:
+        await db.flush()
+        await _sync_grade_sections(db, row, payload.sections, scope)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="That grade or section name already exists.") from None
     await db.refresh(row)
-    return GradeLevelResponse.model_validate(row)
+    item = GradeLevelResponse.model_validate(row)
+    item.section_count = len(payload.sections)
+    return item
 
 
 @router.patch("/api/grade-levels/{grade_level_id}", response_model=GradeLevelResponse)
+@router.patch("/api/grade-levels/{grade_level_id}/with-sections", response_model=GradeLevelResponse)
 async def update_grade_level(
     grade_level_id: int,
     payload: GradeLevelUpdate,
@@ -285,12 +380,30 @@ async def update_grade_level(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, GradeLevel, grade_level_id, scope, "Grade level")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True, exclude_none=True, exclude={"sections"})
+    if "level" in data:
+        duplicate = (await db.execute(select(GradeLevel).where(
+            GradeLevel.school_id == scope, GradeLevel.grade_level_id != grade_level_id,
+            func.lower(GradeLevel.level) == data["level"].lower(),
+        ))).scalars().first()
+        if duplicate:
+            raise HTTPException(status_code=409, detail="That grade level already exists.")
+    for field, value in data.items():
         setattr(row, field, value)
     row.sort_order = grade_level_rank(row.level)
-    await db.commit()
+    try:
+        if payload.sections is not None:
+            await _sync_grade_sections(db, row, payload.sections, scope)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="That grade or section name already exists.") from None
     await db.refresh(row)
-    return GradeLevelResponse.model_validate(row)
+    item = GradeLevelResponse.model_validate(row)
+    item.section_count = (await db.execute(select(func.count()).select_from(Section).where(
+        Section.school_id == scope, Section.grade_level_id == grade_level_id,
+    ))).scalar_one()
+    return item
 
 
 @router.delete("/api/grade-levels/{grade_level_id}", status_code=204)
@@ -317,6 +430,14 @@ async def delete_grade_level(
             status_code=409,
             detail=f"{enrolled} student(s) are enrolled in this grade level.",
         )
+    for model in (Section, Subject):
+        count = (await db.execute(select(func.count()).select_from(model).where(
+            model.school_id == scope, model.grade_level_id == grade_level_id,
+        ))).scalar_one()
+        if count:
+            raise HTTPException(
+                status_code=409, detail="Remove this grade's sections and subjects before removing the grade level.",
+            )
     await db.delete(row)
     await db.commit()
 
@@ -402,20 +523,11 @@ async def create_section(
 ):
     if await get_scoped_optional(db, GradeLevel, payload.grade_level_id, scope) is None:
         raise HTTPException(status_code=400, detail="That grade level does not exist.")
-    exists = (
-        await db.execute(
-            scoped(
-                select(Section).where(Section.section_code == payload.section_code),
-                Section,
-                scope,
-            )
-        )
-    ).scalar_one_or_none()
-    if exists:
-        raise HTTPException(status_code=409, detail="That section code is already taken.")
+    if await _name_exists(db, Section, Section.name, payload.name, payload.grade_level_id, scope):
+        raise HTTPException(status_code=409, detail="That section name already exists in this grade level.")
     row = Section(**payload.model_dump(), school_id=scope)
     db.add(row)
-    await db.commit()
+    await _commit_structure(db)
     await db.refresh(row)
     return (await _decorate_sections(db, [row], scope))[0]
 
@@ -429,14 +541,21 @@ async def update_section(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, Section, section_id, scope, "Section")
-    data = payload.model_dump(exclude_unset=True)
+    data = payload.model_dump(exclude_unset=True, exclude_none=True)
     if data.get("grade_level_id") is not None and (
         await get_scoped_optional(db, GradeLevel, data["grade_level_id"], scope) is None
     ):
         raise HTTPException(status_code=400, detail="That grade level does not exist.")
+    if data.get("grade_level_id", row.grade_level_id) != row.grade_level_id:
+        await _assert_section_unused(db, row, scope)
+    if await _name_exists(
+        db, Section, Section.name, data.get("name", row.name),
+        data.get("grade_level_id", row.grade_level_id), scope, section_id,
+    ):
+        raise HTTPException(status_code=409, detail="That section name already exists in this grade level.")
     for field, value in data.items():
         setattr(row, field, value)
-    await db.commit()
+    await _commit_structure(db)
     await db.refresh(row)
     return (await _decorate_sections(db, [row], scope))[0]
 
@@ -449,21 +568,7 @@ async def delete_section(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, Section, section_id, scope, "Section")
-    enrolled = (
-        await db.execute(
-            scoped(
-                select(func.count())
-                .select_from(StudentEnrollment)
-                .where(StudentEnrollment.section_id == section_id),
-                StudentEnrollment,
-                scope,
-            )
-        )
-    ).scalar_one()
-    if enrolled:
-        raise HTTPException(
-            status_code=409, detail=f"{enrolled} student(s) are enrolled in this section."
-        )
+    await _assert_section_unused(db, row, scope)
     await db.delete(row)
     await db.commit()
 
@@ -515,20 +620,11 @@ async def create_subject(
 ):
     if await get_scoped_optional(db, GradeLevel, payload.grade_level_id, scope) is None:
         raise HTTPException(status_code=400, detail="That grade level does not exist.")
-    exists = (
-        await db.execute(
-            scoped(
-                select(Subject).where(Subject.subject_code == payload.subject_code),
-                Subject,
-                scope,
-            )
-        )
-    ).scalar_one_or_none()
-    if exists:
-        raise HTTPException(status_code=409, detail="That subject code is already taken.")
+    if await _name_exists(db, Subject, Subject.subject_name, payload.subject_name, payload.grade_level_id, scope):
+        raise HTTPException(status_code=409, detail="That subject name already exists in this grade level.")
     row = Subject(**payload.model_dump(), school_id=scope)
     db.add(row)
-    await db.commit()
+    await _commit_structure(db)
     await db.refresh(row)
     return SubjectResponse.model_validate(row)
 
@@ -542,14 +638,19 @@ async def update_subject(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, Subject, subject_id, scope, "Subject")
-    data = payload.model_dump(exclude_unset=True)
+    data = payload.model_dump(exclude_unset=True, exclude_none=True)
     if data.get("grade_level_id") is not None and (
         await get_scoped_optional(db, GradeLevel, data["grade_level_id"], scope) is None
     ):
         raise HTTPException(status_code=400, detail="That grade level does not exist.")
+    if await _name_exists(
+        db, Subject, Subject.subject_name, data.get("subject_name", row.subject_name),
+        data.get("grade_level_id", row.grade_level_id), scope, subject_id,
+    ):
+        raise HTTPException(status_code=409, detail="That subject name already exists in this grade level.")
     for field, value in data.items():
         setattr(row, field, value)
-    await db.commit()
+    await _commit_structure(db)
     await db.refresh(row)
     return SubjectResponse.model_validate(row)
 

@@ -87,21 +87,21 @@ Agree on these settings before teachers encode records. Changing the tracking mo
 
 New student enrollment uses the current school year. Confirm it before teachers add learners.
 
-### Step 5: Create grade levels
+### Step 5: Create grades and their sections
 
-1. Open **Grade levels**.
-2. Select **Add grade level**.
+1. Open **Grades & sections**.
+2. Select **Add grade & sections**.
 3. Enter the level and display name, for example `7` and `Grade 7`.
-4. Select **Create**.
-5. Repeat for every grade level the school will use.
+4. In the **Sections** area below, enter a section name and capacity. Select **Add section** for additional rows, or remove an unused row.
+5. Select **Create grade & sections**. The grade and its sections save together.
+6. Repeat for every grade level the school will use.
 
-### Step 6: Create sections
+### Step 6: Manage existing sections
 
-1. Open **Sections**.
-2. Select **Add section**.
-3. Enter a section code, section name, grade level and capacity.
-4. Select **Create**.
-5. Repeat for the other sections and check that each belongs to the correct grade level.
+1. In **Grades & sections**, find the grade you want to update.
+2. Select **Edit grade & sections**.
+3. Update grade details at the top and section names or capacities below. Use **Add section** to add another section.
+4. Select **Save changes**. Sections with saved enrollments, assignments or class records cannot be removed.
 
 For example, create a Grade 7 section named `Faith` before assigning its teachers or enrolling its learners.
 
@@ -109,11 +109,11 @@ For example, create a Grade 7 section named `Faith` before assigning its teacher
 
 1. Open **Subjects**.
 2. Select **Add subject**.
-3. Enter the subject name, code and grade level.
+3. Enter the subject name and grade level.
 4. At a booklet/module school, also enter the total number of units for the subject.
 5. Select **Create** and repeat for the remaining subjects.
 
-Check codes and grade levels carefully. When retiring a subject, the edit form's **In use** setting lets you hide it from normal recording without deleting its existing results.
+Section and subject names must be unique within their grade at the school; the same name can be used in another grade. When retiring a subject, the edit form's **In use** setting lets you hide it from normal recording without deleting its existing results.
 
 ### Step 8: Approve teacher accounts
 

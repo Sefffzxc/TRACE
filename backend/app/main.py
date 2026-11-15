@@ -219,10 +219,11 @@ async def health():
             "up_to_date": False,
             "missing_tables": SCHEMA_STATE.get("missing_tables", []),
             "missing_columns": SCHEMA_STATE.get("missing_columns", {}),
-            "fix": "run: python add_missing_columns.py --apply",
+            "obsolete_columns": SCHEMA_STATE.get("obsolete_columns", {}),
+            "fix": "run: " + SCHEMA_STATE.get("fix", "python add_missing_columns.py --apply"),
             "why": (
-                "create_all adds missing tables but never adds a column to a "
-                "table that already exists, so redeploying does not clear this."
+                "Existing tables need an explicit migration. Startup creates "
+                "missing tables but does not change existing columns."
             ),
         }
     return body

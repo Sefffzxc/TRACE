@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   BookOpen,
   CalendarDays,
-  GraduationCap,
   Layers,
   Pencil,
   Plus,
@@ -27,11 +26,11 @@ import {
 } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { GradeSectionsModal, GradeSectionsTable } from './GradeSections';
 
 const TABS = [
   { key: 'years', label: 'School years', icon: CalendarDays },
-  { key: 'levels', label: 'Grade levels', icon: Layers },
-  { key: 'sections', label: 'Sections', icon: GraduationCap },
+  { key: 'levels', label: 'Grades & sections', icon: Layers },
   { key: 'subjects', label: 'Subjects', icon: BookOpen },
   { key: 'assignments', label: 'Teacher assignments', icon: UserCheck },
 ];
@@ -44,6 +43,7 @@ export default function ClassManagementPage() {
   // A dashboard card can open a tab directly (?tab=sections).
   const [tab, setTab] = useState(() => {
     const wanted = new URLSearchParams(window.location.search).get('tab');
+    if (wanted === 'sections') return 'levels';
     return TABS.some((item) => item.key === wanted) ? wanted : 'years';
   });
   const [data, setData] = useState({
@@ -92,8 +92,7 @@ export default function ClassManagementPage() {
 
   const apiFor = {
     years: schoolYearApi,
-    levels: gradeLevelApi,
-    sections: sectionApi,
+    levels: { ...gradeLevelApi, create: gradeLevelApi.createWithSections, update: gradeLevelApi.updateWithSections },
     subjects: subjectApi,
     assignments: assignmentApi,
   }[tab];
@@ -101,7 +100,6 @@ export default function ClassManagementPage() {
   const idField = {
     years: 'school_year_id',
     levels: 'grade_level_id',
-    sections: 'section_id',
     subjects: 'subject_id',
     assignments: 'assignment_id',
   }[tab];
@@ -166,7 +164,6 @@ export default function ClassManagementPage() {
   const counts = {
     years: data.years.length,
     levels: data.levels.length,
-    sections: data.sections.length,
     subjects: data.subjects.length,
     assignments: data.assignments.length,
   };
@@ -179,7 +176,7 @@ export default function ClassManagementPage() {
         actions={
           <button type="button" className="btn btn-primary" onClick={() => setEditing({})}>
             <Plus size={16} /> Add{' '}
-            {{ years: 'school year', levels: 'grade level', sections: 'section', subjects: 'subject', assignments: 'assignment' }[tab]}
+            {{ years: 'school year', levels: 'grade & sections', subjects: 'subject', assignments: 'assignment' }[tab]}
           </button>
         }
       />
@@ -221,7 +218,14 @@ export default function ClassManagementPage() {
         </div>
       </div>
 
-      {editing && (
+      {editing && tab === 'levels' && (
+        <GradeSectionsModal
+          record={editing.grade_level_id ? editing : null}
+          data={data} busy={busy} onSave={save} onClose={() => setEditing(null)}
+        />
+      )}
+
+      {editing && tab !== 'levels' && (
         <SetupModal
           tab={tab}
           record={editing[idField] ? editing : null}
@@ -301,47 +305,15 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
   }
 
   if (tab === 'levels') {
-    if (!data.levels.length) return <EmptyState icon={Layers} title="No grade levels yet" />;
-    return wrap(
-      ['Level', 'Name', 'Sections', 'Students', 'Actions'],
-      data.levels.map((row) => (
-        <tr key={row.grade_level_id}>
-          <td className="cell-strong">{row.level}</td>
-          <td>{row.name}</td>
-          <td>{row.section_count}</td>
-          <td>{row.student_count}</td>
-          {actions(row)}
-        </tr>
-      )),
-    );
-  }
-
-  if (tab === 'sections') {
-    if (!data.sections.length) return <EmptyState icon={GraduationCap} title="No sections yet" />;
-    return wrap(
-      ['Code', 'Section', 'Grade level', 'Adviser', 'Enrolled', 'Actions'],
-      data.sections.map((row) => (
-        <tr key={row.section_id}>
-          <td className="mono">{row.section_code}</td>
-          <td className="cell-strong">{row.name}</td>
-          <td>{row.grade_level_name}</td>
-          <td className="muted">{row.adviser_name || 'Unassigned'}</td>
-          <td>
-            {row.enrolled_count}/{row.capacity}
-          </td>
-          {actions(row)}
-        </tr>
-      )),
-    );
+    return <GradeSectionsTable data={data} onEdit={onEdit} onDelete={onDelete} />;
   }
 
   if (tab === 'subjects') {
     if (!data.subjects.length) return <EmptyState icon={BookOpen} title="No subjects yet" />;
     return wrap(
-      ['Code', 'Subject', 'Grade level', ...(tracksUnits ? [unitLabelPlural] : []), 'Status', 'Actions'],
+      ['Subject', 'Grade level', ...(tracksUnits ? [unitLabelPlural] : []), 'Status', 'Actions'],
       data.subjects.map((row) => (
         <tr key={row.subject_id}>
-          <td className="mono">{row.subject_code}</td>
           <td className="cell-strong">{row.subject_name}</td>
           <td>{row.grade_level_name}</td>
           {tracksUnits && <td>{row.total_paces}</td>}
@@ -431,8 +403,6 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
 
   const titles = {
     years: 'school year',
-    levels: 'grade level',
-    sections: 'section',
     subjects: 'subject',
     assignments: 'teacher assignment',
   };
@@ -482,61 +452,6 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
           </>
         )}
 
-        {tab === 'levels' && (
-          <div className="form-grid">
-            <div className="field">
-              <label className="field-label" htmlFor="l_level">
-                Level <span className="req">*</span>
-              </label>
-              <input id="l_level" className="input" placeholder="7" value={form.level} onChange={set('level')} required />
-            </div>
-            <div className="field">
-              <label className="field-label" htmlFor="l_name">
-                Display name <span className="req">*</span>
-              </label>
-              <input id="l_name" className="input" placeholder="Grade 7" value={form.name} onChange={set('name')} required />
-            </div>
-          </div>
-        )}
-
-        {tab === 'sections' && (
-          <>
-            <div className="field">
-              <label className="field-label" htmlFor="sec_grade">
-                Grade level <span className="req">*</span>
-              </label>
-              <select id="sec_grade" className="select" value={form.grade_level_id} onChange={set('grade_level_id')} required>
-                <option value="">Choose…</option>
-                {data.levels.map((level) => (
-                  <option key={level.grade_level_id} value={level.grade_level_id}>
-                    {level.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-grid">
-              <div className="field">
-                <label className="field-label" htmlFor="sec_code">
-                  Section code <span className="req">*</span>
-                </label>
-                <input id="sec_code" className="input" placeholder="G7-FAI" value={form.section_code} onChange={set('section_code')} required />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sec_name">
-                  Section name <span className="req">*</span>
-                </label>
-                <input id="sec_name" className="input" placeholder="Grade 7 - Faith" value={form.name} onChange={set('name')} required />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sec_cap">
-                  Capacity
-                </label>
-                <input id="sec_cap" className="input" type="number" min="1" value={form.capacity} onChange={set('capacity')} />
-              </div>
-            </div>
-          </>
-        )}
-
         {tab === 'subjects' && (
           <>
             <div className="field">
@@ -558,12 +473,6 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                   Subject name <span className="req">*</span>
                 </label>
                 <input id="sub_name" className="input" placeholder="Mathematics" value={form.subject_name} onChange={set('subject_name')} required />
-              </div>
-              <div className="field">
-                <label className="field-label" htmlFor="sub_code">
-                  Subject code <span className="req">*</span>
-                </label>
-                <input id="sub_code" className="input" placeholder="MATH7" value={form.subject_code} onChange={set('subject_code')} required />
               </div>
               {tracksUnits && (
                 <div className="field">
@@ -719,12 +628,9 @@ function newAssignmentRow() {
 function defaultsFor(tab, record) {
   const shapes = {
     years: { year: '', is_current: false },
-    levels: { level: '', name: '' },
-    sections: { grade_level_id: '', section_code: '', name: '', capacity: 40 },
     subjects: {
       grade_level_id: '',
       subject_name: '',
-      subject_code: '',
       total_paces: 12,
       is_active: true,
     },
@@ -740,14 +646,6 @@ function defaultsFor(tab, record) {
 function serialise(tab, form) {
   // The dates of a school year are worked out from its label on the server.
   if (tab === 'years') return { year: form.year.trim(), is_current: Boolean(form.is_current) };
-  if (tab === 'levels') return { level: form.level.trim(), name: form.name.trim() };
-  if (tab === 'sections') {
-    return {
-      ...form,
-      grade_level_id: Number(form.grade_level_id),
-      capacity: Number(form.capacity) || 40,
-    };
-  }
   if (tab === 'subjects') {
     return {
       ...form,

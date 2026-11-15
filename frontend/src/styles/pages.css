@@ -562,8 +562,8 @@
 /* ══════════════════════════════════════════════════════════════════════════
    Class management
    ══════════════════════════════════════════════════════════════════════════ */
-.setup-layout { display: grid; grid-template-columns: 216px 1fr; gap: 1.25rem; align-items: start; }
-@media (max-width: 860px) { .setup-layout { grid-template-columns: 1fr; } }
+.setup-layout { display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+@media (max-width: 860px) { .setup-layout { grid-template-columns: minmax(0, 1fr); } }
 
 .setup-nav {
   display: flex;
@@ -1108,3 +1108,28 @@
 .tcard-line svg { color: var(--text-faint); flex: none; }
 .tcard-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tcard-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.65rem; }
+.grade-groups { display: flex; flex-direction: column; }
+.grade-group + .grade-group { border-top: 1px solid var(--border-strong); }
+.grade-group-header {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 1rem; padding: 1.1rem 1.25rem; background: var(--surface-sunken);
+}
+.grade-group-header h2 { display: flex; align-items: center; gap: .5rem; font-size: var(--text-md); margin: 0; }
+.grade-group-header p { margin: .3rem 0 0; color: var(--text-muted); font-size: var(--text-xs); }
+.grade-group-actions { display: flex; align-items: center; gap: .45rem; }
+.grade-group-empty { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.25rem; color: var(--text-muted); font-size: var(--text-sm); }
+.grade-form-fields { border: 0; margin: 0; padding: 0; min-width: 0; }
+.grade-form-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.grade-form-heading h3 { margin: 0; font-size: var(--text-md); }
+.grade-form-heading p { margin: .3rem 0 0; font-size: var(--text-sm); color: var(--text-muted); }
+.grade-form-sections-heading { border-top: 1px solid var(--border-subtle); padding-top: 1.25rem; margin-top: .25rem; }
+.grade-section-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 110px 34px; gap: .75rem;
+  padding: 1rem; background: var(--surface-sunken); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);
+}
+.grade-section-remove { align-self: end; margin-bottom: .3rem; }
+.grade-section-note { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 480px) {
+  .grade-group-header { align-items: flex-start; }
+  .grade-section-row { grid-template-columns: minmax(0, 1fr) 85px 30px; gap: .5rem; padding: .75rem; }
+}

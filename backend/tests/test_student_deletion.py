@@ -83,7 +83,7 @@ class StudentDeletionTests(unittest.IsolatedAsyncioTestCase):
             db.add_all([
                 Section(
                     section_id=i, school_id=i, grade_level_id=i,
-                    section_code="A", name="Section A",
+                    name="Section A",
                 ) for i in (1, 2)
             ])
             await db.commit()

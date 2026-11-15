@@ -105,7 +105,9 @@ export const schoolYearApi = {
 export const gradeLevelApi = {
   list: () => api.get('/api/grade-levels'),
   create: (payload) => api.post('/api/grade-levels', payload),
+  createWithSections: (payload) => api.post('/api/grade-levels/with-sections', payload),
   update: (id, payload) => api.patch(`/api/grade-levels/${id}`, payload),
+  updateWithSections: (id, payload) => api.patch(`/api/grade-levels/${id}/with-sections`, payload),
   remove: (id) => api.delete(`/api/grade-levels/${id}`),
 };
 

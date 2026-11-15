@@ -332,7 +332,7 @@ async def build_demo(db, operator_id) -> dict:
     for level_no, level in levels.items():
         for name, code, _tpl, _shift in SUBJECTS:
             row = Subject(school_id=sid, grade_level_id=level.grade_level_id,
-                          subject_name=name, subject_code=f"{code}{level_no}",
+                          subject_name=name,
                           total_paces=0, is_active=True)
             db.add(row)
             subjects[(level_no, name)] = row
@@ -343,7 +343,7 @@ async def build_demo(db, operator_id) -> dict:
     sections = {}
     for code, name, level_no, _adviser in SECTIONS:
         section = Section(school_id=sid, grade_level_id=levels[level_no].grade_level_id,
-                          section_code=code, name=name,
+                          name=name,
                           capacity=40)
         db.add(section)
         sections[code] = section

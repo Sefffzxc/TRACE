@@ -30,7 +30,7 @@ from app.db.session import Base, async_engine
 log = logging.getLogger("trace.schema")
 
 # The state of the last check, so /health can report it without re-running.
-STATE: dict = {"checked": False, "ok": True, "missing_tables": [], "missing_columns": {}}
+STATE: dict = {"checked": False, "ok": True, "missing_tables": [], "missing_columns": {}, "obsolete_columns": {}}
 
 
 def _expected() -> Dict[str, set]:
@@ -49,6 +49,7 @@ def _compare(sync_connection) -> dict:
 
     missing_tables: List[str] = []
     missing_columns: Dict[str, List[str]] = {}
+    obsolete_columns: Dict[str, List[str]] = {}
 
     for table, columns in _expected().items():
         if table not in present:
@@ -58,10 +59,14 @@ def _compare(sync_connection) -> dict:
         gap = sorted(columns - actual)
         if gap:
             missing_columns[table] = gap
+        legacy_code = {"sections": "section_code", "subjects": "subject_code"}.get(table)
+        if legacy_code in actual:
+            obsolete_columns[table] = [legacy_code]
 
     return {
         "missing_tables": sorted(missing_tables),
         "missing_columns": missing_columns,
+        "obsolete_columns": obsolete_columns,
     }
 
 
@@ -80,8 +85,13 @@ async def verify() -> dict:
         STATE.update({"checked": False, "ok": True, "error": str(exc)})
         return STATE
 
-    ok = not result["missing_tables"] and not result["missing_columns"]
-    STATE.update({"checked": True, "ok": ok, **result})
+    ok = not result["missing_tables"] and not result["missing_columns"] and not result["obsolete_columns"]
+    fixes = []
+    if result["missing_tables"] or result["missing_columns"]:
+        fixes.append("python add_missing_columns.py --apply")
+    if result["obsolete_columns"]:
+        fixes.append("python migrate_academic_names.py --apply")
+    STATE.update({"checked": True, "ok": ok, "fix": "; then ".join(fixes), **result})
 
     if ok:
         log.info("database schema matches the models")
@@ -95,9 +105,9 @@ async def verify() -> dict:
     for table, columns in result["missing_columns"].items():
         log.error("  %-22s missing columns: %s", table, ", ".join(columns))
     log.error("")
-    log.error("  Fix:  python add_missing_columns.py --apply   (keeps data)")
-    log.error("   or:  python seed.py --fresh-start           (wipes data)")
-    log.error("        python seed.py --demo        (optional demonstration data)")
+    for table, columns in result["obsolete_columns"].items():
+        log.error("  %-22s obsolete columns: %s", table, ", ".join(columns))
+    log.error("  Fix after a backup: %s", STATE["fix"])
     log.error("")
     log.error("  create_all adds missing TABLES but never adds a COLUMN to a")
     log.error("  table that already exists, which is why a redeploy alone")

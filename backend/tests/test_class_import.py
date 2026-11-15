@@ -74,11 +74,11 @@ class ClassImportTests(unittest.IsolatedAsyncioTestCase):
             await db.flush()
             db.add_all([
                 Section(section_id=i, school_id=i, grade_level_id=i,
-                        section_code="TEST", name="TEST") for i in (1, 2)
+                        name="TEST") for i in (1, 2)
             ])
             db.add_all([
                 Subject(subject_id=i, school_id=1, grade_level_id=1,
-                        subject_name=name, subject_code=code)
+                        subject_name=name)
                 for i, name, code in ((1, "English", "ENG6"), (2, "GMRC", "GMRC6"))
             ])
             await db.flush()

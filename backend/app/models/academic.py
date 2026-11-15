@@ -91,7 +91,6 @@ class Section(Base):
         nullable=False,
         index=True,
     )
-    section_code = Column(String(20), nullable=False, index=True)
     name = Column(String(40), nullable=False)
     room = Column(String(40), nullable=True)
     capacity = Column(Integer, nullable=False, default=40)
@@ -103,7 +102,7 @@ class Section(Base):
     enrollments = relationship("StudentEnrollment", back_populates="section")
 
     __table_args__ = (
-        UniqueConstraint("school_id", "section_code", name="uq_section_code_per_school"),
+        UniqueConstraint("school_id", "grade_level_id", "name", name="uq_section_name_per_grade"),
     )
 
 
@@ -124,7 +123,6 @@ class Subject(Base):
         index=True,
     )
     subject_name = Column(String(255), nullable=False, index=True)
-    subject_code = Column(String(50), nullable=False, index=True)
     # Only meaningful where the school tracks lesson units (School of Tomorrow
     # calls them PACEs; another school may call them modules, or not track them
     # at all). See School.tracks_units.
@@ -134,7 +132,7 @@ class Subject(Base):
     grade_level = relationship("GradeLevel", back_populates="subjects")
 
     __table_args__ = (
-        UniqueConstraint("school_id", "subject_code", name="uq_subject_code_per_school"),
+        UniqueConstraint("school_id", "grade_level_id", "subject_name", name="uq_subject_name_per_grade"),
     )
 
 

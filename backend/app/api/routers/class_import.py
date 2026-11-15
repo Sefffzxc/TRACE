@@ -131,7 +131,6 @@ async def import_class_record(
     if head["section"] and not (
         _same(head["section"], section.name)
         or head["section"].lower() in section.name.lower()
-        or _same(head["section"], section.section_code)
     ):
         notes.insert(0, f'The file is for section "{head["section"]}"; it will go into '
                         f"{section.name}.")
