@@ -20,10 +20,11 @@ import {
   TableSkeleton,
 } from '../../components/common/ui';
 import { AiRiskBadge } from '../../components/common/ai';
-import { aiApi, sectionApi, warningApi } from '../../api/endpoints';
+import { aiApi, assignmentApi, sectionApi, warningApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
+import { assignedSections, matchesSection, sectionLabel } from '../../lib/classAccess';
 
 /** Where the learner sits against the passing mark, e.g. "4 below 75". */
 function GapToPassing({ standing, passing }) {
@@ -82,6 +83,7 @@ export default function EarlyWarningPage() {
   const [predictions, setPredictions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [sections, setSections] = useState([]);
+  const [unrestricted, setUnrestricted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -98,17 +100,24 @@ export default function EarlyWarningPage() {
     setLoading(true);
     setError('');
     try {
-      const [rows, stats, sectionRows] = await Promise.all([
+      const [rows, stats, sectionRows, access] = await Promise.all([
         // The teacher's own sections, as on their dashboard, so the two agree.
         warningApi.list({ include_resolved: includeResolved, mine: true }),
         warningApi.summary({ mine: true }),
         sectionApi.list(),
+        assignmentApi.mine(),
       ]);
       setWarnings(rows || []);
       setSummary(stats);
-      setSections(sectionRows || []);
+      const visible = assignedSections(sectionRows, access);
+      setSections(visible);
+      setUnrestricted(access?.unrestricted === true);
+      setSectionId((current) => visible.some((section) => String(section.section_id) === current) ? current : '');
     } catch (err) {
       setError(err.message);
+      setSections([]);
+      setWarnings([]);
+      setSummary(null);
     } finally {
       setLoading(false);
     }
@@ -126,7 +135,7 @@ export default function EarlyWarningPage() {
     }
     (async () => {
       try {
-        const rows = await aiApi.predictions({ latest_only: true, limit: 1000 });
+        const rows = await aiApi.predictions({ latest_only: true, limit: 1000, mine: true });
         if (!cancelled) setPredictions(rows || []);
       } catch {
         if (!cancelled) setPredictions([]);
@@ -154,11 +163,11 @@ export default function EarlyWarningPage() {
       if (level === 'at-risk') {
         if (warning.risk_level !== 'high' && warning.risk_level !== 'moderate') return false;
       } else if (level !== 'all' && warning.risk_level !== level) return false;
-      if (sectionId && warning.section_name !== sectionId) return false;
+      if (sectionId && !matchesSection(warning, sections.find((section) => String(section.section_id) === sectionId))) return false;
       if (term && !(warning.student_name || '').toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [warnings, level, sectionId, search]);
+  }, [warnings, level, sectionId, sections, search]);
 
   const resolve = async (warning) => {
     setBusyId(warning.warning_id);
@@ -322,10 +331,10 @@ export default function EarlyWarningPage() {
           onChange={(event) => setSectionId(event.target.value)}
           aria-label="Filter by section"
         >
-          <option value="">All sections</option>
+          <option value="">{unrestricted ? 'All sections' : sections.length ? 'My assigned sections' : 'No assigned sections'}</option>
           {sections.map((section) => (
-            <option key={section.section_id} value={section.name}>
-              {section.name}
+            <option key={section.section_id} value={section.section_id}>
+              {sectionLabel(section, sections)}
             </option>
           ))}
         </select>
@@ -377,9 +386,11 @@ export default function EarlyWarningPage() {
           ) : filtered.length === 0 ? (
             <EmptyState
               icon={CheckCircle2}
-              title="No warnings to show"
+              title={!error && !unrestricted && !sections.length ? 'No assigned classes' : 'No warnings to show'}
               description={
-                warnings.length === 0
+                !error && !unrestricted && !sections.length
+                  ? 'Ask your school administrator to assign your section and subject.'
+                  : warnings.length === 0
                   ? 'Every student is on track.'
                   : 'No flag matches these filters.'
               }

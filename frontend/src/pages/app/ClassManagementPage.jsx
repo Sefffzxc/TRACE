@@ -79,6 +79,7 @@ export default function ClassManagementPage() {
         assignments: assignments || [],
         teachers: teachers || [],
       });
+      setError('');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -359,6 +360,22 @@ function SetupTable({ tab, data, onEdit, onDelete }) {
 function SetupModal({ tab, record, data, busy, onSave, onClose }) {
   const { tracksUnits, unitLabelPlural } = useAuth();
   const [form, setForm] = useState(() => defaultsFor(tab, record));
+  const eligibleTeachers = data.teachers.filter((teacher) => teacher.role === 'teacher'
+    && teacher.is_active && teacher.is_approved && teacher.account_status === 'approved');
+  const conflictFor = (row, sectionId = row.section_id, subjectId = row.subject_id) => {
+    if (!sectionId || !subjectId) return null;
+    const existing = data.assignments.find((assignment) => String(assignment.section_id) === String(sectionId)
+      && (subjectId === '*' || assignment.subject_id === null || String(assignment.subject_id) === String(subjectId)));
+    if (existing) {
+      const teacher = data.teachers.find((person) => String(person.id) === String(existing.teacher_id));
+      const name = existing.teacher_name || (teacher ? `${teacher.first_name} ${teacher.last_name}` : 'another teacher');
+      return { label: `Assigned to ${name}`, message: `${existing.subject_name || 'All subjects in this section'} is already assigned to ${name}. Remove the existing assignment before assigning this class again.` };
+    }
+    const selected = form.rows.find((other) => other.key !== row.key && other.section_id && other.subject_id
+      && String(other.section_id) === String(sectionId)
+      && (subjectId === '*' || other.subject_id === '*' || String(other.subject_id) === String(subjectId)));
+    return selected ? { label: 'Already selected in another row', message: 'This class overlaps another assignment in this form. Choose a different class or remove the duplicate row.' } : null;
+  };
   const set = (field) => (event) => {
     const value =
       event.target.type === 'checkbox' ? event.target.checked : event.target.value;
@@ -367,6 +384,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
 
   const submit = async (event) => {
     event.preventDefault();
+    if (busy || (tab === 'assignments' && form.rows.some((row) => conflictFor(row)))) return;
     const payload = serialise(tab, form);
     const created = await onSave(payload, record);
     // If only some assignments were saved, keep just the ones still to do.
@@ -384,11 +402,12 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
   const sectionOf = (sectionId) =>
     data.sections.find((section) => String(section.section_id) === String(sectionId));
 
-  // Picking another section clears the subject if it belongs to a different grade.
+  // A subject can be kept only when its grade and ownership fit the new section.
   const changeSection = (row) => (event) => {
     const section = sectionOf(event.target.value);
     const subject = data.subjects.find((item) => String(item.subject_id) === String(row.subject_id));
-    const keep = subject && section && subject.grade_level_id === section.grade_level_id;
+    const keep = subject && section && String(subject.grade_level_id) === String(section.grade_level_id)
+      && !conflictFor(row, event.target.value, row.subject_id);
     setRow(row.key, { section_id: event.target.value, subject_id: keep ? row.subject_id : '' });
   };
 
@@ -400,6 +419,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
 
   const assignmentCount = tab === 'assignments' ? form.rows.length : 0;
   const lastRow = tab === 'assignments' ? form.rows[form.rows.length - 1] : null;
+  const conflictingRows = tab === 'assignments' && form.rows.some((row) => conflictFor(row));
 
   const titles = {
     years: 'school year',
@@ -416,7 +436,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          <button type="submit" form="setup-form" className="btn btn-primary" disabled={busy}>
+          <button type="submit" form="setup-form" className="btn btn-primary" disabled={busy || conflictingRows || (tab === 'assignments' && eligibleTeachers.length === 0)}>
             {busy
               ? 'Saving…'
               : record
@@ -504,19 +524,24 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
               </label>
               <select id="a_teacher" className="select" value={form.teacher_id} onChange={set('teacher_id')} required>
                 <option value="">Choose…</option>
-                {data.teachers.map((teacher) => (
+                {eligibleTeachers.map((teacher) => (
                   <option key={teacher.id} value={teacher.id}>
                     {teacher.first_name} {teacher.last_name}
                   </option>
                 ))}
               </select>
+              <span className="field-hint">Only approved, active teachers can receive classes.</span>
+              {eligibleTeachers.length === 0 && <ErrorNote message="There are no approved, active teachers to assign. Review account approvals first." />}
             </div>
 
             {form.rows.map((row, index) => {
               const section = sectionOf(row.section_id);
               const subjects = section
-                ? data.subjects.filter((subject) => subject.grade_level_id === section.grade_level_id)
-                : data.subjects;
+                ? data.subjects.filter((subject) => String(subject.grade_level_id) === String(section.grade_level_id) && subject.is_active !== false)
+                : [];
+              const conflict = conflictFor(row);
+              const assigned = section ? data.assignments.filter((assignment) => String(assignment.section_id) === String(section.section_id)) : [];
+              const allConflict = conflictFor(row, row.section_id, '*');
               return (
                 <div
                   key={row.key}
@@ -559,33 +584,41 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                       required
                     >
                       <option value="">Choose…</option>
-                      {data.sections.map((item) => (
-                        <option key={item.section_id} value={item.section_id}>
-                          {item.name}
-                        </option>
-                      ))}
+                      {data.sections.map((item) => {
+                        const wildcard = data.assignments.find((assignment) => String(assignment.section_id) === String(item.section_id) && assignment.subject_id === null);
+                        return <option key={item.section_id} value={item.section_id} disabled={Boolean(wildcard)}>
+                          {item.name}{item.grade_level_name ? ` — ${item.grade_level_name}` : ''}{wildcard ? ` — All subjects assigned to ${wildcard.teacher_name || 'another teacher'}` : ''}
+                        </option>;
+                      })}
                     </select>
                   </div>
                   <div className="field">
                     <label className="field-label" htmlFor={`a_subject_${row.key}`}>
-                      Subject
+                      Subject <span className="req">*</span>
                     </label>
+                    {conflict && <div className="field-error" role="alert" style={{ marginBottom: '.4rem' }}>{conflict.message}</div>}
                     <select
                       id={`a_subject_${row.key}`}
                       className="select"
                       value={row.subject_id}
                       onChange={(event) => setRow(row.key, { subject_id: event.target.value })}
+                      required
+                      disabled={!section}
+                      aria-invalid={Boolean(conflict) || undefined}
                     >
-                      <option value="">All subjects in this section</option>
-                      {subjects.map((subject) => (
-                        <option key={subject.subject_id} value={subject.subject_id}>
-                          {section
-                            ? subject.subject_name
-                            : `${subject.subject_name} — ${subject.grade_level_name}`}
-                        </option>
-                      ))}
+                      <option value="">{section ? 'Choose a subject…' : 'Choose a section first…'}</option>
+                      <option value="*" disabled={Boolean(allConflict)}>All subjects in this section{allConflict ? ` — ${allConflict.label}` : ''}</option>
+                      {subjects.map((subject) => {
+                        const unavailable = conflictFor(row, row.section_id, String(subject.subject_id));
+                        return <option key={subject.subject_id} value={subject.subject_id} disabled={Boolean(unavailable)}>
+                          {subject.subject_name}{unavailable ? ` — ${unavailable.label}` : ''}
+                        </option>;
+                      })}
                     </select>
-                    <span className="field-hint">The teacher grades only the subjects assigned here.</span>
+                    <span className="field-hint">Each section and subject has one teacher. Assigned classes are unavailable until their existing assignment is removed.</span>
+                    {assigned.length > 0 && <ul className="field-hint" style={{ paddingLeft: '1.1rem', marginTop: '.4rem', overflowWrap: 'anywhere' }}>
+                      {assigned.map((assignment) => <li key={assignment.assignment_id}>{assignment.subject_name || 'All subjects'} — {assignment.teacher_name || 'Assigned teacher'}</li>)}
+                    </ul>}
                   </div>
                   <label className="checkbox">
                     <input
@@ -601,7 +634,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
 
             {/* Only worth adding more once a specific subject is picked: "All subjects"
                 already covers the whole section. */}
-            {lastRow && lastRow.subject_id && (
+            {lastRow && lastRow.subject_id && lastRow.subject_id !== '*' && (
               <div>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={addRow}>
                   <Plus size={14} /> Add another subject
@@ -658,7 +691,7 @@ function serialise(tab, form) {
     return form.rows.map((row) => ({
       teacher_id: form.teacher_id,
       section_id: Number(row.section_id),
-      subject_id: row.subject_id ? Number(row.subject_id) : null,
+      subject_id: row.subject_id === '*' ? null : Number(row.subject_id),
       is_adviser: row.is_adviser,
     }));
   }

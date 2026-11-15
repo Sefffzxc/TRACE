@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, FileUp, Save, Search, Settings2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useBlocker } from 'react-router-dom';
+import { Check, FileUp, Save, Search, Settings2 } from 'lucide-react';
 import {
   EmptyState,
   ErrorNote,
@@ -11,21 +12,18 @@ import ImportClassRecord from '../../components/common/ImportClassRecord';
 import {
   aiApi,
   assignmentApi,
-  classRecordApi,
-  enrollmentApi,
-  paceApi,
   sectionApi,
   subjectApi,
 } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import useClassRecordAutosave, { scoreText as asText } from '../../hooks/useClassRecordAutosave';
 import {
   CORE,
   EXAM_LABELS,
   TEMPLATES,
   gradingPeriods,
   periodName,
-  computeRow,
   show,
 } from '../../lib/grading';
 
@@ -60,33 +58,11 @@ import {
  * record missing a whole component shows no grade rather than a wrong one.
  */
 
-const DEFAULT_SETUP = {
-  template: CORE,
-  ww_highest: [null, null, null, null, null],
-  pt_highest: [null, null, null],
-  exam_highest: [null, null, null],
-  ww_weight: TEMPLATES[CORE].ww_weight,
-  pt_weight: TEMPLATES[CORE].pt_weight,
-  ex_weight: TEMPLATES[CORE].ex_weight,
-  exam_subweights: [30, 30, 40],
-};
-
-/** '' is a cleared cell; anything else becomes a number or stays blank. */
-const toScore = (raw) => {
-  if (raw === '' || raw === null || raw === undefined) return null;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
-};
-
-const asText = (value) => (value === null || value === undefined ? '' : String(value));
-
 export default function ClassRecordPage() {
   const toast = useToast();
 
   const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [enrollments, setEnrollments] = useState([]);
-  const [paces, setPaces] = useState([]);
 
   const [sectionId, setSectionId] = useState('');
   const [subjectId, setSubjectId] = useState('');
@@ -96,25 +72,17 @@ export default function ClassRecordPage() {
   // does.
   const { gradingPeriodCount, periodLabel } = useAuth();
   const periods = gradingPeriods(gradingPeriodCount);
-  // If the school's settings shrink, do not leave the sheet on a period that
-  // no longer exists.
-  useEffect(() => {
-    if (term > periods.length) setTerm(1);
-  }, [term, periods.length]);
   const [search, setSearch] = useState('');
   const [importing, setImporting] = useState(false);
   // Bumped after an import so the header is fetched again.
   const [setupVersion, setSetupVersion] = useState(0);
 
-  const [setup, setSetup] = useState(DEFAULT_SETUP);
-  const [setupDraft, setSetupDraft] = useState(null); // non-null while editing
-  const [drafts, setDrafts] = useState({});
+  const [changingContext, setChangingContext] = useState(false);
+  const changingRef = useRef(false);
 
   const [aiStatus, setAiStatus] = useState(null);
   const [waking, setWaking] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [loadingRoster, setLoadingRoster] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   // section id -> subject names this teacher grades there ("*" = all);
   // null for an administrator, who is not limited.
@@ -193,174 +161,66 @@ export default function ClassRecordPage() {
     [subjectOptions, subjectId],
   );
 
-  const loadRoster = useCallback(async () => {
-    if (!sectionId) return;
-    setLoadingRoster(true);
-    setDrafts({});
-    try {
-      const [enrollmentRows, paceRows] = await Promise.all([
-        enrollmentApi.list({ section_id: sectionId, is_active: true }),
-        paceApi.list({ section_id: sectionId }),
-      ]);
-      setEnrollments(enrollmentRows || []);
-      setPaces(paceRows || []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoadingRoster(false);
-    }
-  }, [sectionId]);
-
-  useEffect(() => {
-    loadRoster();
-  }, [loadRoster]);
-
-  // The sheet's own header. Falls back to the core template so a fresh
-  // record is usable before anyone has set it up.
-  useEffect(() => {
-    if (!sectionId || !subjectId) return undefined;
-    let cancelled = false;
-    classRecordApi
-      .getSetup({ section_id: sectionId, subject_id: subjectId, grading_period: term })
-      .then((data) => {
-        if (cancelled || !data) return;
-        setSetup({
-          template: data.template || CORE,
-          ww_highest: data.ww_highest?.length ? data.ww_highest : DEFAULT_SETUP.ww_highest,
-          pt_highest: data.pt_highest?.length ? data.pt_highest : DEFAULT_SETUP.pt_highest,
-          exam_highest: data.exam_highest?.length
-            ? data.exam_highest
-            : DEFAULT_SETUP.exam_highest,
-          ww_weight: data.ww_weight,
-          pt_weight: data.pt_weight,
-          ex_weight: data.ex_weight,
-          exam_subweights: data.exam_subweights?.length
-            ? data.exam_subweights
-            : DEFAULT_SETUP.exam_subweights,
-        });
-      })
-      .catch(() => setSetup(DEFAULT_SETUP));
-    return () => {
-      cancelled = true;
-    };
-  }, [sectionId, subjectId, term, setupVersion]);
-
-  /** One row per learner: stored scores, overlaid with anything unsaved. */
+  const record = useClassRecordAutosave({
+    section_id: sectionId, subject_id: subjectId,
+    subject_name: subject?.subject_name, grading_period: term,
+  }, setupVersion);
+  const { setup, setupDraft, setSetupDraft, setCell, saving, dirtyCount } = record;
+  const loadingRoster = record.loading;
+  const save = record.save;
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return enrollments
-      .filter((e) => (needle ? (e.student_name || '').toLowerCase().includes(needle) : true))
-      .map((enrollment) => {
-        // One record per learner, subject AND term. Matching without the
-        // term showed the same record — usually the first term's — under
-        // every term, and saving from the second term then copied it there.
-        const stored = paces.find(
-          (p) =>
-            p.enrollment_id === enrollment.enrollment_id &&
-            p.subject === subject?.subject_name &&
-            (p.grading_period ?? 1) === term,
-        );
-        const draft = drafts[enrollment.enrollment_id] || {};
+    return record.allRows.filter((row) => !needle || (row.enrollment.student_name || '').toLowerCase().includes(needle));
+  }, [record.allRows, search]);
 
-        const cells = (key, length) => {
-          const base = stored?.[key] || [];
-          return Array.from({ length }, (_, i) =>
-            draft[key]?.[i] !== undefined ? draft[key][i] : asText(base[i]),
-          );
-        };
-
-        const ww = cells('ww_scores', setup.ww_highest.length);
-        const pt = cells('pt_scores', setup.pt_highest.length);
-        const exam = cells('exam_scores', setup.exam_highest.length);
-
-        const computed = computeRow(
-          {
-            ww_scores: ww.map(toScore),
-            pt_scores: pt.map(toScore),
-            exam_scores: exam.map(toScore),
-          },
-          setup,
-        );
-
-        return {
-          enrollment,
-          stored,
-          ww,
-          pt,
-          exam,
-          computed,
-          dirty: Object.keys(draft).length > 0,
-        };
-      })
-      .sort((a, b) =>
-        (a.enrollment.student_name || '').localeCompare(b.enrollment.student_name || ''),
-      );
-  }, [enrollments, paces, drafts, subject, search, setup, term]);
-
-  // Unsaved typing belongs to the sheet it was typed on. Without this, scores
-  // typed on one term (or subject) followed the teacher to the next one and
-  // were saved there.
-  useEffect(() => {
-    setDrafts({});
-  }, [term, subjectId]);
-
-  const dirtyCount = rows.filter((r) => r.dirty).length;
-
-  const setCell = (enrollmentId, key, index, value) =>
-    setDrafts((current) => {
-      const row = current[enrollmentId] || {};
-      const list = [...(row[key] || [])];
-      list[index] = value;
-      return { ...current, [enrollmentId]: { ...row, [key]: list } };
-    });
-
-  const save = async () => {
-    if (!subject) return;
-    const changed = rows.filter((r) => r.dirty);
-    if (!changed.length) {
-      toast.info('Nothing to save yet.');
-      return;
-    }
-
-    setSaving(true);
+  // A context can change only after its setup and every dirty learner have
+  // been acknowledged. Failed or invalid entries stay on their original sheet.
+  const changeContext = async (apply) => {
+    if (changingRef.current) return;
+    changingRef.current = true;
+    setChangingContext(true);
     try {
-      const entries = changed.map((row) => ({
-        student_id: row.enrollment.student_id,
-        enrollment_id: row.enrollment.enrollment_id,
-        subject: subject.subject_name,
-        // Unit progress is not kept on this screen, so whatever the record
-        // already holds goes back unchanged rather than being reset to zero.
-        current_pace: row.stored?.current_pace ?? 0,
-        expected_pace: row.stored?.expected_pace ?? 0,
-        total_paces: row.stored?.total_paces ?? 0,
-        attendance: row.stored?.attendance ?? 100,
-        average_score: row.stored?.average_score ?? 0,
-        ww_scores: row.ww.map(toScore),
-        pt_scores: row.pt.map(toScore),
-        exam_scores: row.exam.map(toScore),
-      }));
-
-      const result = await paceApi.bulkSave(entries, {
-        section_id: Number(sectionId),
-        subject_id: Number(subjectId),
-        grading_period: term,
-      });
-
-      toast.success(`Saved ${result.saved} record${result.saved === 1 ? '' : 's'}.`);
-      if (result.ai?.fallback) {
-        toast.info(
-          `${result.ai.fallback} of ${result.saved} forecast by the school rule.`,
-        );
-      }
-      (result.skipped || []).forEach((reason) => toast.error(reason));
-      setDrafts({});
-      await loadRoster();
-    } catch (err) {
-      toast.error(err.message);
+      if (await record.flush()) apply();
+      else toast.error('Stay on this record and correct or retry the unsaved entries first.');
     } finally {
-      setSaving(false);
+      changingRef.current = false;
+      setChangingContext(false);
     }
   };
+
+  const navigation = useRef(null);
+  navigation.current = { unsaved: record.pending || record.saving, flush: record.flush };
+  const blocker = useBlocker(() => navigation.current.unsaved);
+  const blockedKey = blocker.location?.key;
+  const blockedRef = useRef(null);
+  useEffect(() => {
+    if (blocker.state !== 'blocked' || blockedRef.current === blockedKey) return undefined;
+    blockedRef.current = blockedKey;
+    let cancelled = false;
+    changingRef.current = true;
+    setChangingContext(true);
+    navigation.current.flush().then((saved) => {
+      if (cancelled) return;
+      changingRef.current = false;
+      setChangingContext(false);
+      blockedRef.current = null;
+      if (saved) blocker.proceed();
+      else {
+        blocker.reset();
+        toast.error('Stay on this record and correct or retry the unsaved entries first.');
+      }
+    });
+    return () => { cancelled = true; blockedRef.current = null; };
+    // Each blocked destination gets one flush; rerendering save progress must
+    // not replay navigation or start additional writers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocker.state, blockedKey]);
+
+  useEffect(() => {
+    if (term > periods.length) changeContext(() => setTerm(1));
+    // This follows changes to the school's period count, not score edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [term, periods.length]);
 
   /** Switching record type resets the weights to that type's own. */
   const chooseTemplate = (value) => {
@@ -374,40 +234,7 @@ export default function ClassRecordPage() {
     });
   };
 
-  const saveSetup = async () => {
-    const payload = {
-      template: setupDraft.template,
-      ww_highest: setupDraft.ww_highest.map(toScore),
-      pt_highest: setupDraft.pt_highest.map(toScore),
-      exam_highest: setupDraft.exam_highest.map(toScore),
-      ww_weight: Number(setupDraft.ww_weight),
-      pt_weight: Number(setupDraft.pt_weight),
-      ex_weight: Number(setupDraft.ex_weight),
-      exam_subweights: setupDraft.exam_subweights.map(Number),
-    };
-    const total = payload.ww_weight + payload.pt_weight + payload.ex_weight;
-    if (Math.abs(total - 100) > 0.01) {
-      toast.error(`The three component weights must total 100 — they total ${total}.`);
-      return;
-    }
-    const shares = payload.exam_subweights.reduce((a, b) => a + b, 0);
-    if (Math.abs(shares - 100) > 0.01) {
-      toast.error(`The examination shares must total 100 — they total ${shares}.`);
-      return;
-    }
-    try {
-      const saved = await classRecordApi.saveSetup(
-        { section_id: Number(sectionId), subject_id: Number(subjectId), grading_period: term },
-        payload,
-      );
-      setSetup({ ...setup, ...saved });
-      setSetupDraft(null);
-      toast.success('Setup saved. Grades recalculated.');
-      await loadRoster();
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
+  const saveSetup = () => changeContext(() => setSetupDraft(null));
 
   const editing = setupDraft !== null;
   const head = editing ? setupDraft : setup;
@@ -433,13 +260,16 @@ export default function ClassRecordPage() {
       />
 
       <ErrorNote message={error} />
+      <ErrorNote message={record.error} />
+      {!record.ready && !loadingRoster && sectionId && subjectId && <button type="button" className="btn btn-secondary" onClick={() => setSetupVersion((value) => value + 1)}>Retry loading record</button>}
       <AiServiceNote status={aiStatus} onRetry={wakeAi} busy={waking} />
 
       <div className="toolbar">
         <select
           className="select"
           value={sectionId}
-          onChange={(e) => setSectionId(e.target.value)}
+          onChange={(e) => { const value = e.target.value; changeContext(() => setSectionId(value)); }}
+          disabled={changingContext || importing || loadingRoster}
           aria-label="Section"
         >
           {sections.map((item) => (
@@ -452,9 +282,9 @@ export default function ClassRecordPage() {
         <select
           className="select"
           value={subjectId}
-          onChange={(e) => setSubjectId(e.target.value)}
+          onChange={(e) => { const value = e.target.value; changeContext(() => setSubjectId(value)); }}
           aria-label="Subject"
-          disabled={!subjectOptions.length}
+          disabled={!subjectOptions.length || changingContext || importing || loadingRoster}
         >
           {subjectOptions.length === 0 && <option>No subjects for this grade level</option>}
           {subjectOptions.map((item) => (
@@ -467,7 +297,8 @@ export default function ClassRecordPage() {
         <select
           className="select"
           value={term}
-          onChange={(e) => setTerm(Number(e.target.value))}
+          onChange={(e) => { const value = Number(e.target.value); changeContext(() => setTerm(value)); }}
+          disabled={changingContext || importing || loadingRoster}
           aria-label={periodLabel}
         >
           {periods.map((t) => (
@@ -494,6 +325,7 @@ export default function ClassRecordPage() {
               className="select"
               value={head.template}
               onChange={(e) => chooseTemplate(e.target.value)}
+              disabled={changingContext}
               aria-label="Class record type"
             >
               {Object.entries(TEMPLATES).map(([key, t]) => (
@@ -502,15 +334,8 @@ export default function ClassRecordPage() {
                 </option>
               ))}
             </select>
-            <button type="button" className="btn btn-primary" onClick={saveSetup}>
-              <Check size={15} /> Save setup
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setSetupDraft(null)}
-            >
-              <X size={15} /> Cancel
+            <button type="button" className="btn btn-primary" onClick={saveSetup} disabled={changingContext}>
+              <Check size={15} /> Done setup
             </button>
           </div>
         ) : (
@@ -519,15 +344,15 @@ export default function ClassRecordPage() {
               type="button"
               className="btn btn-secondary"
               onClick={() => setSetupDraft({ ...setup })}
-              disabled={!subjectId}
+              disabled={!subjectId || !record.ready || changingContext}
             >
               <Settings2 size={15} /> Set up record
             </button>
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => setImporting(true)}
-              disabled={!subjectId || !section}
+              onClick={() => changeContext(() => setImporting(true))}
+              disabled={!subjectId || !section || !record.ready || changingContext}
             >
               <FileUp size={15} /> Import from Excel
             </button>
@@ -538,7 +363,7 @@ export default function ClassRecordPage() {
       <p className="cr-template-note">
         {editing ? (
           <>
-            Enter the highest possible score for each assessment, then save.
+            Enter assessment maxima in the Highest possible score row and learner marks below. Both save automatically after you pause. Done setup closes these settings.
           </>
         ) : (
           <>
@@ -551,18 +376,23 @@ export default function ClassRecordPage() {
 
       {loadingRoster ? (
         <TableSkeleton rows={8} />
+      ) : !subject || !record.ready ? (
+        <EmptyState
+          title={!sections.length ? 'No assigned classes' : !subject ? 'No assigned subjects' : 'Class record unavailable'}
+          description={!sections.length || !subject ? 'Ask your school administrator to assign your section and subject before entering scores.' : 'Retry loading this record before entering scores.'}
+        />
       ) : !rows.length ? (
         <EmptyState
-          title="No learners here yet"
-          message="No learners enrolled in this section yet."
+          title={record.allRows.length ? "No matching learners" : "No learners here yet"}
+          description={record.allRows.length ? "Clear the search to see this class. Hidden learner changes still save." : "No learners enrolled in this section yet."}
         />
       ) : (
         <div className="card cr-card">
-          <div className="cr-scroll">
+          <div className="cr-scroll" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) record.saveOnBlur(); }}>
             <table className="cr-table">
               <thead>
                 <tr>
-                  <th className="cr-sticky cr-name" rowSpan={3}>
+                  <th className="cr-sticky cr-name" rowSpan={2}>
                     Learners&rsquo; names
                   </th>
                   <th className="cr-group" colSpan={head.ww_highest.length + 3}>
@@ -626,11 +456,13 @@ export default function ClassRecordPage() {
                 </tr>
 
                 <tr className="cr-hps">
+                  <th className="cr-sticky cr-name" scope="row">Highest possible score</th>
                   <HighestCells
                     name="ww_highest"
                     list={head.ww_highest}
                     weight={head.ww_weight}
                     editing={editing}
+                    disabled={changingContext || importing}
                     onChange={(i, v) => patchDraft('ww_highest', i, v)}
                   />
                   <HighestCells
@@ -638,6 +470,7 @@ export default function ClassRecordPage() {
                     list={head.pt_highest}
                     weight={head.pt_weight}
                     editing={editing}
+                    disabled={changingContext || importing}
                     onChange={(i, v) => patchDraft('pt_highest', i, v)}
                   />
                   {/* For the examinations: each mark's maximum, then the
@@ -647,6 +480,7 @@ export default function ClassRecordPage() {
                       {editing ? (
                         <input
                           className="cr-input"
+                          disabled={changingContext || importing}
                           inputMode="decimal"
                           value={asText(value)}
                           onChange={(e) => patchDraft('exam_highest', i, e.target.value)}
@@ -662,6 +496,7 @@ export default function ClassRecordPage() {
                       {editing ? (
                         <input
                           className="cr-input"
+                          disabled={changingContext || importing}
                           inputMode="decimal"
                           value={asText(value)}
                           onChange={(e) => patchDraft('exam_subweights', i, e.target.value)}
@@ -688,8 +523,9 @@ export default function ClassRecordPage() {
                     </th>
 
                     <ScoreCells
+                      disabled={changingContext || importing}
                       values={row.ww}
-                      highest={setup.ww_highest}
+                      highest={head.ww_highest}
                       row={index}
                       colStart={0}
                       onChange={(i, v) => setCell(row.enrollment.enrollment_id, 'ww_scores', i, v)}
@@ -700,10 +536,11 @@ export default function ClassRecordPage() {
                     <Derived value={row.computed.ww_ws} />
 
                     <ScoreCells
+                      disabled={changingContext || importing}
                       values={row.pt}
-                      highest={setup.pt_highest}
+                      highest={head.pt_highest}
                       row={index}
-                      colStart={setup.ww_highest.length}
+                      colStart={head.ww_highest.length}
                       onChange={(i, v) => setCell(row.enrollment.enrollment_id, 'pt_scores', i, v)}
                       label={`${row.enrollment.student_name} performance task`}
                     />
@@ -712,10 +549,11 @@ export default function ClassRecordPage() {
                     <Derived value={row.computed.pt_ws} />
 
                     <ScoreCells
+                      disabled={changingContext || importing}
                       values={row.exam}
-                      highest={setup.exam_highest}
+                      highest={head.exam_highest}
                       row={index}
-                      colStart={setup.ww_highest.length + setup.pt_highest.length}
+                      colStart={head.ww_highest.length + head.pt_highest.length}
                       onChange={(i, v) =>
                         setCell(row.enrollment.enrollment_id, 'exam_scores', i, v)
                       }
@@ -745,31 +583,18 @@ export default function ClassRecordPage() {
             </table>
           </div>
 
-          <div className="save-bar">
-            <span>
-              {dirtyCount ? (
-                <>
-                  <b>{dirtyCount}</b> learner{dirtyCount === 1 ? '' : 's'} with unsaved changes
-                </>
-              ) : (
-                'All changes saved'
-              )}
-              <span className="cr-foot-note">
-                {' '}
-                · * provisional (scores missing)
-              </span>
-            </span>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={save}
-              disabled={saving || !dirtyCount}
-            >
-              <Save size={15} /> {saving ? 'Saving…' : 'Save class record'}
-            </button>
-          </div>
         </div>
       )}
+      {section && subject && !loadingRoster && <div className="save-bar cr-save-status">
+        <div className="cr-save-message" role="status" aria-live="polite">
+          <strong>{saving ? 'Saving...' : record.error ? 'Not saved' : record.pending ? 'Waiting to save...' : record.savedAt ? 'Saved' : 'Ready to enter scores'}</strong>
+          <span>{record.pending ? dirtyCount ? ` - ${dirtyCount} learner${dirtyCount === 1 ? '' : 's'} with pending scores${record.setupDirty ? ' and setup changes' : ''}.` : ' - Setup changes are waiting to save.' : record.savedAt ? ' - All entered changes are saved.' : ' - Your scores save automatically after a pause.'}</span>
+          <span className="cr-foot-note"> - * provisional (scores missing)</span>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={save} disabled={saving || changingContext || !record.pending || !record.ready}>
+          <Save size={15} /> {saving ? 'Saving...' : record.error ? 'Retry save' : 'Save now'}
+        </button>
+      </div>}
       {importing && section && subject && (
         <ImportClassRecord
           section={section}
@@ -780,11 +605,10 @@ export default function ClassRecordPage() {
             setImporting(false);
             const added = (saved?.added || 0) + (saved?.enrolled || 0);
             toast.success(
-              `Imported ${saved?.terms?.length || 0} ${periodLabel.toLowerCase()}(s)` +
-                (added ? `, ${added} learner${added === 1 ? '' : 's'} added.` : '.'),
+              `Imported and saved ${saved?.terms?.length || 0} ${periodLabel.toLowerCase()}(s)` +
+                (added ? `, ${added} learner${added === 1 ? '' : 's'} added.` : '.') + ' No second save is needed.',
             );
             setSetupVersion((v) => v + 1);
-            loadRoster();
           }}
         />
       )}
@@ -797,7 +621,7 @@ export default function ClassRecordPage() {
  * group: each item's maximum, then the figures a learner with full marks
  * would reach — the sum, a flat 100.00, and the component's weight.
  */
-function HighestCells({ name, list, weight, editing, onChange }) {
+function HighestCells({ name, list, weight, editing, onChange, disabled }) {
   const entered = list.map(Number).filter((n) => Number.isFinite(n) && n > 0);
   const total = entered.length ? entered.reduce((a, b) => a + b, 0) : null;
   return (
@@ -809,6 +633,7 @@ function HighestCells({ name, list, weight, editing, onChange }) {
               className="cr-input"
               inputMode="decimal"
               value={asText(value)}
+              disabled={disabled}
               onChange={(e) => onChange(i, e.target.value)}
               aria-label={`highest possible score, item ${i + 1}`}
             />
@@ -835,15 +660,16 @@ function moveTo(row, col) {
   }
 }
 
-function ScoreCells({ values, highest = [], row, colStart, onChange, label }) {
+function ScoreCells({ values, highest = [], row, colStart, onChange, label, disabled }) {
   return values.map((value, i) => {
     const col = colStart + i;
     const max = Number(highest[i]);
     const score = Number(value);
     // A score above the item's highest possible is almost always a typo.
-    const tooHigh = value !== '' && Number.isFinite(score) && max > 0 && score > max;
+    const invalid = value.trim() !== '' && (!Number.isFinite(score) || score < 0 || score > 1000 || !Number.isFinite(max) || max <= 0 || score > max);
+    const problem = !Number.isFinite(score) || score < 0 || score > 1000 ? 'Enter a number from 0 to 1000' : max <= 0 || !Number.isFinite(max) ? 'Enter the highest possible score for this assessment first' : `Above the highest possible score (${max})`;
     return (
-      <td key={i} className={`cr-cell${tooHigh ? ' is-invalid' : ''}`}>
+      <td key={i} className={`cr-cell${invalid ? ' is-invalid' : ''}`}>
         <input
           className="cr-input"
           inputMode="decimal"
@@ -862,8 +688,9 @@ function ScoreCells({ values, highest = [], row, colStart, onChange, label }) {
             }
           }}
           aria-label={`${label} ${i + 1}`}
-          aria-invalid={tooHigh || undefined}
-          title={tooHigh ? `Above the highest possible score (${max})` : undefined}
+          disabled={disabled}
+          aria-invalid={invalid || undefined}
+          title={invalid ? problem : undefined}
         />
       </td>
     );

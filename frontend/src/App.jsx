@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -306,14 +306,16 @@ function Router() {
   );
 }
 
+// The data router supplies a navigation blocker so unsaved class-record
+// changes can finish saving before links, menu navigation or Back leave it.
+const router = createBrowserRouter([{ path: '*', element: <Router /> }]);
+
 export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <Router />
-          </BrowserRouter>
+          <RouterProvider router={router} />
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

@@ -1034,7 +1034,10 @@
 
 .cr-foot-note { color: var(--text-faint); font-size: var(--text-xs); }
 
-.cr-setup-actions { display: flex; gap: 0.5rem; }
+.cr-setup-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.cr-save-status { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
+.cr-save-message { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.cr-hps .cr-name { font-size: var(--text-xs); white-space: normal; }
 .cr-setup-hint {
   margin: 0 0 0.75rem;
   padding: 0.6rem 0.8rem;

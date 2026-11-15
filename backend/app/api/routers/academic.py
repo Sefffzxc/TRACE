@@ -6,7 +6,7 @@ import uuid
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,8 @@ from app.models.academic import (
     Subject,
     TeacherAssignment,
 )
-from app.models.staff import Staff
+from app.models.schools import School
+from app.models.staff import ROLE_TEACHER, STATUS_APPROVED, Staff
 from app.models.students import ClassRecordSetup, StudentEnrollment
 from app.services.access import class_access
 from app.schemas.academic import (
@@ -670,6 +671,24 @@ async def delete_subject(
 # ══════════════════════════════════════════════════════════════════════════════
 # Teacher assignments
 # ══════════════════════════════════════════════════════════════════════════════
+async def _lock_assignment_section(db: AsyncSession, section_id: int, scope: int):
+    """Serialize assignment writes without altering existing assignment rows."""
+    if db.get_bind().dialect.name == "sqlite":
+        # SQLite ignores FOR UPDATE. A no-op write acquires its transaction's
+        # writer lock before checking occupancy, including across API workers.
+        await db.execute(update(Section).where(
+            Section.section_id == section_id, Section.school_id == scope,
+        ).values(section_id=Section.section_id).execution_options(synchronize_session=False))
+    else:
+        # Follow the same school-before-staff order as application transfers.
+        # Key-share permits other assignments while preventing school deletion.
+        await db.execute(select(School.school_id).where(School.school_id == scope)
+                         .with_for_update(read=True, key_share=True))
+    return await db.scalar(select(Section).where(
+        Section.section_id == section_id, Section.school_id == scope,
+    ).with_for_update().execution_options(populate_existing=True))
+
+
 @router.get("/api/teacher-assignments", response_model=List[TeacherAssignmentResponse])
 async def list_assignments(
     teacher_id: Optional[uuid.UUID] = None,
@@ -719,30 +738,45 @@ async def create_assignment(
 ):
     # The teacher, section and subject all have to be this school's own. A
     # Staff row with a NULL school_id — the super admin — never matches.
-    if await get_scoped_optional(db, Staff, payload.teacher_id, scope) is None:
-        raise HTTPException(status_code=400, detail="That teacher does not exist.")
-    if await get_scoped_optional(db, Section, payload.section_id, scope) is None:
+    section = await _lock_assignment_section(db, payload.section_id, scope)
+    if section is None:
         raise HTTPException(status_code=400, detail="That section does not exist.")
-    if payload.subject_id is not None and (
-        await get_scoped_optional(db, Subject, payload.subject_id, scope) is None
-    ):
-        raise HTTPException(status_code=400, detail="That subject does not exist.")
+    teacher = await db.scalar(select(Staff).where(
+        Staff.id == payload.teacher_id, Staff.school_id == scope,
+    ).with_for_update().execution_options(populate_existing=True))
+    if teacher is None:
+        raise HTTPException(status_code=400, detail="That teacher does not exist.")
+    if teacher.role != ROLE_TEACHER or not teacher.is_active or not teacher.is_approved or teacher.account_status != STATUS_APPROVED:
+        raise HTTPException(status_code=400, detail="Choose an active, approved teacher.")
+    subject = None
+    if payload.subject_id is not None:
+        subject = await get_scoped_optional(db, Subject, payload.subject_id, scope)
+        if subject is None:
+            raise HTTPException(status_code=400, detail="That subject does not exist.")
+        if subject.grade_level_id != section.grade_level_id:
+            raise HTTPException(status_code=400, detail="That subject does not belong to the section's grade level.")
 
-    duplicate = (
-        await db.execute(
-            scoped(
-                select(TeacherAssignment).where(
-                    TeacherAssignment.teacher_id == payload.teacher_id,
-                    TeacherAssignment.section_id == payload.section_id,
-                    TeacherAssignment.subject_id == payload.subject_id,
-                ),
-                TeacherAssignment,
-                scope,
-            )
+    occupied = select(TeacherAssignment).where(
+        TeacherAssignment.school_id == scope,
+        TeacherAssignment.section_id == payload.section_id,
+    )
+    if payload.subject_id is not None:
+        occupied = occupied.where(or_(
+            TeacherAssignment.subject_id == payload.subject_id,
+            TeacherAssignment.subject_id.is_(None),
+        ))
+    existing = (await db.scalars(occupied.order_by(TeacherAssignment.assignment_id).limit(1))).first()
+    if existing is not None:
+        assignee = await get_scoped_optional(db, Staff, existing.teacher_id, scope)
+        assignee_name = assignee.full_name if assignee is not None else "another teacher"
+        existing_subject = await get_scoped_optional(db, Subject, existing.subject_id, scope)
+        subject_name = existing_subject.subject_name if existing_subject is not None else (
+            "all subjects" if existing.subject_id is None else "an existing subject"
         )
-    ).scalar_one_or_none()
-    if duplicate:
-        raise HTTPException(status_code=409, detail="That assignment already exists.")
+        raise HTTPException(status_code=409, detail=(
+            f'{section.name} / {subject_name} is already assigned to {assignee_name}. '
+            "Remove the existing assignment before assigning another teacher."
+        ))
 
     if payload.is_adviser:
         current = (
@@ -762,7 +796,11 @@ async def create_assignment(
 
     row = TeacherAssignment(**payload.model_dump(), school_id=scope)
     db.add(row)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="The assignment changed. Refresh assignments and try again.") from None
     await db.refresh(row)
     return TeacherAssignmentResponse.model_validate(row)
 
@@ -775,6 +813,12 @@ async def delete_assignment(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, TeacherAssignment, assignment_id, scope, "Assignment")
+    await _lock_assignment_section(db, row.section_id, scope)
+    row = await db.scalar(select(TeacherAssignment).where(
+        TeacherAssignment.assignment_id == assignment_id, TeacherAssignment.school_id == scope,
+    ).execution_options(populate_existing=True))
+    if row is None:
+        raise HTTPException(status_code=404, detail="Assignment not found.")
     await db.delete(row)
     await db.commit()
 

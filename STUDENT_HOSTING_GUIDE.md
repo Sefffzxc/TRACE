@@ -15,6 +15,10 @@ This updates both the Azure API and Cloudflare Pages; no database migration is r
 Applicants verify their email and resubmit the same account; the API creates two
 new history/verification tables at startup. Update both the API and Pages.
 
+**Class record usability:** follow [autosave, assigned classes, and deployment](CLASS_RECORD_USABILITY_GUIDE.md).
+Score entry works during setup, monitoring filters follow teacher assignments,
+and occupied section/subject assignments are refused. No database migration is required.
+
 Updated **9 November 2026**. Your domain is **traceedu.app**.
 The frontend will use **https://www.traceedu.app**, the API and AI will run on
 one Azure Ubuntu VM, and your existing database will stay on Render.

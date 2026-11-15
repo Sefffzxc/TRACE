@@ -26,8 +26,9 @@ import {
   PageHead,
   TableSkeleton,
 } from '../../components/common/ui';
-import { aiApi, sectionApi } from '../../api/endpoints';
+import { aiApi, assignmentApi, sectionApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
+import { assignedSections, matchesSection, sectionLabel } from '../../lib/classAccess';
 
 const LEVELS = [
   { key: 'all', label: 'All' },
@@ -52,6 +53,7 @@ export default function AiInsightsPage() {
   const [summary, setSummary] = useState(null);
   const [rows, setRows] = useState([]);
   const [sections, setSections] = useState([]);
+  const [unrestricted, setUnrestricted] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [waking, setWaking] = useState(false);
@@ -73,14 +75,18 @@ export default function AiInsightsPage() {
       const serviceStatus = await aiApi.status(true);
       setStatus(serviceStatus);
 
-      const [predictions, stats, sectionRows] = await Promise.all([
-        aiApi.predictions({ latest_only: true, limit: 1000 }),
+      const [predictions, stats, sectionRows, access] = await Promise.all([
+        aiApi.predictions({ latest_only: true, limit: 1000, mine: true }),
         aiApi.summary(),
         sectionApi.list(),
+        assignmentApi.mine(),
       ]);
       setRows(predictions || []);
       setSummary(stats);
-      setSections(sectionRows || []);
+      const visible = assignedSections(sectionRows, access);
+      setSections(visible);
+      setUnrestricted(access?.unrestricted === true);
+      setSectionId((current) => visible.some((section) => String(section.section_id) === current) ? current : '');
 
       if (serviceStatus.reachable && serviceStatus.model_loaded) {
         setCard(await aiApi.modelCard().catch(() => null));
@@ -89,6 +95,9 @@ export default function AiInsightsPage() {
       }
     } catch (err) {
       setError(err.message);
+      setSections([]);
+      setRows([]);
+      setSummary(null);
     } finally {
       setLoading(false);
     }
@@ -149,12 +158,12 @@ export default function AiInsightsPage() {
     const term = search.trim().toLowerCase();
     return rows.filter((row) => {
       if (level !== 'all' && row.risk_level !== level) return false;
-      if (sectionId && row.section_name !== sectionId) return false;
+      if (sectionId && !matchesSection(row, sections.find((section) => String(section.section_id) === sectionId))) return false;
       if (onlyPartial && !row.used_baseline_defaults) return false;
       if (term && !(row.student_name || '').toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [rows, level, sectionId, onlyPartial, search]);
+  }, [rows, level, sectionId, sections, onlyPartial, search]);
 
   const exportCsv = () => {
     const header = [
@@ -203,7 +212,7 @@ export default function AiInsightsPage() {
               type="button"
               className="btn btn-primary"
               onClick={rescore}
-              disabled={rescoring || loading}
+              disabled={rescoring || loading || Boolean(error) || !sections.length}
             >
               <RefreshCw size={16} /> {rescoring ? 'Re-scoring…' : 'Re-score records'}
             </button>
@@ -303,10 +312,10 @@ export default function AiInsightsPage() {
           onChange={(event) => setSectionId(event.target.value)}
           aria-label="Filter by section"
         >
-          <option value="">All sections</option>
+          <option value="">{unrestricted ? 'All sections' : sections.length ? 'My assigned sections' : 'No assigned sections'}</option>
           {sections.map((section) => (
-            <option key={section.section_id} value={section.name}>
-              {section.name}
+            <option key={section.section_id} value={section.section_id}>
+              {sectionLabel(section, sections)}
             </option>
           ))}
         </select>
@@ -350,9 +359,11 @@ export default function AiInsightsPage() {
           ) : filtered.length === 0 ? (
             <EmptyState
               icon={Sparkles}
-              title={rows.length === 0 ? 'Nothing scored yet' : 'No prediction matches these filters'}
+              title={!error && !unrestricted && !sections.length ? 'No assigned classes' : rows.length === 0 ? 'Nothing scored yet' : 'No prediction matches these filters'}
               description={
-                rows.length === 0
+                !error && !unrestricted && !sections.length
+                  ? 'Ask your school administrator to assign your section and subject.'
+                  : rows.length === 0
                   ? 'Forecasts appear once a first period is graded.'
                   : 'Try widening the filters.'
               }

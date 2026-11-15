@@ -424,6 +424,7 @@ class WarningResponse(ORMModel, WarningBase):
     student_name: Optional[str] = None
     grade_level_name: Optional[str] = None
     section_name: Optional[str] = None
+    section_id: Optional[int] = None
 
 
 # ── AI risk prediction ────────────────────────────────────────────────────────
@@ -490,6 +491,7 @@ class AIPredictionResponse(ORMModel):
     # — never name these after a relationship on the ORM row).
     student_name: Optional[str] = None
     section_name: Optional[str] = None
+    section_id: Optional[int] = None
     grade_level_name: Optional[str] = None
 
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AlertTriangle, FileSpreadsheet, Upload } from 'lucide-react';
 import { Modal } from './ui';
 import { classRecordApi } from '../../api/endpoints';
@@ -20,6 +20,7 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const savingRef = useRef(false);
 
   const target = { section_id: section.section_id, subject_id: subject.subject_id };
 
@@ -41,6 +42,8 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
   };
 
   const save = async () => {
+    if (savingRef.current || !file || !preview) return;
+    savingRef.current = true;
     setBusy('saving');
     setError('');
     try {
@@ -49,6 +52,8 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
     } catch (err) {
       setError(err.message);
       setBusy('');
+    } finally {
+      savingRef.current = false;
     }
   };
 
@@ -73,7 +78,7 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
             onClick={save}
             disabled={!preview || nothing || Boolean(busy)}
           >
-            <Upload size={15} /> {busy === 'saving' ? 'Importing…' : 'Import'}
+            <Upload size={15} /> {busy === 'saving' ? 'Importing and saving…' : 'Import and save'}
           </button>
         </>
       }
@@ -92,6 +97,9 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
         <p className="faint">
           Include all three term sheets, even if later terms are blank. Different template layouts are supported;
           quarterly and semester records are not accepted.
+        </p>
+        <p className="alert alert-info">
+          Choosing a file only previews it. Import and save writes the listed scores and adds or enrolls learners shown below. No second save is needed.
         </p>
 
         {error && (

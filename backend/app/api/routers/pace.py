@@ -1015,6 +1015,7 @@ async def list_warnings(
         student = students.get(row.student_id)
         item.student_name = student.full_name if student else None
         if enrollment is not None:
+            item.section_id = enrollment.section_id
             item.section_name = lookups.sections.get(enrollment.section_id)
             item.grade_level_name = lookups.grade_levels.get(enrollment.grade_level_id)
         out.append(item)
