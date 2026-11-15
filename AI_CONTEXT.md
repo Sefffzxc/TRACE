@@ -133,7 +133,7 @@ Demo accounts (after `--demo`): `principal@lnhs.deped.gov.ph`, and `teacher1@` t
 - Fallback: first-term grade + average rise for the grade level (rise +0.61 for Grade 8, +1.14 for unknown levels), range −2.0 / +2.1, MAE 1.29.
 - Security:
   - 5 failed sign-ins lock the account for 5, 15, then 60 minutes; 3 lockouts lock it permanently;
-  - two-factor trust lasts 90 days; one-time codes expire after 10 minutes;
+  - two-factor trust lasts 90 days; one-time codes expire after 5 minutes;
   - access token 60 minutes, refresh token 7 days.
 
 ## Known issues and gaps

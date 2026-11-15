@@ -43,6 +43,7 @@ from app.models.staff import (
     ROLE_ADMIN,
     STATUS_APPROVED,
     STATUS_PENDING,
+    STATUS_REJECTED,
     Staff,
 )
 from app.models.students import Student
@@ -55,6 +56,7 @@ from app.schemas.schools import (
     SchoolUpdate,
 )
 from app.services.audit import Action, log_event
+from app.services.email import EmailDeliveryError, send_account_decision_email
 
 router = APIRouter(prefix="/api/schools", tags=["Schools"])
 
@@ -314,24 +316,25 @@ async def decide_school(
     if school is None:
         raise HTTPException(status_code=404, detail="School not found.")
 
-    principal = (
+    principals = (
         await db.execute(
             select(Staff).where(
                 Staff.school_id == school_id, Staff.role == ROLE_ADMIN
             )
         )
-    ).scalars().first()
+    ).scalars().all()
+    principal = principals[0] if principals else None
+    approves_account = payload.action == "approve" or (
+        payload.action == "reactivate"
+        and (
+            school.status in {SCHOOL_PENDING, SCHOOL_REJECTED}
+            or any(not person.is_approved for person in principals)
+        )
+    )
 
     if payload.action == "approve":
         school.status = SCHOOL_APPROVED
         school.rejection_reason = None
-        school.approved_at = _now()
-        school.approved_by = operator.id
-        if principal is not None and not principal.is_approved:
-            principal.is_approved = True
-            principal.account_status = STATUS_APPROVED
-            principal.approved_at = _now()
-            principal.approved_by = operator.id
 
     elif payload.action == "reject":
         if not payload.reason:
@@ -341,6 +344,10 @@ async def decide_school(
             )
         school.status = SCHOOL_REJECTED
         school.rejection_reason = payload.reason
+        for person in principals:
+            person.is_approved = False
+            person.account_status = STATUS_REJECTED
+            person.rejection_reason = payload.reason
 
     elif payload.action == "deactivate":
         school.status = SCHOOL_DEACTIVATED
@@ -349,6 +356,16 @@ async def decide_school(
     elif payload.action == "reactivate":
         school.status = SCHOOL_APPROVED
         school.rejection_reason = None
+
+    if approves_account:
+        school.approved_at = _now()
+        school.approved_by = operator.id
+        for person in principals:
+            person.is_approved = True
+            person.account_status = STATUS_APPROVED
+            person.rejection_reason = None
+            person.approved_at = _now()
+            person.approved_by = operator.id
 
     school.updated_at = _now()
     await log_event(
@@ -365,6 +382,23 @@ async def decide_school(
                + (f" — {payload.reason}" if payload.reason else ""),
         request=request,
     )
+    if approves_account or payload.action == "reject":
+        try:
+            for person in principals:
+                await send_account_decision_email(
+                    person.email, full_name=person.full_name, role=person.role,
+                    decision="rejected" if payload.action == "reject" else "approved",
+                    school_name=school.name,
+                    reason=school.rejection_reason if payload.action == "reject" else None,
+                )
+        except EmailDeliveryError:
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The school decision was not saved because the notification "
+                       "email could not be sent. Please try again later.",
+            ) from None
+
     await db.commit()
     await db.refresh(school)
 

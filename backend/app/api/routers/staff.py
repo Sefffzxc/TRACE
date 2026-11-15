@@ -30,6 +30,7 @@ from app.core.security import (
 )
 from app.db.session import get_db
 from app.models.academic import Section, TeacherAssignment
+from app.models.schools import School
 from app.models.staff import (
     ROLE_SUPER_ADMIN,
     ROLE_TEACHER,
@@ -48,6 +49,7 @@ from app.schemas.staff import (
     StaffUpdateProfile,
 )
 from app.services.audit import Action, log_event
+from app.services.email import EmailDeliveryError, send_account_decision_email
 
 router = APIRouter(tags=["Staff"])
 
@@ -363,6 +365,7 @@ async def admin_update_staff(
         )
 
     action = payload.action
+    previous_status = staff.account_status
     response: dict = {}
 
     if action == "approve":
@@ -402,6 +405,10 @@ async def admin_update_staff(
         staff.is_active = True
         staff.account_status = STATUS_APPROVED
         staff.is_approved = True
+        staff.rejection_reason = None
+        if previous_status in {STATUS_PENDING, STATUS_REJECTED}:
+            staff.approved_at = _now()
+            staff.approved_by = admin.id
         await log_event(
             db, Action.REACTIVATE_USER, actor_id=admin.id, target_user_id=staff.id,
             request=request,
@@ -436,6 +443,25 @@ async def admin_update_staff(
             "securely — they must change it at next sign-in.",
             "temporary_password": temp_password,
         }
+
+    if action in {"approve", "reject"} or (
+        action == "reactivate" and previous_status in {STATUS_PENDING, STATUS_REJECTED}
+    ):
+        school = await db.get(School, staff.school_id) if staff.school_id is not None else None
+        try:
+            await send_account_decision_email(
+                staff.email, full_name=staff.full_name, role=staff.role,
+                decision="rejected" if action == "reject" else "approved",
+                school_name=school.name if school is not None else None,
+                reason=staff.rejection_reason if action == "reject" else None,
+            )
+        except EmailDeliveryError:
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The account decision was not saved because the notification "
+                       "email could not be sent. Please try again later.",
+            ) from None
 
     await db.commit()
     await db.refresh(staff)

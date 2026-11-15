@@ -64,6 +64,12 @@ Pages built for one kind never show the other kind's content. A PACE school sees
 2. The school stays **pending** until the System Administrator approves it.
 3. Teachers then sign up, pick the school from a list (shown as *School name — City*), and wait for the Admin to approve them.
 
+TRACE emails principals and teachers when their registration is approved or
+rejected, including the reason for a rejection. Restoring a rejected registration
+sends an approval notice. All verification and decision emails include the TRACE
+logo in the header. A failed notification prevents the decision from being saved
+and shows the administrator a retry message.
+
 The school's address is picked from the PSA's official list (PSGC): province, then a city or municipality in that province, then a barangay in that city. Typing filters each list by the letters a name starts with. A box stays locked until the one above it is chosen. The region fills itself in from the province.
 
 ### Signing in
@@ -72,7 +78,7 @@ The school's address is picked from the PSA's official list (PSGC): province, th
 |---|---|
 | Password | At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character |
 | Two-factor code | Required on first sign-in from a new browser or device; the device is then trusted for **90 days** |
-| One-time code | Expires after **10 minutes**; **5** wrong tries void it |
+| One-time code | Expires after **5 minutes**; **5** wrong tries void it |
 | Failed sign-ins | After **5** failures the account locks for **5**, then **15**, then **60** minutes; after **3** lockouts it is locked permanently until an Admin unlocks it |
 | Session | Access token lasts **60 minutes**, refresh token **7 days** |
 | Forgot password | A one-time code for the registered email; at most **5** reset requests an hour; once the code is verified, the reset is valid for **30 minutes** |

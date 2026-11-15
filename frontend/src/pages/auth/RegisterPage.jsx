@@ -304,7 +304,8 @@ export default function RegisterPage() {
               {done.school_name} has been registered and is now waiting for the system
               operator to approve it. Your administrator account was created alongside it and
               is activated the moment the school is approved — sign in then with the email
-              address and password you just chose.
+              address and password you just chose. We will email you when your registration
+              is approved or rejected.
             </span>
           </div>
           <button
@@ -334,6 +335,7 @@ export default function RegisterPage() {
               <span>
                 You will be able to sign in as soon as an administrator at {done.school_name}{' '}
                 approves your account. They usually review new requests within one school day.
+                {' '}We will email you when your account is approved or rejected.
               </span>
             </div>
           )}

@@ -5,6 +5,7 @@ No test sends email or connects to the application's configured database.
 """
 from __future__ import annotations
 
+from base64 import b64decode
 from contextlib import contextmanager, redirect_stdout
 from datetime import datetime, timedelta, timezone
 import io
@@ -76,6 +77,7 @@ class EmailServiceTests(unittest.IsolatedAsyncioTestCase):
             EMAIL_TIMEOUT_SECONDS=3.0,
             LOG_OTP_CODES=False,
             DEBUG_OTP=False,
+            OTP_EXPIRY_MINUTES=5,
         )
         self.configuration.start()
         self.addCleanup(self.configuration.stop)
@@ -103,6 +105,12 @@ class EmailServiceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(ADDRESS, payload["to"])
                 self.assertIn(CODE, payload.get("text", "") + payload.get("html", ""))
                 self.assertIn("sign-in" if purpose == "login" else "reset", payload["subject"].lower())
+                self.assertIn("expires in 5 minutes", payload["text"])
+                self.assertIn("expires in 5 minutes", payload["html"])
+                logo, = payload["attachments"]
+                self.assertEqual(logo["content_type"], "image/png")
+                self.assertIn(f'src="cid:{logo["content_id"]}"', payload["html"])
+                self.assertEqual(b64decode(logo["content"]), email_service._LOGO_PATH.read_bytes())
                 self.assertNotIn(CODE, logs.getvalue())
                 self.assertNotIn(FAKE_KEY, logs.getvalue())
 
@@ -197,6 +205,7 @@ class OTPRouteTests(unittest.IsolatedAsyncioTestCase):
             LOG_OTP_CODES=True,
             DEBUG_OTP=False,
             SECRET_KEY="unit-test-jwt-secret-not-a-production-key",
+            OTP_EXPIRY_MINUTES=5,
         )
         self.configuration.start()
         self.addCleanup(self.configuration.stop)
@@ -300,6 +309,10 @@ class OTPRouteTests(unittest.IsolatedAsyncioTestCase):
         async with self.sessions() as db:
             otp = (await db.execute(select(OTPCode))).scalar_one()
             self.assertEqual(otp.purpose, "password-reset")
+            self.assertGreater(auth._aware(otp.expires_at), datetime.now(timezone.utc))
+            self.assertLessEqual(
+                auth._aware(otp.expires_at), datetime.now(timezone.utc) + timedelta(minutes=5),
+            )
             self.assertIn(otp.code, json.dumps(sent[0]))
             self.assertIn(otp.code, logs.getvalue())
             self.assertNotIn(otp.code, response.text)
@@ -384,6 +397,40 @@ class OTPRouteTests(unittest.IsolatedAsyncioTestCase):
         factory.assert_not_called()
         generate.assert_not_called()
         self.assertEqual(await self._count(OTPCode), 0)
+
+    async def _verify_at_age(self, seconds):
+        issued_at = datetime(2026, 11, 15, 10, 0, tzinfo=timezone.utc)
+        for purpose in ("login", "password-reset"):
+            with self.subTest(purpose=purpose, age=seconds):
+                async with self.sessions() as db:
+                    db.add(OTPCode(
+                        staff_id=self.staff_id, code=CODE, purpose=purpose,
+                        expires_at=issued_at + timedelta(minutes=5),
+                    ))
+                    await db.commit()
+                with patch.object(auth, "_now", return_value=issued_at + timedelta(seconds=seconds)):
+                    if purpose == "login":
+                        response = await self.client.post("/api/auth/verify-otp", json={
+                            "user_id": str(self.staff_id), "code": CODE, "device_id": "expiry-test",
+                        })
+                    else:
+                        response = await self.client.post("/api/auth/verify-reset-otp", json={
+                            "email": ADDRESS, "code": CODE,
+                        })
+                if seconds < 300:
+                    self.assertEqual(response.status_code, 201 if purpose == "login" else 200, response.text)
+                else:
+                    self.assertEqual(response.status_code, 400, response.text)
+                    self.assertIn("expired", response.json()["detail"].lower())
+
+    async def test_codes_are_valid_immediately_before_five_minutes(self):
+        await self._verify_at_age(299)
+
+    async def test_codes_expire_at_exactly_five_minutes(self):
+        await self._verify_at_age(300)
+
+    async def test_codes_remain_expired_after_five_minutes(self):
+        await self._verify_at_age(301)
 
 
 if __name__ == "__main__":

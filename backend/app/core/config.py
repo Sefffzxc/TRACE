@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     MAX_LOCKOUTS: int = 3
 
     # ── Two-factor / OTP ──────────────────────────────────────────────────
-    OTP_EXPIRY_MINUTES: int = 10
+    OTP_EXPIRY_MINUTES: int = 5
     OTP_MAX_ATTEMPTS: int = 5
     TWO_FACTOR_DAYS_INTERVAL: int = 90
     # Explicit local development only: return the code in the API response.

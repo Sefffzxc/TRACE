@@ -151,7 +151,10 @@ services:
       - key: ALLOWED_ORIGINS
         sync: false
 
-      # Verification emails go through Resend. Keep credentials on the API,
+      - key: OTP_EXPIRY_MINUTES
+        value: "5"
+
+      # Verification and account decision emails go through Resend. Keep credentials on the API,
       # and copy the verified sender exactly from your own domain setup.
       - key: EMAIL_ENABLED
         value: "true"

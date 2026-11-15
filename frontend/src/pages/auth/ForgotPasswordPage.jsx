@@ -112,7 +112,7 @@ export default function ForgotPasswordPage() {
           <h2>Enter the code</h2>
           <p className="auth-lede">
             If <strong>{email}</strong> is registered, a six-digit code is on its way. It is
-            valid for ten minutes.
+            valid for five minutes.
           </p>
 
           <form

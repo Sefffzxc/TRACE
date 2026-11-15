@@ -79,7 +79,7 @@ in that one file and the whole system moves with them.
 - **Sign-in** — 5 failures locks the account for 5 / 15 / 60 minutes; a third
   lockout is permanent until an administrator lifts it. The failure message is
   the same whether or not the email exists, so accounts cannot be enumerated.
-- **Two-factor** — an unrecognised device gets a 6-digit code, valid 10 minutes,
+- **Two-factor** — an unrecognised device gets a 6-digit code, valid 5 minutes,
   5 attempts. Verified devices stay trusted for 90 days.
 - **Tokens** — 60-minute access token, 7-day refresh token, both signed HS256.
 - **Rate limits** — per-IP, in process: 10 logins/minute, 10 OTP attempts/minute,
@@ -98,7 +98,8 @@ Copy `.env.example` to `.env`. The important ones:
 | `SECRET_KEY` | placeholder | **Change this before deploying** |
 | `DEBUG_OTP` | `false` | Returns the code in the response only when explicitly enabled for local development. The example .env enables it locally. |
 | `LOG_OTP_CODES` | `false` | Copies codes to API logs independently of on-screen debug. Enable temporarily for the defense, then disable. |
-| `EMAIL_ENABLED` | `false` | Send login and password-reset codes through Resend. |
+| `OTP_EXPIRY_MINUTES` | `5` | Login and password-reset code lifetime. |
+| `EMAIL_ENABLED` | `false` | Send verification codes and account approval/rejection notices through Resend. |
 | `RESEND_API_KEY` | empty | API-server secret, never a frontend variable. |
 | `EMAIL_FROM` | empty | Verified sender, e.g. `TRACE <noreply@auth.yourtrace.app>`. |
 | `EMAIL_TIMEOUT_SECONDS` | `10` | HTTP timeout per email request: more than 0, at most 60 seconds. |
@@ -106,12 +107,24 @@ Copy `.env.example` to `.env`. The important ones:
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | |
 | `TWO_FACTOR_DAYS_INTERVAL` | `90` | How long a device stays trusted |
 
-## Sending real OTP emails
+## Sending verification and account decision emails
 
 `app/services/email.py` sends login and password-reset codes through Resend's
 HTTPS API using the existing httpx dependency. Set `EMAIL_ENABLED=true`, the
 verified `EMAIL_FROM`, and `RESEND_API_KEY`. Keep `DEBUG_OTP=false` on deployment.
-No database migration or frontend change is required.
+No database migration is required. After changing the OTP lifetime, deploy the
+frontend too so its countdown and instructions match the five-minute setting.
+
+Principals receive an email when their school registration is approved or
+rejected. Teachers receive an email when their account is approved or rejected;
+rejection messages include the reason. Restoring a rejected registration also
+sends an approval notice. A notification must be accepted by Resend before the
+decision is saved; a failure rolls back the decision and audit entry and returns
+a retryable error to the administrator.
+
+All messages share a TRACE header with an inline PNG logo, attached using
+[Resend's Content-ID support](https://resend.com/changelog/embed-images-using-cid).
+The asset lives in `app/assets/email/trace-logo.png` and ships with the API.
 
 For the defense, set `LOG_OTP_CODES=true`: the same emailed code appears as an
 `[OTP]` entry in the API process logs after the code is committed. Teachers still

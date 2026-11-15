@@ -408,7 +408,7 @@ async def verify_otp(
         raise HTTPException(
             status_code=400, detail="No active code. Please sign in again to get a new one."
         )
-    if _aware(otp.expires_at) < _now():
+    if _aware(otp.expires_at) <= _now():
         raise HTTPException(
             status_code=400, detail="That code has expired. Please request a new one."
         )
@@ -608,7 +608,7 @@ async def verify_reset_otp(
         )
     ).scalars().first()
 
-    if otp is None or _aware(otp.expires_at) < _now():
+    if otp is None or _aware(otp.expires_at) <= _now():
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
     if otp.code != payload.code:
         otp.attempts += 1

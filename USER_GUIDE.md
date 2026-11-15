@@ -53,7 +53,7 @@ If your school is already registered and your administrator account exists, cont
 7. Set the **Passing mark**, **Grading periods in a year**, and the name of one period. For the supported three-term Excel workbook, configure three grading periods.
 8. Complete your own administrator details: name, email, contact number, password and password confirmation.
 9. Select **Register school**.
-10. At **Awaiting approval**, wait for the system operator to approve the school. Approval activates the administrator account created with the registration.
+10. At **Awaiting approval**, wait for the system operator to review the school. TRACE emails your registered address when the registration is approved or rejected. Approval activates the administrator account; rejection emails include the reason.
 
 Use the administrator registration option only to create a new school. An existing school should not be registered again to obtain another staff account.
 
@@ -61,10 +61,10 @@ Use the administrator registration option only to create a new school. An existi
 
 1. Enter your **School email** and **Password**.
 2. Select **Sign in**.
-3. If **Verify it's you** appears, enter the six-digit verification code and select **Verify and continue**. The code expires after ten minutes.
+3. If **Verify it's you** appears, enter the six-digit verification code and select **Verify and continue**. The code expires after five minutes.
 4. Confirm that the administrator Dashboard opens.
 
-**Verification in this build:** Email delivery is not implemented. In a local/demo setup, a code may appear as **Development mode — your code is**. If no code appears, contact the system operator; repeatedly checking email will not resolve the missing delivery service.
+**Verification email:** TRACE sends codes to your registered email address. Check your spam folder if a message is missing. If it still does not arrive, contact your school administrator. An explicitly enabled local development setup may also display **Development mode — your code is**.
 
 ### Step 3: Confirm School Settings
 
@@ -123,7 +123,7 @@ Teachers first complete the [registration steps in Section 3](#3-teacher-request
 2. Find the teacher's pending request.
 3. Check the name and email against the school's staff list.
 4. Select **Approve** for a valid request. To decline a request, select **Reject**, enter a reason, then select **Reject request**.
-5. Tell the teacher when their account is ready to use.
+5. TRACE emails the teacher the decision, including the reason if rejected. If the email cannot be sent, the decision is not saved; follow the error message and retry later.
 6. Open **Teachers** to confirm their account status.
 
 Approval allows sign-in. Class assignments are a separate step.
@@ -165,7 +165,7 @@ Use **Teachers** to search staff and filter by status. For account assistance, f
 4. Enter your name, email, contact number, password and password confirmation.
 5. Use a password with at least eight characters, an uppercase letter, a lowercase letter, a number and a symbol.
 6. Select **Submit request**.
-7. Wait for your school administrator's approval.
+7. Wait for your school administrator's review. TRACE emails you when your account is approved or rejected; rejection emails include the reason.
 
 If the school is missing from the list, ask the administrator to check its registration and approval. If your account already exists, use sign-in or password recovery.
 

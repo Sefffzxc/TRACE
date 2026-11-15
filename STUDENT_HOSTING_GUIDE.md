@@ -191,6 +191,7 @@ EMAIL_ENABLED=true
 RESEND_API_KEY=PASTE_YOUR_PRIVATE_RESEND_KEY_HERE
 EMAIL_FROM="TRACE <noreply@auth.traceedu.app>"
 EMAIL_TIMEOUT_SECONDS=10
+OTP_EXPIRY_MINUTES=5
 DEBUG_OTP=false
 LOG_OTP_CODES=true
 ALLOWED_ORIGINS=https://www.traceedu.app,https://traceedu.app
@@ -199,6 +200,24 @@ ALLOWED_ORIGINS=https://www.traceedu.app,https://traceedu.app
 `LOG_OTP_CODES=true` is temporary for your defense. **Teachers still receive the
 email**; the code is also copied to API logs. `DEBUG_OTP=false` keeps the code out
 of API responses. Anyone who can read the API logs can read the temporary copy.
+
+Login and password-reset codes expire after **five minutes**. If the VM already
+sets `OTP_EXPIRY_MINUTES`, change it to `5` in `/etc/trace/api.env` and restart
+`trace-api` after deploying the updated backend. Rebuild/deploy the frontend too
+so its countdown and instructions match.
+
+The same Resend sender emails principals when their school registration is
+approved or rejected, and teachers when their account is approved or rejected.
+Rejection emails include the recorded reason. If Resend cannot accept the
+notification, the decision is not saved and the administrator sees a retry
+message. With email disabled, the existing explicit local/debug modes bypass
+delivery for development only.
+
+Every email includes the TRACE logo in its header. The PNG is bundled under
+`backend/app/assets/email/` and embedded in the message using
+[Resend inline images](https://resend.com/changelog/embed-images-using-cid), so
+no public logo URL or extra email setting is needed. Keep that asset when
+deploying the backend.
 
 5. Independently check from your Windows browser:
    `https://api.traceedu.app/health` and `https://ai.traceedu.app/health`.

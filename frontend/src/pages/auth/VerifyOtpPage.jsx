@@ -18,7 +18,7 @@ export default function VerifyOtpPage() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [seconds, setSeconds] = useState(600);
+  const [seconds, setSeconds] = useState(300);
 
   // Nobody should land here directly — send them back to sign in.
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function VerifyOtpPage() {
       <h2>Verify it&rsquo;s you</h2>
       <p className="auth-lede">
         This device hasn&rsquo;t been used before, so we sent a six-digit code to{' '}
-        <strong>{state?.email}</strong>. It is valid for ten minutes.
+        <strong>{state?.email}</strong>. It is valid for five minutes.
       </p>
 
       <form

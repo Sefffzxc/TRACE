@@ -465,6 +465,7 @@ Keep the existing database; do not apply `render.yaml` to create another one.
    DEBUG_OTP=false
    LOG_OTP_CODES=true
    EMAIL_ENABLED=true
+   OTP_EXPIRY_MINUTES=5
    RESEND_API_KEY=PASTE_YOUR_RESEND_SENDING_API_KEY
    EMAIL_FROM="TRACE <noreply@auth.traceedu.app>"
    EMAIL_TIMEOUT_SECONDS=10
