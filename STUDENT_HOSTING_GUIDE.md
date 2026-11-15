@@ -8,6 +8,9 @@ before using the new forms on the live site. Pushing alone does not update the V
 to enable registration and conditional login verification. It stays disabled
 until the Azure API has the widget keys and `CAPTCHA_ENABLED=true`.
 
+**Group sign-in and approvals fix:** follow [deployment and the 13-user test](GROUP_SIGNIN_FIX.md).
+This updates both the Azure API and Cloudflare Pages; no database migration is required.
+
 Updated **9 November 2026**. Your domain is **traceedu.app**.
 The frontend will use **https://www.traceedu.app**, the API and AI will run on
 one Azure Ubuntu VM, and your existing database will stay on Render.

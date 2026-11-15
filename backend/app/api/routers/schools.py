@@ -30,7 +30,7 @@ from app.api.deps import (
     limit_register,
     school_admin_scope,
 )
-from app.core.security import get_password_hash
+from app.core.security import async_get_password_hash
 from app.db.session import get_db
 from app.models.schools import (
     SCHOOL_APPROVED,
@@ -151,7 +151,7 @@ async def register_school(
     principal = Staff(
         school_id=school.school_id,
         email=email,
-        password_hash=get_password_hash(payload.password),
+        password_hash=await async_get_password_hash(payload.password),
         first_name=payload.first_name.strip(),
         middle_name=(payload.middle_name or "").strip() or None,
         last_name=payload.last_name.strip(),

@@ -8,6 +8,7 @@ from typing import Any
 
 import bcrypt
 from jose import JWTError, jwt
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
 
@@ -30,6 +31,16 @@ def verify_password(plain: str, hashed: str) -> bool:
         return bcrypt.checkpw(_prepare(plain), hashed.encode("utf-8"))
     except (ValueError, TypeError):
         return False
+
+
+async def async_get_password_hash(password: str) -> str:
+    """Keep bcrypt's work off the API event loop without changing its cost."""
+    return await run_in_threadpool(get_password_hash, password)
+
+
+async def async_verify_password(plain: str, hashed: str) -> bool:
+    """Allow other requests to run while a password is being checked."""
+    return await run_in_threadpool(verify_password, plain, hashed)
 
 
 PASSWORD_RULES = (

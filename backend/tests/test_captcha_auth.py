@@ -212,8 +212,8 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_both_registrations_require_captcha_before_database_reads_or_password_hashing(self):
         with patch.object(AsyncSession, "execute", side_effect=AssertionError("Unexpected database query")):
-            with patch.object(auth, "get_password_hash") as teacher_hash:
-                with patch.object(schools, "get_password_hash") as principal_hash:
+            with patch.object(auth, "async_get_password_hash", new_callable=AsyncMock) as teacher_hash:
+                with patch.object(schools, "async_get_password_hash", new_callable=AsyncMock) as principal_hash:
                     for path, payload in (
                         ("/api/auth/register", self.teacher_payload()),
                         ("/api/schools/register", self.school_payload()),
@@ -286,7 +286,7 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.json()["detail"]["code"], "invalid_credentials")
                 self.assertIs(response.json()["detail"]["captcha_required"], True)
         self.assertEqual((await self.staff()).login_attempts, 3)
-        with patch.object(auth, "verify_password") as verify_password:
+        with patch.object(auth, "async_verify_password", new_callable=AsyncMock) as verify_password:
             response = await self.login()
             self.assert_captcha_error(response)
             verify_password.assert_not_called()
@@ -297,7 +297,7 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
     async def test_failed_captcha_does_not_consume_password_attempts_or_issue_otp(self):
         await self.set_staff(login_attempts=3)
         self.provider_failure = "timeout-or-duplicate"
-        with patch.object(auth, "verify_password") as verify_password:
+        with patch.object(auth, "async_verify_password", new_callable=AsyncMock) as verify_password:
             response = await self.login(token="valid-login-token")
             self.assert_captcha_error(response, "captcha_invalid")
             verify_password.assert_not_called()
@@ -312,6 +312,7 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         response = await self.login(password="WrongPassword1!", token="valid-login-token")
         self.assertEqual(response.status_code, 401, response.text)
         self.assertIn("locked", response.text.lower())
+        self.assertEqual(response.headers["Retry-After"], "300")
         person = await self.staff()
         self.assertEqual(person.login_attempts, 0)
         self.assertEqual(person.lockout_count, 1)
@@ -349,6 +350,22 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.staff()).lockout_count, 1)
         await self.assert_no_authentication_created()
 
+    async def test_temporary_lockout_reports_full_wait_and_allows_login_after_expiry(self):
+        now = datetime(2026, 11, 15, 12, 0, tzinfo=timezone.utc)
+        await self.set_staff(
+            login_attempts=0, lockout_count=1,
+            locked_until=now + timedelta(seconds=119.25),
+        )
+        with patch.object(auth, "_now", return_value=now):
+            response = await self.login(token="valid-login-token")
+        self.assertEqual(response.status_code, 401, response.text)
+        self.assertEqual(response.headers["Retry-After"], "120")
+        self.assertIn("2 minute(s)", response.json()["detail"])
+        with patch.object(auth, "_now", return_value=now + timedelta(seconds=120)):
+            response = await self.login(token="valid-login-token")
+        self.assertEqual(response.status_code, 201, response.text)
+        self.assertTrue(response.json()["requires_2fa"])
+
     async def test_valid_captcha_cannot_bypass_temporary_or_permanent_account_lock(self):
         for permanent, expected_status in ((False, 401), (True, 403)):
             with self.subTest(permanent=permanent):
@@ -356,7 +373,7 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
                     login_attempts=0, lockout_count=1, permanent_lock=permanent,
                     locked_until=datetime.now(timezone.utc) + timedelta(minutes=5),
                 )
-                with patch.object(auth, "verify_password") as verify_password:
+                with patch.object(auth, "async_verify_password", new_callable=AsyncMock) as verify_password:
                     response = await self.login(token="valid-login-token")
                     self.assertEqual(response.status_code, expected_status, response.text)
                     self.assertIn("locked", response.text.lower())

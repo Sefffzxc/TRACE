@@ -14,6 +14,7 @@ import { authApi, schoolApi } from '../../api/endpoints';
 import AddressFields from '../../components/common/AddressFields';
 import CaptchaField from '../../components/common/CaptchaField';
 import useCaptchaConfig from '../../hooks/useCaptchaConfig';
+import useRetryAfter from '../../hooks/useRetryAfter';
 import { ErrorNote, FieldError } from '../../components/common/ui';
 import { registrationApiErrors, validateRegistration } from './registrationValidation';
 
@@ -103,6 +104,7 @@ function singularise(plural) {
    whether the email address is taken or the school is already registered, and
    in the second case it also says what to do instead. Show it verbatim. */
 function readSubmitError(err) {
+  if (err?.retryAfter > 0) return 'Too many requests. Please wait before submitting again.';
   if (err?.status === 409) return err.message;
   return err?.message || 'Something went wrong. Please try again.';
 }
@@ -124,6 +126,7 @@ export default function RegisterPage() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
   const captcha = useCaptchaConfig();
+  const retry = useRetryAfter();
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaReset, setCaptchaReset] = useState(0);
 
@@ -297,7 +300,7 @@ export default function RegisterPage() {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (busy) return;
+    if (busy || retry.seconds > 0) return;
     setError('');
     if (captcha.loading || captcha.error || !captcha.config) {
       setError('Security verification settings are unavailable. Use Retry below and submit again.');
@@ -319,6 +322,7 @@ export default function RegisterPage() {
       if (mode === 'teacher') await submitTeacher();
       else await submitSchool();
     } catch (err) {
+      retry.start(err.retryAfter);
       const { fields, unmapped } = registrationApiErrors(err, mode);
       if (err.payload?.detail?.code?.startsWith('captcha_')) fields.captcha = err.message;
       setFieldErrors(fields);
@@ -1034,7 +1038,9 @@ export default function RegisterPage() {
           />
         )}
 
-        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || captcha.loading || Boolean(captcha.error)}>
+        {retry.seconds > 0 && <p className="field-hint" role="status">Try again in {retry.seconds} second(s).</p>}
+
+        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || retry.seconds > 0 || captcha.loading || Boolean(captcha.error)}>
           {busy ? (
             <>
               <span className="spinner" /> Submitting…

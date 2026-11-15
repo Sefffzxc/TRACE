@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     LOCKOUT_LADDER_MINUTES: str = "5,15,60"
     MAX_LOCKOUTS: int = 3
 
+    # School Wi-Fi shares a public IP. Separate network ceilings from the
+    # stricter account limits so a class can sign in/register together.
+    AUTH_LOGIN_IP_LIMIT: int = Field(default=60, ge=1, le=10000)  # per minute
+    AUTH_OTP_IP_LIMIT: int = Field(default=60, ge=1, le=10000)  # per minute
+    AUTH_REGISTER_IP_LIMIT: int = Field(default=60, ge=1, le=10000)  # per 5 minutes
+    AUTH_RESET_IP_LIMIT: int = Field(default=60, ge=1, le=10000)  # per 5 minutes
+
     # Enable only after adding the matching production Turnstile widget keys.
     CAPTCHA_ENABLED: bool = False
     TURNSTILE_SITE_KEY: str = ""
@@ -79,6 +86,10 @@ class Settings(BaseSettings):
     # A verified sender, e.g. TRACE <noreply@auth.yourtrace.app>.
     EMAIL_FROM: str = ""
     EMAIL_TIMEOUT_SECONDS: float = Field(default=10.0, gt=0, le=60)
+    # Pace request starts across OTPs and account decisions from this worker.
+    # Conservative default also supports Resend teams with the older 2/s cap.
+    EMAIL_SEND_RATE_PER_SECOND: float = Field(default=2.0, gt=0, le=100)
+    EMAIL_QUEUE_TIMEOUT_SECONDS: float = Field(default=20.0, gt=0, le=60)
 
     # ── Password reset ────────────────────────────────────────────────────
     RESET_TOKEN_EXPIRE_MINUTES: int = 30

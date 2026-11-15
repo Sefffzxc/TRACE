@@ -1,10 +1,14 @@
 """Shared FastAPI dependencies: current user, role guards, rate limiting."""
 from __future__ import annotations
 
+import hashlib
+import json
+import math
+import threading
 import time
 import uuid
-from collections import defaultdict, deque
-from typing import Deque, Dict
+from collections import OrderedDict, deque
+from dataclasses import dataclass, field
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.schools import SCHOOL_APPROVED, SCHOOL_PENDING, School
 from app.models.staff import ROLE_ADMIN, ROLE_SUPER_ADMIN, STATUS_REJECTED, Staff
@@ -192,42 +197,114 @@ async def get_user_from_refresh_token(
 
 
 # ── A small in-process rate limiter ───────────────────────────────────────────
-# Enough for a single-instance deployment; swap for Redis if the API is scaled
-# horizontally.
-_BUCKETS: Dict[str, Deque[float]] = defaultdict(deque)
+# These counters are per process. A deployment with multiple API workers needs
+# a shared store (for example Redis) before relying on a deployment-wide limit.
+@dataclass
+class _RateBucket:
+    window_seconds: int
+    timestamps: deque[float] = field(default_factory=deque)
+
+
+_BUCKETS: OrderedDict[str, _RateBucket] = OrderedDict()
+_BUCKET_LOCK = threading.Lock()
+_MAX_RATE_BUCKETS = 10000
+
+
+def _rate_limit_error(retry_seconds: float) -> HTTPException:
+    retry_in = max(1, math.ceil(retry_seconds))
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=f"Too many requests. Please try again in {retry_in} second(s).",
+        headers={"Retry-After": str(retry_in)},
+    )
+
+
+def _rate_limit_many(rules: list[tuple[str, int, int]]) -> None:
+    """Reserve account and network capacity together, without extending a ban.
+
+    Rejected requests add no timestamps. The reported delay therefore describes
+    the current window rather than starting a fresh wait whenever someone tries
+    again. A lock also makes the check and reservation atomic across threads.
+    """
+    with _BUCKET_LOCK:
+        now = time.monotonic()
+        # Lazy cleanup bounds both memory and the work done on a normal request.
+        # Never evict an active counter to make room for a new attacker identity.
+        missing_keys = {key for key, _, _ in rules if key not in _BUCKETS}
+        if len(_BUCKETS) >= _MAX_RATE_BUCKETS or len(_BUCKETS) + len(missing_keys) > _MAX_RATE_BUCKETS:
+            for key, bucket in list(_BUCKETS.items()):
+                while bucket.timestamps and bucket.timestamps[0] <= now - bucket.window_seconds:
+                    bucket.timestamps.popleft()
+                if not bucket.timestamps:
+                    del _BUCKETS[key]
+
+        pending = []
+        retry_in = 0.0
+        for key, limit, window_seconds in rules:
+            bucket = _BUCKETS.get(key)
+            if bucket is None:
+                bucket = _RateBucket(window_seconds)
+            while bucket.timestamps and bucket.timestamps[0] <= now - window_seconds:
+                bucket.timestamps.popleft()
+            if len(bucket.timestamps) >= limit:
+                retry_in = max(retry_in, bucket.timestamps[0] + window_seconds - now)
+            pending.append((key, bucket))
+        if retry_in > 0:
+            raise _rate_limit_error(retry_in)
+
+        missing = sum(key not in _BUCKETS for key, _ in pending)
+        if len(_BUCKETS) + missing > _MAX_RATE_BUCKETS:
+            # Capacity exhaustion fails closed; active protections stay intact.
+            earliest_expiry = min(
+                bucket.timestamps[-1] + bucket.window_seconds for bucket in _BUCKETS.values()
+            )
+            raise _rate_limit_error(earliest_expiry - now)
+        for key, bucket in pending:
+            bucket.timestamps.append(now)
+            _BUCKETS[key] = bucket
+            _BUCKETS.move_to_end(key)
 
 
 def rate_limit(key: str, limit: int, window_seconds: int) -> None:
-    now = time.monotonic()
-    bucket = _BUCKETS[key]
-    while bucket and now - bucket[0] > window_seconds:
-        bucket.popleft()
-    if len(bucket) >= limit:
-        retry_in = int(window_seconds - (now - bucket[0])) + 1
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Too many requests. Please try again in {retry_in} second(s).",
-            headers={"Retry-After": str(retry_in)},
-        )
-    bucket.append(now)
+    _rate_limit_many([(key, limit, window_seconds)])
 
 
-def limiter(prefix: str, limit: int, window_seconds: int):
-    """Build a dependency that rate-limits by client IP."""
+def limiter(prefix: str, limit: int, window_seconds: int, *, ip_limit_setting: str | None = None):
+    """Limit one account tightly and a shared school network more generously."""
 
     async def _dependency(request: Request) -> None:
-        forwarded = request.headers.get("x-forwarded-for")
-        ip = (
-            forwarded.split(",")[0].strip()
-            if forwarded
-            else (request.client.host if request.client else "unknown")
-        )
-        rate_limit(f"{prefix}:{ip}", limit, window_seconds)
+        # Uvicorn applies forwarded addresses only from its trusted proxy. Raw
+        # X-Forwarded-For / X-Real-IP headers are never anti-abuse identities.
+        ip = request.client.host if request.client else "unknown"
+        ip_limit = getattr(settings, ip_limit_setting) if ip_limit_setting else limit
+        rules = [(f"{prefix}:ip:{ip}", ip_limit, window_seconds)]
+        if ip_limit_setting:
+            try:
+                payload = await request.json()
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                payload = None
+            if isinstance(payload, dict):
+                # Each route has one authoritative identity. Extra JSON fields
+                # must not let an attacker rotate a different account key.
+                uses_user_id = prefix == "otp" and request.url.path.endswith("/verify-otp")
+                value = payload.get("user_id" if uses_user_id else "email")
+                identity = None
+                if not uses_user_id and isinstance(value, str) and 0 < len(value.strip()) <= 320:
+                    identity = f"email:{value.strip().lower()}"
+                elif uses_user_id and isinstance(value, str):
+                    try:
+                        identity = f"user:{uuid.UUID(value)}"
+                    except ValueError:
+                        pass
+                if identity:
+                    digest = hashlib.sha256(identity.encode()).hexdigest()
+                    rules.append((f"{prefix}:account:{digest}", limit, window_seconds))
+        _rate_limit_many(rules)
 
     return _dependency
 
 
-limit_login = limiter("login", 10, 60)
-limit_otp = limiter("otp", 10, 60)
-limit_password_reset = limiter("reset", 5, 300)
-limit_register = limiter("register", 5, 300)
+limit_login = limiter("login", 10, 60, ip_limit_setting="AUTH_LOGIN_IP_LIMIT")
+limit_otp = limiter("otp", 10, 60, ip_limit_setting="AUTH_OTP_IP_LIMIT")
+limit_password_reset = limiter("reset", 5, 300, ip_limit_setting="AUTH_RESET_IP_LIMIT")
+limit_register = limiter("register", 5, 300, ip_limit_setting="AUTH_REGISTER_IP_LIMIT")

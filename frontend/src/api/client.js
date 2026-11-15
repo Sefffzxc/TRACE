@@ -87,12 +87,20 @@ export function deviceId() {
 
 /* ── Error handling ──────────────────────────────────────────────────────── */
 export class ApiError extends Error {
-  constructor(message, status, payload) {
+  constructor(message, status, payload, retryAfter = 0) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.payload = payload;
+    this.retryAfter = retryAfter;
   }
+}
+
+function retryAfterSeconds(value) {
+  if (!value) return 0;
+  const seconds = /^\d+$/.test(value.trim())
+    ? Number(value) : (Date.parse(value) - Date.now()) / 1000;
+  return Number.isFinite(seconds) ? Math.max(0, Math.ceil(seconds)) : 0;
 }
 
 function readDetail(payload, fallback) {
@@ -204,6 +212,7 @@ async function request(path, { method = 'GET', body, params, auth = true, raw = 
       readDetail(data, `Request failed (${response.status}).`),
       response.status,
       data,
+      retryAfterSeconds(response.headers.get('Retry-After')),
     );
   }
   return data;

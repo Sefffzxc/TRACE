@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Check, Clock, Mail, Phone, ShieldCheck, UserCheck, X } from 'lucide-react';
+import { Check, Clock, Mail, Phone, RefreshCw, ShieldCheck, UserCheck, X } from 'lucide-react';
 import {
   Avatar,
   EmptyState,
@@ -23,37 +23,78 @@ export default function ApprovalsPage() {
   const [pending, setPending] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [auditError, setAuditError] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [rejecting, setRejecting] = useState(null);
   const [reason, setReason] = useState('');
+  const pendingRequest = useRef(null);
+  const auditRequest = useRef(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [rows, auditRows] = await Promise.all([
-        staffApi.pending(),
-        staffApi.auditLogs({ limit: 15 }),
-      ]);
-      setPending(rows || []);
-      setLogs(auditRows || []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  const loadPending = useCallback(async ({ afterDecision = false } = {}) => {
+    // A decision needs a fresh read even when an earlier poll is still running.
+    // Other refreshes share the existing request instead of adding more load.
+    while (pendingRequest.current) {
+      await pendingRequest.current;
+      if (!afterDecision) return;
     }
+    setRefreshing(true);
+    const request = staffApi.pending()
+      .then((rows) => {
+        setPending(rows || []);
+        setError('');
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+        pendingRequest.current = null;
+      });
+    pendingRequest.current = request;
+    await request;
   }, []);
+
+  const loadAudit = useCallback(async () => {
+    if (auditRequest.current) return auditRequest.current;
+    const request = staffApi.auditLogs({ limit: 15 })
+      .then((rows) => {
+        setLogs(rows || []);
+        setAuditError('');
+      })
+      .catch((err) => setAuditError(err.message))
+      .finally(() => { auditRequest.current = null; });
+    auditRequest.current = request;
+    await request;
+  }, []);
+
+  const load = useCallback((options) => {
+    loadAudit();
+    return loadPending(options);
+  }, [loadPending, loadAudit]);
 
   useEffect(() => {
     load();
-  }, [load]);
+    const refreshVisibleRequests = () => {
+      if (!document.hidden) loadPending();
+    };
+    // Only poll the approval queue; the audit trail does not delay new requests.
+    const timer = window.setInterval(refreshVisibleRequests, 30000);
+    window.addEventListener('focus', refreshVisibleRequests);
+    document.addEventListener('visibilitychange', refreshVisibleRequests);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshVisibleRequests);
+      document.removeEventListener('visibilitychange', refreshVisibleRequests);
+    };
+  }, [load, loadPending]);
 
   const approve = async (person) => {
     setBusyId(person.id);
     try {
       const result = await staffApi.adminAction(person.id, 'approve');
       toast.success(result.message);
-      await load();
+      await load({ afterDecision: true });
       context?.refreshChrome?.();
     } catch (err) {
       toast.error(err.message);
@@ -69,7 +110,7 @@ export default function ApprovalsPage() {
       toast.success(result.message);
       setRejecting(null);
       setReason('');
-      await load();
+      await load({ afterDecision: true });
       context?.refreshChrome?.();
     } catch (err) {
       toast.error(err.message);
@@ -93,11 +134,19 @@ export default function ApprovalsPage() {
       <ErrorNote message={error} />
 
       <div className="card">
-        <div className="card-header">
-          <div>
+        <div className="card-header" style={{ flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 14rem' }}>
             <h2>Pending requests</h2>
-            <div className="card-subtitle">Approving gives access right away.</div>
+            <div className="card-subtitle">Updates every 30 seconds. Approving gives access right away.</div>
           </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={refreshing}
+            onClick={() => load()}
+          >
+            <RefreshCw size={15} /> {refreshing ? 'Refreshing…' : 'Refresh requests'}
+          </button>
         </div>
         <div className="card-body flush">
           {loading ? (
@@ -105,8 +154,8 @@ export default function ApprovalsPage() {
           ) : pending.length === 0 ? (
             <EmptyState
               icon={ShieldCheck}
-              title="Nothing waiting for review"
-              description="New requests appear here."
+              title={error ? 'Requests could not be loaded' : 'Nothing waiting for review'}
+              description={error ? 'Refresh requests to try again.' : 'New requests appear here.'}
             />
           ) : (
             pending.map((person) => (
@@ -171,8 +220,9 @@ export default function ApprovalsPage() {
             <div className="card-subtitle">Every privileged action, newest first</div>
           </div>
         </div>
+        <ErrorNote message={auditError ? `Audit trail: ${auditError}` : ''} />
         <div className="card-body flush">
-          {logs.length === 0 ? (
+          {logs.length === 0 && !auditError ? (
             <EmptyState icon={UserCheck} title="No recorded actions yet" />
           ) : (
             <div className="table-wrap">

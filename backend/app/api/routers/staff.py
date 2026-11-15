@@ -25,8 +25,8 @@ from app.api.deps import get_current_admin, get_current_user, school_scope
 from app.core.config import settings
 from app.core.security import (
     generate_temp_password,
-    get_password_hash,
-    verify_password,
+    async_get_password_hash,
+    async_verify_password,
 )
 from app.db.session import get_db
 from app.models.academic import Section, TeacherAssignment
@@ -95,13 +95,13 @@ async def change_own_password(
     current: Staff = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if not verify_password(payload.current_password, current.password_hash):
+    if not await async_verify_password(payload.current_password, current.password_hash):
         raise HTTPException(status_code=400, detail="Your current password is incorrect.")
-    if verify_password(payload.new_password, current.password_hash):
+    if await async_verify_password(payload.new_password, current.password_hash):
         raise HTTPException(
             status_code=400, detail="The new password must be different from the old one."
         )
-    current.password_hash = get_password_hash(payload.new_password)
+    current.password_hash = await async_get_password_hash(payload.new_password)
     current.requires_password_change = False
     await log_event(
         db, Action.PASSWORD_CHANGED, actor_id=current.id, target_user_id=current.id,
@@ -433,7 +433,7 @@ async def admin_update_staff(
 
     elif action == "force_reset":
         temp_password = generate_temp_password()
-        staff.password_hash = get_password_hash(temp_password)
+        staff.password_hash = await async_get_password_hash(temp_password)
         staff.requires_password_change = True
         staff.login_attempts = 0
         staff.locked_until = None

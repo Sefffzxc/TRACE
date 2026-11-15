@@ -82,9 +82,16 @@ in that one file and the whole system moves with them.
 - **Two-factor** — an unrecognised device gets a 6-digit code, valid 5 minutes,
   5 attempts. Verified devices stay trusted for 90 days.
 - **Tokens** — 60-minute access token, 7-day refresh token, both signed HS256.
-- **Rate limits** — per-IP, in process: 10 logins/minute, 10 OTP attempts/minute,
-  5 password resets per 5 minutes. Swap for Redis if you run more than one
-  instance.
+- **Rate limits** — in process, with separate account and shared-network limits:
+  10 login/OTP attempts per account per minute, 5 registrations/reset requests
+  per email per 5 minutes. Shared-IP defaults are 60 login/OTP requests per
+  minute and 60 registrations/reset requests per 5 minutes, configurable with
+  `AUTH_*_IP_LIMIT`. Rejected requests do not extend the current wait.
+  Use a shared counter store before running multiple API workers/instances.
+- **Concurrent sign-ins** — bcrypt runs in worker threads. Login releases its
+  database connection before waiting on an OTP email. Outbound email starts are
+  paced with `EMAIL_SEND_RATE_PER_SECOND=2` and a bounded 20-second queue;
+  provider rate-limit retries are bounded and email quotas still apply.
 - **Audit** — every approval, rejection, lockout, forced reset and student
   change is recorded with the actor and their IP.
 

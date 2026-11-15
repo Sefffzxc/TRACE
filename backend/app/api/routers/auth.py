@@ -9,6 +9,7 @@ The flow mirrors the school's policy:
 from __future__ import annotations
 
 import uuid
+import math
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -30,8 +31,8 @@ from app.core.security import (
     create_refresh_token,
     generate_otp,
     generate_reset_token,
-    get_password_hash,
-    verify_password,
+    async_get_password_hash,
+    async_verify_password,
 )
 from app.db.session import get_db
 from app.models.schools import SCHOOL_APPROVED, School
@@ -193,7 +194,7 @@ async def register(
     staff = Staff(
         school_id=school.school_id,
         email=str(payload.email).lower(),
-        password_hash=get_password_hash(payload.password),
+        password_hash=await async_get_password_hash(payload.password),
         first_name=payload.first_name.strip(),
         middle_name=(payload.middle_name or "").strip() or None,
         last_name=payload.last_name.strip(),
@@ -266,14 +267,16 @@ async def login(
 
     locked_until = _aware(staff.locked_until)
     if locked_until and locked_until > _now():
-        remaining = max(1, int((locked_until - _now()).total_seconds() // 60))
+        remaining_seconds = max(1, math.ceil((locked_until - _now()).total_seconds()))
+        remaining = math.ceil(remaining_seconds / 60)
         raise HTTPException(
             status_code=401,
             detail=f"Account temporarily locked. Try again in {remaining} minute(s).",
+            headers={"Retry-After": str(remaining_seconds)},
         )
 
     # ── wrong password ────────────────────────────────────────────────────────
-    if not verify_password(payload.password, staff.password_hash):
+    if not await async_verify_password(payload.password, staff.password_hash):
         if settings.CAPTCHA_ENABLED:
             login_risk.record_failure(_login_ip(request))
         staff.login_attempts = (staff.login_attempts or 0) + 1
@@ -310,6 +313,7 @@ async def login(
                 status_code=401,
                 detail=f"Too many failed attempts. Account locked for {minutes} minute(s) "
                 f"(lockout {staff.lockout_count} of {settings.MAX_LOCKOUTS}).",
+                headers={"Retry-After": str(minutes * 60)},
             )
 
         await log_event(
@@ -349,6 +353,19 @@ async def login(
 
     if requires_2fa:
         code = generate_otp()
+        # Release the read connection (and save successful-password counters)
+        # before waiting on an external email service. A group signing in must
+        # not occupy the whole database pool while OTP emails are delivered.
+        await db.commit()
+        try:
+            await send_otp_email(staff.email, code, purpose="login")
+        except EmailDeliveryError:
+            # Nothing usable is issued when the provider rejects delivery.
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="We couldn't send your verification email. Please try again "
+                       "later or contact your administrator.",
+            ) from None
         db.add(
             OTPCode(
                 staff_id=staff.id,
@@ -360,16 +377,6 @@ async def login(
         await log_event(
             db, Action.OTP_ISSUED, target_user_id=staff.id, detail="login", request=request
         )
-        try:
-            await send_otp_email(staff.email, code, purpose="login")
-        except EmailDeliveryError:
-            # Do not leave a usable OTP behind when delivery was rejected.
-            await db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="We couldn't send your verification email. Please try again "
-                       "later or contact your administrator.",
-            ) from None
         await db.commit()
         log_otp_code(staff.email, code, purpose="login")
         return TokenResponse(
@@ -676,13 +683,13 @@ async def reset_password(
     if staff is None:
         raise HTTPException(status_code=404, detail="Account not found.")
 
-    if verify_password(payload.new_password, staff.password_hash):
+    if await async_verify_password(payload.new_password, staff.password_hash):
         raise HTTPException(
             status_code=400,
             detail="Your new password must be different from the current one.",
         )
 
-    staff.password_hash = get_password_hash(payload.new_password)
+    staff.password_hash = await async_get_password_hash(payload.new_password)
     staff.requires_password_change = False
     staff.login_attempts = 0
     staff.locked_until = None

@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ErrorNote } from '../../components/common/ui';
 import CaptchaField from '../../components/common/CaptchaField';
 import useCaptchaConfig from '../../hooks/useCaptchaConfig';
+import useRetryAfter from '../../hooks/useRetryAfter';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const captcha = useCaptchaConfig();
+  const retry = useRetryAfter();
   const [captchaRequired, setCaptchaRequired] = useState(false);
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaReset, setCaptchaReset] = useState(0);
@@ -25,7 +27,7 @@ export default function LoginPage() {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (busy) return;
+    if (busy || retry.seconds > 0) return;
     setError('');
     if (captcha.loading || captcha.error || !captcha.config) {
       setError('Security verification settings are unavailable. Please retry below.');
@@ -54,10 +56,15 @@ export default function LoginPage() {
         replace: true,
       });
     } catch (err) {
+      retry.start(err.retryAfter);
       const detail = err.payload?.detail;
       if (detail?.captcha_required) setCaptchaRequired(true);
       if (detail?.code?.startsWith('captcha_')) setCaptchaError(err.message);
-      else setError(err.message);
+      else if (err.retryAfter > 0) {
+        setError(err.status === 401
+          ? 'Your account is temporarily locked. Please wait before trying again.'
+          : 'Too many requests. Please wait before trying again.');
+      } else setError(err.message);
     } finally {
       setBusy(false);
       setCaptchaToken('');
@@ -151,7 +158,9 @@ export default function LoginPage() {
           />
         )}
 
-        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || captcha.loading || Boolean(captcha.error)}>
+        {retry.seconds > 0 && <p className="field-hint" role="status">Try again in {retry.seconds} second(s).</p>}
+
+        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || retry.seconds > 0 || captcha.loading || Boolean(captcha.error)}>
           {busy ? (
             <>
               <span className="spinner" /> Signing in…
