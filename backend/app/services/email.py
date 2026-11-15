@@ -256,8 +256,9 @@ async def send_account_decision_email(
         )
         if decision == "rejected":
             correction = (
-                "To correct this application, open TRACE's sign-in page and select "
-                "Correct and resubmit. Verify this email address to update your existing "
+                "To correct this application, open TRACE's sign-in page and enter "
+                "your registered email and password. When the rejection message appears, "
+                "select Correct and resubmit. Verify this email address to update your existing "
                 "application; the corrected request will need approval again."
             )
             text += f"\n\n{correction}"

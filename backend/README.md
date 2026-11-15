@@ -161,6 +161,12 @@ applications; the operator reviews school/principal applications. Both have
 Rejected and Blocked queues, required rejection/block reasons, and decision
 history. Blocked applications require an administrator to reopen them.
 
+The sign-in page offers **Correct and resubmit** only after a correct-password
+attempt returns an eligible rejection. Login returns structured
+`application_rejected` / `can_resubmit: true` metadata in that 403 response;
+incorrect credentials and other account states do not receive it. This grants
+no login session, and email ownership verification is still required to edit.
+
 The API adds `application_events` and `resubmission_challenges` through the
 existing `init_models()` startup. This feature adds no existing-table columns
 and requires no destructive migration. Correction codes expire in five minutes;

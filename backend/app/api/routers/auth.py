@@ -41,6 +41,7 @@ from app.models.staff import (
     ROLE_TEACHER,
     STATUS_APPROVED,
     STATUS_PENDING,
+    STATUS_REJECTED,
     OTPCode,
     PasswordReset,
     Staff,
@@ -58,7 +59,7 @@ from app.schemas.staff import (
     VerifyResetOTPRequest,
 )
 from app.services.audit import Action, client_ip, log_event
-from app.services.applications import record_application_event
+from app.services.applications import application_eligible, record_application_event
 from app.services.email import EmailDeliveryError, log_otp_code, send_otp_email
 from app.services.captcha import verify_captcha
 from app.services.login_captcha import login_risk
@@ -335,7 +336,17 @@ async def login(
 
     # ── correct password — clear the lockout ladder ───────────────────────────
     # Only disclose decisions/reasons after the password proves identity.
-    await require_account_access(staff, db)
+    try:
+        await require_account_access(staff, db)
+    except HTTPException as denial:
+        if denial.status_code == 403 and staff.account_status == STATUS_REJECTED:
+            school = await db.get(School, staff.school_id) if staff.school_id is not None else None
+            if application_eligible(staff, school):
+                raise HTTPException(status_code=403, detail={
+                    "code": "application_rejected", "message": denial.detail,
+                    "can_resubmit": True,
+                }) from None
+        raise
     staff.login_attempts = 0
     staff.locked_until = None
     staff.lockout_count = 0

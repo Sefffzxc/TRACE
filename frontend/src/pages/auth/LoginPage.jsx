@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, LogIn, Mail } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import { authApi } from '../../api/endpoints';
@@ -11,13 +11,16 @@ import useRetryAfter from '../../hooks/useRetryAfter';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => location.state?.email || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [rejectedEmail, setRejectedEmail] = useState('');
+  const credentialsVersion = useRef(0);
   const captcha = useCaptchaConfig();
   const retry = useRetryAfter();
   const [captchaRequired, setCaptchaRequired] = useState(false);
@@ -29,6 +32,7 @@ export default function LoginPage() {
     event.preventDefault();
     if (busy || retry.seconds > 0) return;
     setError('');
+    setRejectedEmail('');
     if (captcha.loading || captcha.error || !captcha.config) {
       setError('Security verification settings are unavailable. Please retry below.');
       return;
@@ -40,13 +44,16 @@ export default function LoginPage() {
     }
     setCaptchaError('');
     setBusy(true);
+    const submittedEmail = email.trim();
+    const submittedVersion = credentialsVersion.current;
     try {
-      const result = await authApi.login(email.trim(), password, captchaToken);
+      const result = await authApi.login(submittedEmail, password, captchaToken);
+      if (submittedVersion !== credentialsVersion.current) return;
 
       if (result.requires_2fa) {
         // Unknown device — the server has issued a 6-digit code.
         navigate('/verify', {
-          state: { userId: result.user_id, email: email.trim(), debugOtp: result.debug_otp },
+          state: { userId: result.user_id, email: submittedEmail, debugOtp: result.debug_otp },
         });
         return;
       }
@@ -57,7 +64,11 @@ export default function LoginPage() {
       });
     } catch (err) {
       retry.start(err.retryAfter);
+      if (submittedVersion !== credentialsVersion.current) return;
       const detail = err.payload?.detail;
+      if (err.status === 403 && detail?.code === 'application_rejected' && detail.can_resubmit === true) {
+        setRejectedEmail(submittedEmail);
+      }
       if (detail?.captcha_required) setCaptchaRequired(true);
       if (detail?.code?.startsWith('captcha_')) setCaptchaError(err.message);
       else if (err.retryAfter > 0) {
@@ -95,7 +106,12 @@ export default function LoginPage() {
               autoComplete="username"
               placeholder="you@school.edu.ph"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                credentialsVersion.current += 1;
+                setRejectedEmail('');
+                setError('');
+                setEmail(event.target.value);
+              }}
               required
               autoFocus
             />
@@ -117,7 +133,12 @@ export default function LoginPage() {
               autoComplete="current-password"
               placeholder="Enter your password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                credentialsVersion.current += 1;
+                setRejectedEmail('');
+                setError('');
+                setPassword(event.target.value);
+              }}
               required
             />
             <button
@@ -173,12 +194,12 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="auth-switch" style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
-        Application rejected?{' '}
-        <button type="button" className="link-button" onClick={() => navigate('/resubmit', { state: { email: email.trim() } })}>
+      {rejectedEmail && <p className="auth-switch" style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+        Application rejected.{' '}
+        <button type="button" className="link-button" onClick={() => navigate('/resubmit', { state: { email: rejectedEmail } })}>
           Correct and resubmit
         </button>
-      </p>
+      </p>}
 
       <div className="auth-divider">New to the system?</div>
 

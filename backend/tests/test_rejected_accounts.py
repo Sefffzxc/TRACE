@@ -44,7 +44,7 @@ class RejectedAccountTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.configuration = patch.multiple(
             settings, SECRET_KEY="test-rejection-secret-not-a-production-key",
-            EMAIL_ENABLED=False, DEBUG_OTP=False, LOG_OTP_CODES=False,
+            EMAIL_ENABLED=False, DEBUG_OTP=False, LOG_OTP_CODES=False, CAPTCHA_ENABLED=False,
         )
         self.configuration.start()
         self.addCleanup(self.configuration.stop)
@@ -151,10 +151,12 @@ class RejectedAccountTests(unittest.IsolatedAsyncioTestCase):
                     response = await self._login(name)
                     self.assertEqual(response.status_code, 403, response.text)
                     detail = response.json()["detail"]
-                    self.assertIn("rejected", detail)
-                    self.assertIn(REASON, detail)
-                    self.assertIn("school administrator", detail)
-                    self.assertNotIn("awaiting", detail)
+                    self.assertEqual(detail["code"], "application_rejected")
+                    self.assertIs(detail["can_resubmit"], True)
+                    self.assertIn("rejected", detail["message"])
+                    self.assertIn(REASON, detail["message"])
+                    self.assertIn("school administrator", detail["message"])
+                    self.assertNotIn("awaiting", detail["message"])
                     self.assertNotIn("access_token", response.json())
             send.assert_not_awaited()
         self.assertEqual(await self._count(OTPCode), 0)
@@ -167,8 +169,8 @@ class RejectedAccountTests(unittest.IsolatedAsyncioTestCase):
             await db.commit()
         response = await self._login("Rejected")
         self.assertEqual(response.status_code, 403, response.text)
-        self.assertIn("has been rejected", response.json()["detail"])
-        self.assertNotIn("None", response.json()["detail"])
+        self.assertIn("has been rejected", response.json()["detail"]["message"])
+        self.assertNotIn("None", response.json()["detail"]["message"])
 
     async def test_wrong_password_does_not_disclose_rejection_or_reason(self):
         response = await self._login("Rejected", "WrongPassword1!")
@@ -176,6 +178,7 @@ class RejectedAccountTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Invalid email or password", response.json()["detail"])
         self.assertNotIn(REASON, response.text)
         self.assertNotIn("rejected", response.text.lower())
+        self.assertNotIn("can_resubmit", response.text)
         async with self.sessions() as db:
             person = await db.get(Staff, self.people["Rejected"].id)
             self.assertEqual(person.login_attempts, 1)
@@ -187,6 +190,69 @@ class RejectedAccountTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(response.status_code, 403, response.text)
                 self.assertIn(message, response.json()["detail"])
                 self.assertNotIn("rejected", response.text)
+                self.assertNotIn("can_resubmit", response.text)
+
+    async def test_login_resubmission_hint_requires_correct_credentials_and_an_eligible_application(self):
+        cases = (
+            ("PrincipalRejected", "admin", 3, "rejected", True, True),
+            ("PrincipalApprovedSchool", "admin", 1, "rejected", True, False),
+            ("PrincipalPendingSchool", "admin", 4, "rejected", True, False),
+            ("PrincipalBlockedSchool", "admin", 5, "rejected", True, False),
+            ("InactiveRejected", "teacher", 1, "rejected", False, False),
+            ("Blocked", "teacher", 1, "blocked", False, False),
+            ("PendingApplicant", "teacher", 1, "pending", True, False),
+            ("DeactivatedApplicant", "teacher", 1, "deactivated", False, False),
+        )
+        async with self.sessions() as db:
+            db.add_all([
+                School(school_id=3, name="Rejected School", status="rejected"),
+                School(school_id=4, name="Pending School", status="pending"),
+                School(school_id=5, name="Blocked School", status="blocked"),
+            ])
+            await db.flush()
+            for name, role, school_id, account_status, active, _ in cases:
+                person = Staff(
+                    id=uuid4(), school_id=school_id, email=f"{name.lower()}@example.com",
+                    role=role, first_name=name, last_name="Applicant", contact_number="09123456789",
+                    password_hash=self.password_hash, account_status=account_status,
+                    is_active=active, is_approved=False,
+                    rejection_reason=REASON if account_status == "rejected" else None,
+                )
+                db.add(person)
+                self.people[name] = person
+            await db.commit()
+        with patch.object(auth, "send_otp_email", new_callable=AsyncMock) as send:
+            with patch.object(auth, "_token_bundle") as issue_tokens:
+                for name, _, _, _, _, eligible in cases:
+                    with self.subTest(name=name):
+                        response = await self._login(name)
+                        self.assertEqual(response.status_code, 403, response.text)
+                        detail = response.json()["detail"]
+                        if eligible:
+                            self.assertEqual(detail["code"], "application_rejected")
+                            self.assertIs(detail["can_resubmit"], True)
+                            self.assertIn(REASON, detail["message"])
+                            self.assertIn("system operator", detail["message"])
+                        else:
+                            self.assertIsInstance(detail, str)
+                            self.assertNotIn("can_resubmit", response.text)
+                        self.assertNotIn("access_token", response.json())
+                        self.assertNotIn("refresh_token", response.json())
+                for name in ("Rejected", "PrincipalRejected"):
+                    response = await self._login(name, "WrongPassword1!")
+                    self.assertEqual(response.status_code, 401, response.text)
+                    self.assertNotIn("can_resubmit", response.text)
+                    self.assertNotIn(REASON, response.text)
+                response = await self.client.post("/api/auth/login", json={
+                    "email": "unknown@example.com", "password": PASSWORD, "device_id": "test-device",
+                })
+                self.assertEqual(response.status_code, 401, response.text)
+                self.assertNotIn("can_resubmit", response.text)
+                self.assertNotIn(REASON, response.text)
+                issue_tokens.assert_not_called()
+            send.assert_not_awaited()
+        self.assertEqual(await self._count(OTPCode), 0)
+        self.assertEqual(await self._count(StaffSession), 0)
 
     async def test_rejection_through_admin_action_hides_teacher_and_updates_login(self):
         target = self.people["Approved"]
@@ -200,8 +266,8 @@ class RejectedAccountTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(str(target.id), {row["id"] for row in directory.json()})
         response = await self._login("Approved")
         self.assertEqual(response.status_code, 403, response.text)
-        self.assertIn(REASON, response.json()["detail"])
-        self.assertIn("rejected", response.json()["detail"])
+        self.assertIn(REASON, response.json()["detail"]["message"])
+        self.assertIn("rejected", response.json()["detail"]["message"])
 
     async def test_valid_otp_issued_before_rejection_cannot_create_a_session(self):
         person = self.people["Rejected"]

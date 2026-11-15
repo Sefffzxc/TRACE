@@ -330,6 +330,26 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.count(OTPCode), 1)
         self.assertEqual(await self.count(StaffSession), 0)
 
+    async def test_rejected_login_hint_is_shown_only_after_required_captcha_and_password_pass(self):
+        reason = "Please correct the application details."
+        await self.set_staff(account_status="rejected", is_approved=False, rejection_reason=reason, login_attempts=3)
+        response = await self.login()
+        self.assert_captcha_error(response)
+        self.assertNotIn("can_resubmit", response.text)
+        self.assertNotIn(reason, response.text)
+        response = await self.login(password="WrongPassword1!", token="valid-login-token")
+        self.assertEqual(response.status_code, 401, response.text)
+        self.assertNotIn("can_resubmit", response.text)
+        self.assertNotIn(reason, response.text)
+        response = await self.login(token="valid-login-token")
+        self.assertEqual(response.status_code, 403, response.text)
+        self.assertEqual(response.json()["detail"]["code"], "application_rejected")
+        self.assertIs(response.json()["detail"]["can_resubmit"], True)
+        self.assertIn(reason, response.json()["detail"]["message"])
+        self.send_email.assert_not_awaited()
+        self.assertEqual(await self.count(OTPCode), 0)
+        self.assertEqual(await self.count(StaffSession), 0)
+
     async def test_changing_ip_does_not_erase_persisted_account_risk(self):
         for _ in range(3):
             await self.login(password="WrongPassword1!")

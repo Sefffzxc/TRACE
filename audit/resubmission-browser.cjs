@@ -58,6 +58,8 @@ async function run() {
       const errors = [];
       let app = { ...teacher }, configFailed = false, rejectToken = false, throttle = false;
       let expiresIn = 900;
+      let loginReply = { status: 401, detail: 'Invalid email or password.' };
+      let loginGate = null;
       await context.route('https://images.unsplash.com/**', (route) => route.abort());
       await context.route('https://challenges.cloudflare.com/**', (route) => route.fulfill({ contentType: 'text/javascript', body: stub }));
       await context.route('**/api/**', async (route) => {
@@ -71,7 +73,15 @@ async function run() {
         if (request.method() === 'POST') {
           const payload = request.postDataJSON();
           requests.push({ pathname, payload, authorization: request.headers().authorization });
-          if (pathname === '/api/auth/resubmission/request') {
+          if (pathname === '/api/auth/login') {
+            // Capture the response before waiting so late arrivals still
+            // represent the credentials actually submitted by this request.
+            const reply = loginReply;
+            const gate = loginGate;
+            if (gate) await gate;
+            status = reply.status;
+            body = { detail: reply.detail };
+          } else if (pathname === '/api/auth/resubmission/request') {
             assert(payload.captcha_token?.startsWith('synthetic:resubmit:'));
             if (throttle) { throttle = false; status = 429; headers['Retry-After'] = '2'; body = { detail: 'Too many requests.' }; }
             else { status = 202; body = { message: 'If eligible, a code is on its way.', challenge_id: 'synthetic-challenge' }; }
@@ -90,9 +100,28 @@ async function run() {
         await route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify(body) });
       });
       const page = await context.newPage();
+      page.setDefaultTimeout(8000);
       page.on('pageerror', (error) => errors.push(error.message));
       const submit = () => page.locator('button[type="submit"]').click();
       const solve = () => page.getByRole('button', { name: 'Solve synthetic verification', exact: true }).click();
+      const recovery = () => page.getByRole('button', { name: 'Correct and resubmit', exact: true });
+      const rejectedReply = { status: 403, detail: { code: 'application_rejected', message: 'Your application was rejected. Reason: Please correct your contact number.', can_resubmit: true } };
+      const openLogin = async () => {
+        await page.goto(origin + '/login');
+        await page.locator('button[type="submit"]:enabled').waitFor();
+        assert.equal(await recovery().count(), 0, 'Recovery is hidden before an eligible rejected login');
+        await page.locator('#email').fill(teacher.email);
+        await page.locator('#password').fill('SyntheticPass1!');
+      };
+      const finishLogin = async () => {
+        await page.locator('button[type="submit"]:enabled').waitFor();
+        await page.getByRole('alert').waitFor();
+      };
+      const login = async (reply) => {
+        loginReply = reply;
+        await submit();
+        await finishLogin();
+      };
       const setCode = (value) => page.getByLabel('Digit 1', { exact: true }).fill(value[0]).then(async () => { for (let i = 1; i < value.length; i++) await page.getByLabel('Digit ' + (i + 1), { exact: true }).fill(value[i]); });
       const requestAndVerify = async () => {
         await page.goto(origin + '/resubmit');
@@ -105,16 +134,65 @@ async function run() {
         await submit();
         await page.getByRole('heading', { name: 'Correct your application', exact: true }).waitFor();
       };
-      await page.goto(origin + '/login');
+      for (const [label, reply] of [
+        ['pending account', { status: 403, detail: 'Your account is awaiting approval.' }],
+        ['blocked account', { status: 403, detail: 'Your account is blocked.' }],
+        ['deactivated account', { status: 403, detail: 'Your account has been deactivated.' }],
+        ['wrong password', { status: 401, detail: 'Invalid email or password.' }],
+        ['unknown email', { status: 401, detail: 'Invalid email or password.' }],
+        ['generic error mentioning rejection', { status: 403, detail: 'Your application was rejected. Please correct your details.' }],
+        ['unrelated structured error', { status: 403, detail: { code: 'account_pending', message: 'Your application was rejected.', can_resubmit: true } }],
+        ['ineligible rejected account', { status: 403, detail: { code: 'application_rejected', message: 'Application rejected.', can_resubmit: false } }],
+        ['malformed eligibility flag', { status: 403, detail: { code: 'application_rejected', message: 'Application rejected.', can_resubmit: 'true' } }],
+        ['wrong HTTP status', { status: 401, detail: { code: 'application_rejected', message: 'Application rejected.', can_resubmit: true } }],
+      ]) {
+        await openLogin(); await login(reply);
+        assert.equal(await recovery().count(), 0, label + ' must never expose correction');
+      }
+      await openLogin(); await login(rejectedReply);
+      await recovery().waitFor();
+      const formBox = await page.locator('form').boundingBox();
+      const recoveryBox = await recovery().locator('..').boundingBox();
+      assert(recoveryBox.y - (formBox.y + formBox.height) >= 16, 'Recovery has visible separation from sign-in form');
+      await page.locator('#email').fill('other@example.com');
+      assert.equal(await recovery().count(), 0, 'Changing email clears recovery');
       await page.locator('#email').fill(teacher.email);
-      await page.getByRole('button', { name: 'Correct and resubmit', exact: true }).click();
+      assert.equal(await recovery().count(), 0, 'Restoring email does not revive previous eligibility');
+      await login(rejectedReply); await recovery().waitFor();
+      await page.locator('#password').fill('DifferentPass1!');
+      assert.equal(await recovery().count(), 0, 'Changing password clears recovery');
+      await page.locator('#password').fill('SyntheticPass1!');
+      assert.equal(await recovery().count(), 0, 'Restoring password does not revive previous eligibility');
+      await login(rejectedReply); await recovery().waitFor();
+      let releaseLogin;
+      loginGate = new Promise((resolve) => { releaseLogin = resolve; });
+      loginReply = { status: 401, detail: 'Invalid email or password.' };
+      await submit();
+      assert.equal(await recovery().count(), 0, 'Starting another login immediately hides recovery');
+      releaseLogin(); loginGate = null; await finishLogin();
+      assert.equal(await recovery().count(), 0, 'Failed next attempt does not retain recovery');
+
+      loginGate = new Promise((resolve) => { releaseLogin = resolve; });
+      loginReply = rejectedReply;
+      const delayedRequest = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/auth/login' && request.method() === 'POST');
+      await submit(); await delayedRequest;
+      await page.locator('#email').fill('changed@example.com');
+      await page.locator('#password').fill('ChangedPass1!');
+      releaseLogin(); loginGate = null; await page.locator('button[type="submit"]:enabled').waitFor();
+      assert.equal(await recovery().count(), 0, 'Delayed rejection for previous credentials never reveals recovery');
+      assert.equal(await page.getByRole('alert').count(), 0, 'Stale responses never display rejection details for changed credentials');
+      await page.locator('#email').fill(teacher.email); await page.locator('#password').fill('SyntheticPass1!');
+      assert.equal(await recovery().count(), 0, 'Old response cannot reappear after credentials are restored');
+      await login(rejectedReply); await recovery().waitFor();
+      checks.push('eligible rejected-login recovery gate, all other states hidden, spacing and stale response protection @' + width);
+      await recovery().click();
       assert.equal(await page.locator('#email').inputValue(), teacher.email, 'Login carries email in Router state');
       await page.locator('#email').fill(''); await submit();
       await page.waitForFunction(() => document.activeElement.id === 'email');
-      assert.equal(requests.length, 0);
+      assert.equal(requests.filter((request) => request.pathname.startsWith('/api/auth/resubmission/')).length, 0);
       await page.locator('#email').fill(teacher.email); await submit();
       await page.waitForFunction(() => document.activeElement.id === 'captcha');
-      assert.equal(requests.length, 0, 'Unsolved CAPTCHA never sends OTP');
+      assert.equal(requests.filter((request) => request.pathname.startsWith('/api/auth/resubmission/')).length, 0, 'Unsolved CAPTCHA never sends OTP');
       await solve(); throttle = true; await submit();
       await page.getByRole('status').filter({ hasText: 'Try again in' }).waitFor();
       assert.equal(await page.locator('button[type="submit"]').isDisabled(), true);
@@ -201,13 +279,15 @@ async function run() {
       await page.locator('#reg_email').fill(teacher.email); await page.locator('#contact').fill('09170000000');
       await page.locator('#reg_password').fill('SyntheticPass1!'); await page.locator('#confirm').fill('SyntheticPass1!');
       await solve(); await submit();
-      await page.getByRole('button', { name: 'correct and resubmit', exact: true }).click();
-      await page.getByRole('heading', { name: 'Correct and resubmit', exact: true }).waitFor();
-      assert.equal(await page.locator('#email').inputValue(), teacher.email, 'Duplicate registration offers existing-email correction');
+      assert.equal(await page.getByRole('button', { name: /correct and resubmit/i }).count(), 0, 'Registration never exposes correction directly');
+      await page.locator('#reg_email').locator('..').getByRole('button').click();
+      await page.getByRole('heading', { name: 'Welcome back', exact: true }).waitFor();
+      assert.equal(await page.locator('#email').inputValue(), teacher.email, 'Duplicate registration returns to sign-in with the existing email');
+      assert.equal(await recovery().count(), 0, 'Returning from duplicate registration still requires a rejected login');
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'No horizontal overflow');
       assert(requests.every((r) => r.authorization === undefined), 'Restricted flow never sends normal authorization');
       assert.deepEqual(errors, []);
-      checks.push('local expiry, token discarded on reload, fail-closed config retry, registration link, responsive layout @' + width);
+      checks.push('local expiry, token discarded on reload, fail-closed config retry, registration sign-in recovery, responsive layout @' + width);
       await context.close();
     }
     checks.forEach((check) => console.log('PASS: ' + check));

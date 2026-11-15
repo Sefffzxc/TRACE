@@ -1,8 +1,10 @@
 # Rejected applications and corrections
 
 Rejection keeps the existing account, email, school records, and decision history.
-The email cannot be used to register a second account. Use **Correct and resubmit**
-on the sign-in page to correct the original application.
+The email cannot be used to register a second account. Attempt to sign in with
+the existing email and password. **Correct and resubmit** appears only when that
+attempt confirms an eligible rejected application. It is hidden on the initial
+sign-in page and clears if either credential is changed.
 
 ## Teacher applications
 
@@ -11,8 +13,9 @@ on the sign-in page to correct the original application.
    correct it.
 2. The account disappears from **Teachers** and appears under
    **Approvals → Rejected**. **View history** shows previous decisions and reasons.
-3. The applicant selects **Correct and resubmit**, enters the same email, and
-   completes security verification when CAPTCHA is enabled.
+3. The applicant attempts to sign in with their existing email and correct
+   password. After the rejection message appears, they select **Correct and
+   resubmit** and complete security verification when CAPTCHA is enabled.
 4. TRACE emails a six-digit code. The applicant verifies it before seeing or
    editing their application. Codes expire after five minutes and allow five
    attempts. Verification grants fifteen minutes to submit a correction.
@@ -120,9 +123,13 @@ Use test accounts with inboxes you control:
 
 1. Reject a teacher with a reason. Confirm the rejection email arrives, Teachers
    hides them, and Approvals → Rejected shows them with history.
-2. Open **Correct and resubmit** in a signed-out browser. Verify the emailed
-   code, correct details, and submit. Confirm the same account is Pending and
-   the previous reason remains in its history. Login must still require approval.
+2. In a signed-out browser, confirm **Correct and resubmit** is initially hidden.
+   Attempt to sign in using the rejected account's correct email and password;
+   the rejection message and correction link should appear. Changing either
+   credential must hide the link. Use the link, verify the emailed code, correct
+   details, and submit. Confirm the same account is Pending and its previous
+   reason remains in history. Login must still require approval, with no
+   correction link for the Pending account.
 3. Approve the corrected request. Confirm the approval email arrives and normal
    sign-in works using the existing email and password.
 4. Test **Reopen** and **Block** on another rejected test account. A blocked

@@ -170,11 +170,11 @@ export default function RegisterPage() {
     'aria-describedby': visibleErrors[id] ? `${id}-error` : undefined,
   });
   const fieldError = (id) => <FieldError id={id} message={visibleErrors[id]} />;
-  const resubmissionHint = duplicateEmail && (
+  const signInHint = duplicateEmail && (
     <p className="field-hint">
-      If this is your rejected application, keep your existing email and{' '}
-      <button type="button" className="link-button" onClick={() => navigate('/resubmit', { state: { email: duplicateEmail } })}>
-        correct and resubmit
+      Use your existing account to{' '}
+      <button type="button" className="link-button" onClick={() => navigate('/login', { state: { email: duplicateEmail } })}>
+        sign in
       </button>.
     </p>
   );
@@ -547,7 +547,7 @@ export default function RegisterPage() {
                 Email <span className="req">*</span>
               </label>
               {fieldError('reg_email')}
-              {resubmissionHint}
+              {signInHint}
               <input
                 id="reg_email"
                 {...validationProps('reg_email')}
@@ -946,7 +946,7 @@ export default function RegisterPage() {
                 Your email <span className="req">*</span>
               </label>
               {fieldError('a_email')}
-              {resubmissionHint}
+              {signInHint}
               <input
                 id="a_email"
                 {...validationProps('a_email')}
