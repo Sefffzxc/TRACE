@@ -16,7 +16,7 @@ function loadTurnstile() {
     let timeout;
     const cleanup = () => {
       clearTimeout(timeout);
-      script?.removeEventListener('load', ready);
+      script?.removeEventListener('load', loaded);
       script?.removeEventListener('error', fail);
     };
     const fail = () => {
@@ -26,32 +26,22 @@ function loadTurnstile() {
       script?.remove();
       reject(new Error('Security verification could not load.'));
     };
-    const ready = () => {
+    const loaded = () => {
       if (finished) return;
       const api = window.turnstile;
-      if (!api?.ready) {
+      if (typeof api?.render !== 'function') {
         fail();
         return;
       }
-      try {
-        // Script load and API readiness are distinct when loading asynchronously.
-        api.ready(() => {
-          if (finished) return;
-          if (typeof api.render !== 'function') {
-            fail();
-            return;
-          }
-          finished = true;
-          cleanup();
-          resolve(api);
-        });
-      } catch {
-        fail();
-      }
+      // The load event runs after api.js initializes its API. Turnstile rejects
+      // ready() for async/defer scripts, even when called after this event.
+      finished = true;
+      cleanup();
+      resolve(api);
     };
     timeout = window.setTimeout(fail, 20000);
-    if (window.turnstile?.ready) {
-      ready();
+    if (typeof window.turnstile?.render === 'function') {
+      loaded();
       return;
     }
     if (!script) {
@@ -60,11 +50,11 @@ function loadTurnstile() {
       script.src = SCRIPT_URL;
       script.async = true;
       script.defer = true;
-      script.addEventListener('load', ready, { once: true });
+      script.addEventListener('load', loaded, { once: true });
       script.addEventListener('error', fail, { once: true });
       document.head.appendChild(script);
     } else {
-      script.addEventListener('load', ready, { once: true });
+      script.addEventListener('load', loaded, { once: true });
       script.addEventListener('error', fail, { once: true });
     }
   });
