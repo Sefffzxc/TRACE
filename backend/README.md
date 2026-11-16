@@ -13,6 +13,11 @@ roster import never writes assessment setup or subject scores. Follow
 [student roster access and deployment](../STUDENT_ROSTER_ACCESS_GUIDE.md) for
 this permission update; it requires no additional database migration.
 
+For selected test schools, use [the database cleanup guide](../TEST_SCHOOL_CLEANUP_GUIDE.md).
+`cleanup_test_schools.py --list` identifies school IDs; deletion requires an
+explicit selection, matching confirmation, a verified backup and a stopped API.
+No database reset, frontend build or schema migration is needed.
+
 ## Run it
 
 ```bash

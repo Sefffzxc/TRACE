@@ -27,6 +27,10 @@ This release needs the adviser migration before starting the updated API.
 Only teachers can add or import learners into advisory or teaching sections;
 principals cannot create learners. This follow-up needs no new database migration.
 
+**Remove test schools:** follow [the exact-ID cleanup and backup steps](TEST_SCHOOL_CLEANUP_GUIDE.md).
+The helper previews linked records before deleting selected test schools and
+accounts, allowing their school names and email addresses to be registered again.
+
 Updated **9 November 2026**. Your domain is **traceedu.app**.
 The frontend will use **https://www.traceedu.app**, the API and AI will run on
 one Azure Ubuntu VM, and your existing database will stay on Render.
