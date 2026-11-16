@@ -16,11 +16,16 @@ Applicants verify their email and resubmit the same account; the API creates two
 new history/verification tables at startup. Update both the API and Pages.
 
 **Class record usability:** follow [autosave, assigned classes, and deployment](CLASS_RECORD_USABILITY_GUIDE.md).
+Score entry works during setup, monitoring filters follow teacher assignments,
+and occupied section/subject assignments are refused. That autosave-only release
+needed no database migration.
 
 **Separate advisers and subject teachers:** follow [the adviser guide and one-time backfill](ADVISER_ASSIGNMENT_GUIDE.md).
 This release needs the adviser migration before starting the updated API.
-Score entry works during setup, monitoring filters follow teacher assignments,
-and occupied section/subject assignments are refused. No database migration is required.
+
+**Assigned student creation:** follow [student roster access and deployment](STUDENT_ROSTER_ACCESS_GUIDE.md).
+Only teachers can add or import learners into advisory or teaching sections;
+principals cannot create learners. This follow-up needs no new database migration.
 
 Updated **9 November 2026**. Your domain is **traceedu.app**.
 The frontend will use **https://www.traceedu.app**, the API and AI will run on

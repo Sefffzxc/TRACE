@@ -195,11 +195,12 @@ export const classRecordApi = {
       payload,
     ),
   /** Read a DepEd E-Class Record workbook; with save it is imported. */
-  importFile: (file, { section_id, subject_id, save = false }) => {
+  importFile: (file, { section_id, subject_id, save = false, roster_only = false }) => {
     const form = new FormData();
     form.append('file', file);
     form.append('section_id', section_id);
-    form.append('subject_id', subject_id);
+    if (subject_id != null) form.append('subject_id', subject_id);
+    if (roster_only) form.append('roster_only', 'true');
     form.append('save', save ? 'true' : 'false');
     return api.post('/api/class-record/import', form);
   },

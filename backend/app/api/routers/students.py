@@ -26,6 +26,7 @@ from app.schemas.students import (
 from app.services import risk
 from app.services.access import class_access
 from app.services.audit import Action, log_event
+from app.services.roster_access import lock_roster_section, require_roster_section
 from app.services.enrichment import (
     school_passing_mark,
     Lookups,
@@ -302,33 +303,31 @@ async def create_student(
     data = payload.model_dump()
     grade_level_id = data.pop("grade_level_id", None)
     section_id = data.pop("section_id", None)
-    # A teacher adds learners only to a section they teach or advise.
-    if section_id is not None:
-        (await class_access(db, current, scope)).require_section(section_id)
     school_year_id = data.pop("school_year_id", None)
+    # Validate everything before adding a Student: omitting enrolment fields
+    # must not bypass the section rule and create an orphan learner.
+    section = await require_roster_section(db, current, scope, section_id, grade_level_id)
+    resolved_year = await _resolve_school_year(db, school_year_id, scope)
+    await lock_roster_section(db, scope, section.section_id)
+    section = await require_roster_section(db, current, scope, section_id, grade_level_id)
 
     student = Student(**data, school_id=scope, created_by=current.id)
     db.add(student)
     await db.flush()
     student.login_id = f"S{student.student_id:04d}"
 
-    if grade_level_id and section_id:
-        if await get_scoped_optional(db, GradeLevel, grade_level_id, scope) is None:
-            raise HTTPException(status_code=400, detail="That grade level does not exist.")
-        if await get_scoped_optional(db, Section, section_id, scope) is None:
-            raise HTTPException(status_code=400, detail="That section does not exist.")
-        db.add(
-            StudentEnrollment(
-                school_id=scope,
-                student_id=student.student_id,
-                grade_level_id=grade_level_id,
-                section_id=section_id,
-                school_year_id=await _resolve_school_year(db, school_year_id, scope),
-                enrolled_by=current.id,
-                enrollment_date=date.today(),
-                is_active=True,
-            )
+    db.add(
+        StudentEnrollment(
+            school_id=scope,
+            student_id=student.student_id,
+            grade_level_id=section.grade_level_id,
+            section_id=section.section_id,
+            school_year_id=resolved_year,
+            enrolled_by=current.id,
+            enrollment_date=date.today(),
+            is_active=True,
         )
+    )
 
     await log_event(
         db,
@@ -462,14 +461,16 @@ async def create_enrollment(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    section = await require_roster_section(
+        db, current, scope, payload.section_id, payload.grade_level_id,
+    )
     await get_scoped(db, Student, payload.student_id, scope, "Student")
-    # A teacher enrols learners only into a section they teach or advise.
-    (await class_access(db, current, scope)).require_section(payload.section_id)
-
-    if await get_scoped_optional(db, GradeLevel, payload.grade_level_id, scope) is None:
-        raise HTTPException(status_code=400, detail="That grade level does not exist.")
     if await get_scoped_optional(db, SchoolYear, payload.school_year_id, scope) is None:
         raise HTTPException(status_code=400, detail="That school year does not exist.")
+    section = await lock_roster_section(db, scope, section.section_id)
+    section = await require_roster_section(
+        db, current, scope, payload.section_id, payload.grade_level_id,
+    )
 
     duplicate = (
         await db.execute(
@@ -485,10 +486,6 @@ async def create_enrollment(
             status_code=409,
             detail="That student is already enrolled for this school year.",
         )
-
-    section = await get_scoped_optional(db, Section, payload.section_id, scope)
-    if section is None:
-        raise HTTPException(status_code=400, detail="That section does not exist.")
 
     taken = (
         await db.execute(

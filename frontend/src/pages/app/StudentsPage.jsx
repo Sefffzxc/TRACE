@@ -5,6 +5,7 @@ import {
   ArrowUp,
   ChevronsUpDown,
   Download,
+  Upload,
   Pencil,
   Search,
   Trash2,
@@ -22,11 +23,13 @@ import {
   TableSkeleton,
 } from '../../components/common/ui';
 import StudentFormModal from '../../components/common/StudentFormModal';
-import { gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
+import ImportStudentsModal from '../../components/common/ImportStudentsModal';
+import { assignmentApi, gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { AiRiskBadge } from '../../components/common/ai';
 import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
+import { rosterGrades, rosterSections } from '../../lib/rosterAccess';
 
 const PAGE_SIZE = 12;
 
@@ -58,7 +61,8 @@ export default function StudentsPage() {
   /* A school that tracks units reads a learner on booklets behind and
      completion; every other school on grades, the passing mark and the AI
      forecast. Each sees only its own columns. */
-  const { tracksUnits: units, unitLabel, unitLabelPlural } = useAuth();
+  const { user, tracksUnits: units, unitLabel, unitLabelPlural } = useAuth();
+  const isTeacher = user?.role === 'teacher';
   const navigate = useNavigate();
   const toast = useToast();
   // Standing is a grade, or a grade-shaped figure: the term grade once a
@@ -72,6 +76,7 @@ export default function StudentsPage() {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [access, setAccess] = useState(null);
 
   const [search, setSearch] = useState(params.get('q') || '');
   const [gradeFilter, setGradeFilter] = useState('');
@@ -82,27 +87,34 @@ export default function StudentsPage() {
   const [page, setPage] = useState(1);
 
   const [editing, setEditing] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
+    setAccess(null);
     try {
-      const [studentRows, levels, sectionRows] = await Promise.all([
+      const [studentRows, levels, sectionRows, classes] = await Promise.all([
         studentApi.list(),
         gradeLevelApi.list(),
         sectionApi.list(),
+        isTeacher ? assignmentApi.mine() : Promise.resolve(null),
       ]);
       setStudents(studentRows || []);
       setGradeLevels(levels || []);
       setSections(sectionRows || []);
+      setAccess(classes);
     } catch (err) {
       setError(err.message);
+      setStudents([]);
+      setGradeLevels([]);
+      setSections([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isTeacher]);
 
   useEffect(() => {
     load();
@@ -125,10 +137,25 @@ export default function StudentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const sectionOptions = useMemo(
-    () => (gradeFilter ? sections.filter((s) => String(s.grade_level_id) === gradeFilter) : sections),
-    [sections, gradeFilter],
+  const visibleSections = useMemo(
+    () => isTeacher ? rosterSections(sections, access, user?.role) : sections,
+    [isTeacher, sections, access, user?.role],
   );
+  const visibleGrades = useMemo(
+    () => isTeacher ? rosterGrades(gradeLevels, visibleSections) : gradeLevels,
+    [isTeacher, gradeLevels, visibleSections],
+  );
+  const canAdd = isTeacher && !loading && !error && visibleSections.length > 0;
+  const sectionOptions = useMemo(
+    () => (gradeFilter ? visibleSections.filter((s) => String(s.grade_level_id) === gradeFilter) : visibleSections),
+    [visibleSections, gradeFilter],
+  );
+
+  useEffect(() => {
+    if (loading) return;
+    if (gradeFilter && !visibleGrades.some((level) => String(level.grade_level_id) === gradeFilter)) setGradeFilter('');
+    if (sectionFilter && !visibleSections.some((section) => String(section.section_id) === sectionFilter)) setSectionFilter('');
+  }, [loading, visibleGrades, visibleSections, gradeFilter, sectionFilter]);
 
   const riskCounts = useMemo(() => {
     const counts = { all: students.length, critical: 0, high: 0, moderate: 0, low: 0 };
@@ -283,14 +310,23 @@ export default function StudentsPage() {
             <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!sorted.length}>
               <Download size={16} /> Export CSV
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => setEditing({})}>
-              <UserPlus size={16} /> Add student
-            </button>
+            {isTeacher && <>
+              <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)} disabled={!canAdd}>
+                <Upload size={16} /> Import students
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => setEditing({})} disabled={!canAdd}>
+                <UserPlus size={16} /> Add student
+              </button>
+            </>}
           </>
         }
       />
 
       <ErrorNote message={error} />
+      {error && <button type="button" className="btn btn-secondary" onClick={load}>Retry loading students</button>}
+      {isTeacher && !loading && !error && !visibleSections.length && (
+        <p className="alert alert-info">You need a teaching or adviser assignment before adding or importing students. Ask your principal to assign your section.</p>
+      )}
 
       <div className="toolbar">
         <div className="search">
@@ -315,7 +351,7 @@ export default function StudentsPage() {
           aria-label="Filter by grade level"
         >
           <option value="">All grade levels</option>
-          {gradeLevels.map((level) => (
+          {visibleGrades.map((level) => (
             <option key={level.grade_level_id} value={level.grade_level_id}>
               {level.name}
             </option>
@@ -665,6 +701,19 @@ export default function StudentsPage() {
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
+            load();
+          }}
+        />
+      )}
+
+      {importing && (
+        <ImportStudentsModal
+          gradeLevels={gradeLevels}
+          sections={sections}
+          onClose={() => setImporting(false)}
+          onDone={(saved) => {
+            setImporting(false);
+            toast.success(`Students imported: ${saved?.added || 0} added, ${saved?.enrolled || 0} enrolled.`);
             load();
           }}
         />

@@ -15,14 +15,17 @@ const STATUS = {
   elsewhere: { label: 'Other section, skipped', badge: 'badge-moderate' },
 };
 
-export default function ImportClassRecord({ section, subject, periodLabel, onClose, onDone }) {
+export default function ImportClassRecord({ section, subject, periodLabel, rosterOnly = false, onClose, onDone }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const savingRef = useRef(false);
 
-  const target = { section_id: section.section_id, subject_id: subject.subject_id };
+  const target = {
+    section_id: section.section_id,
+    ...(rosterOnly ? { roster_only: true } : { subject_id: subject.subject_id }),
+  };
 
   const choose = async (event) => {
     const picked = event.target.files?.[0];
@@ -42,7 +45,7 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
   };
 
   const save = async () => {
-    if (savingRef.current || !file || !preview) return;
+    if (savingRef.current || !file || !preview || preview.can_import === false) return;
     savingRef.current = true;
     setBusy('saving');
     setError('');
@@ -59,12 +62,12 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
 
   const counts = preview?.counts || {};
   const joining = (counts.new || 0) + (counts.enrol || 0);
-  const nothing = preview && !preview.terms.length && !joining;
+  const nothing = preview && (rosterOnly ? !joining : !preview.terms.length && !joining);
 
   return (
     <Modal
-      title="Import class record"
-      subtitle={`${section.name} · ${subject.subject_name}`}
+      title={rosterOnly ? 'Import students' : 'Import class record'}
+      subtitle={rosterOnly ? section.name : `${section.name} · ${subject.subject_name}`}
       size="lg"
       onClose={busy === 'saving' ? undefined : onClose}
       footer={
@@ -76,9 +79,9 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
             type="button"
             className="btn btn-primary"
             onClick={save}
-            disabled={!preview || nothing || Boolean(busy)}
+            disabled={!preview || nothing || Boolean(busy) || preview.can_import === false}
           >
-            <Upload size={15} /> {busy === 'saving' ? 'Importing and saving…' : 'Import and save'}
+            <Upload size={15} /> {busy === 'saving' ? 'Importing and saving…' : rosterOnly ? 'Import students' : 'Import and save'}
           </button>
         </>
       }
@@ -95,11 +98,14 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
           <input type="file" accept=".xlsx" onChange={choose} disabled={Boolean(busy)} />
         </label>
         <p className="faint">
-          Include all three term sheets, even if later terms are blank. Different template layouts are supported;
-          quarterly and semester records are not accepted.
+          {rosterOnly
+            ? 'Use a supported three-term E-Class Record workbook with all three term sheets, even if their scores are blank. Only learner names and enrollment are imported; subject scores and assessment settings stay unchanged.'
+            : 'Include all three term sheets, even if later terms are blank. Different template layouts are supported; quarterly and semester records are not accepted.'}
         </p>
         <p className="alert alert-info">
-          Choosing a file only previews it. Import and save writes the listed scores and adds or enrolls learners shown below. No second save is needed.
+          {rosterOnly
+            ? 'Choosing a file only previews it. Import students adds or enrolls the listed learners into this section without importing any scores.'
+            : 'Choosing a file only previews it. Import and save writes the listed scores and adds or enrolls learners shown below. No second save is needed.'}
         </p>
 
         {error && (
@@ -111,6 +117,12 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
 
         {preview && (
           <>
+            {preview.can_import === false && (
+              <div className="alert alert-warning" role="alert">
+                <AlertTriangle size={17} />
+                <span>{preview.blocking_reason || 'You do not have permission to import these learners. Ask an assigned teacher or adviser to add them.'}</span>
+              </div>
+            )}
             <div className="import-counts">
               <span><strong>{preview.learners.length}</strong> learners in the file</span>
               <span><strong>{counts.matched || 0}</strong> already in this class</span>
@@ -129,7 +141,7 @@ export default function ImportClassRecord({ section, subject, periodLabel, onClo
               </div>
             )}
 
-            {preview.terms.length > 0 && (
+            {!rosterOnly && preview.terms.length > 0 && (
               <div className="table-wrap">
                 <table className="table">
                   <thead>

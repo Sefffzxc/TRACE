@@ -7,6 +7,12 @@ read every advisory subject; grading rights come only from teaching assignments.
 Existing installations need the one-time
 [adviser backfill and deployment steps](../ADVISER_ASSIGNMENT_GUIDE.md).
 
+Only teachers may create or enroll students, and only in sections they advise
+or teach. Principals cannot add learners through forms or imports. The separate
+roster import never writes assessment setup or subject scores. Follow
+[student roster access and deployment](../STUDENT_ROSTER_ACCESS_GUIDE.md) for
+this permission update; it requires no additional database migration.
+
 ## Run it
 
 ```bash

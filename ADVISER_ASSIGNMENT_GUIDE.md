@@ -5,7 +5,7 @@ assignments determine which subjects they may edit. Both are managed under
 **Class Management**, in separate **Section advisers** and **Subject teachers**
 tabs.
 
-| Assignment | View | Edit, import, and change score setup |
+| Assignment | View | Edit/import scores and change score setup |
 | --- | --- | --- |
 | Adviser only | Every subject in their advisory section | None |
 | Subject teacher | Their teaching subjects | Their teaching subjects |
@@ -27,6 +27,12 @@ tabs.
 
 For example, the adviser who teaches Mathematics can view the Science record,
 but only that section's assigned Science teacher can edit it.
+
+Student roster creation is separate from score editing. Advisers and subject
+teachers can add or import learners into their advisory or teaching sections;
+principals cannot create learners. See the
+[student roster guide](STUDENT_ROSTER_ACCESS_GUIDE.md) for the teacher-only form,
+roster import, and deployment steps.
 
 ## Reviewing older assignments
 

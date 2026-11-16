@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, ErrorNote } from './ui';
-import { studentApi } from '../../api/endpoints';
+import { assignmentApi, studentApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
+import { rosterGrades, rosterSections } from '../../lib/rosterAccess';
 
 const BLANK = {
   first_name: '',
@@ -22,16 +24,50 @@ const BLANK = {
 
 /**
  * Add or edit a student. On creation the enrolment (grade level + section) is
- * written in the same request, which is how the office actually works: nobody
- * is admitted without being placed in a section.
+ * written in the same request. Only assigned teachers and advisers may create
+ * a learner, and only in one of their own sections.
  */
 export default function StudentFormModal({ student, gradeLevels, sections, onClose, onSaved }) {
   const toast = useToast();
+  const { user } = useAuth();
   const isEdit = Boolean(student?.student_id);
 
   const [form, setForm] = useState(BLANK);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [access, setAccess] = useState(null);
+  const [accessLoading, setAccessLoading] = useState(!isEdit);
+  const [accessError, setAccessError] = useState('');
+  const [accessReload, setAccessReload] = useState(0);
+
+  useEffect(() => {
+    if (isEdit || user?.role !== 'teacher') {
+      setAccessLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setAccess(null);
+    setAccessLoading(true);
+    setAccessError('');
+    assignmentApi.mine().then((result) => {
+      if (!cancelled) setAccess(result);
+    }).catch((err) => {
+      if (!cancelled) setAccessError(err.message);
+    }).finally(() => {
+      if (!cancelled) setAccessLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [isEdit, user?.role, accessReload]);
+
+  const eligibleSections = useMemo(
+    () => rosterSections(sections, access, user?.role),
+    [sections, access, user?.role],
+  );
+  const eligibleGrades = useMemo(
+    () => rosterGrades(gradeLevels, eligibleSections),
+    [gradeLevels, eligibleSections],
+  );
+  const canCreate = !accessLoading && !accessError && eligibleSections.length > 0;
 
   useEffect(() => {
     if (!student) return;
@@ -50,10 +86,23 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
   const sectionOptions = useMemo(
     () =>
       form.grade_level_id
-        ? sections.filter((section) => String(section.grade_level_id) === String(form.grade_level_id))
+        ? eligibleSections.filter((section) => String(section.grade_level_id) === String(form.grade_level_id))
         : [],
-    [sections, form.grade_level_id],
+    [eligibleSections, form.grade_level_id],
   );
+
+  useEffect(() => {
+    if (isEdit || accessLoading) return;
+    setForm((current) => {
+      const grade = eligibleGrades.some((level) => String(level.grade_level_id) === String(current.grade_level_id))
+        ? current.grade_level_id : eligibleGrades.length === 1 ? String(eligibleGrades[0].grade_level_id) : '';
+      const options = eligibleSections.filter((section) => String(section.grade_level_id) === String(grade));
+      const section = options.some((row) => String(row.section_id) === String(current.section_id))
+        ? current.section_id : options.length === 1 ? String(options[0].section_id) : '';
+      if (String(current.grade_level_id) === String(grade) && String(current.section_id) === String(section)) return current;
+      return { ...current, grade_level_id: grade, section_id: section };
+    });
+  }, [isEdit, accessLoading, eligibleGrades, eligibleSections, form.grade_level_id]);
 
   const set = (field) => (event) =>
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -61,6 +110,13 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
   const submit = async (event) => {
     event.preventDefault();
     setError('');
+
+    if (!isEdit && (!canCreate || !eligibleSections.some((section) =>
+      String(section.section_id) === String(form.section_id)
+        && String(section.grade_level_id) === String(form.grade_level_id)))) {
+      setError('Choose a section where you teach or serve as adviser.');
+      return;
+    }
 
     if (!form.first_name.trim() || !form.last_name.trim()) {
       setError("The student's first and last name are required.");
@@ -122,7 +178,7 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
             Cancel
           </button>
-          <button type="submit" form="student-form" className="btn btn-primary" disabled={busy}>
+          <button type="submit" form="student-form" className="btn btn-primary" disabled={busy || (!isEdit && !canCreate)}>
             {busy ? 'Saving…' : isEdit ? 'Save changes' : 'Add student'}
           </button>
         </>
@@ -130,6 +186,20 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
     >
       <form id="student-form" onSubmit={submit} className="stack" noValidate>
         <ErrorNote message={error} />
+        {!isEdit && accessLoading && <p className="faint">Loading your assigned sections…</p>}
+        {!isEdit && accessError && (
+          <div className="alert alert-warning" role="alert">
+            <span>{accessError}</span>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAccessReload((value) => value + 1)}>Retry assigned sections</button>
+          </div>
+        )}
+        {!isEdit && !accessLoading && !accessError && !canCreate && (
+          <p className="alert alert-info">
+            {user?.role === 'teacher'
+              ? 'You need a teaching or adviser assignment before adding students. Ask your principal to assign your section.'
+              : 'Only a section’s assigned teachers or adviser can add students.'}
+          </p>
+        )}
 
         <div className="section-title">Student details</div>
         <div className="form-grid">
@@ -200,9 +270,10 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
                     }))
                   }
                   required
+                  disabled={!canCreate}
                 >
                   <option value="">Choose a grade level…</option>
-                  {gradeLevels.map((level) => (
+                  {eligibleGrades.map((level) => (
                     <option key={level.grade_level_id} value={level.grade_level_id}>
                       {level.name}
                     </option>
@@ -218,7 +289,7 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
                   className="select"
                   value={form.section_id}
                   onChange={set('section_id')}
-                  disabled={!form.grade_level_id}
+                  disabled={!canCreate || !form.grade_level_id}
                   required
                 >
                   <option value="">

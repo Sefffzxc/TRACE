@@ -414,6 +414,21 @@ def _roster(cells, resolve, *, after=0, before_col=MAX_COLS) -> list:
 
 
 def read(content: bytes) -> EClassRecord:
+    """Read the learners, assessment setup and scores for a subject import."""
+    return _read(content, roster_only=False)
+
+
+def read_roster(content: bytes) -> EClassRecord:
+    """Read only learners from a supported workbook, without using its scores.
+
+    Advisers can reuse a class record to establish the shared section roster.
+    Invalid or unfinished assessment columns must not prevent that operation,
+    and their grades and assessment settings are never returned for saving.
+    """
+    return _read(content, roster_only=True)
+
+
+def _read(content: bytes, *, roster_only: bool) -> EClassRecord:
     if len(content) > MAX_BYTES:
         raise NotAnEClassRecord("The file is larger than 5 MB.")
     if not zipfile.is_zipfile(io.BytesIO(content)):
@@ -428,7 +443,8 @@ def read(content: bytes) -> EClassRecord:
         grids = {sheet.title: _grid(sheet) for sheet in book}
         warnings = []
         term_sheets = _term_sheets(grids, warnings)
-        layouts = {n: _layout(term_sheets[n], grids[term_sheets[n]], warnings) for n in (1, 2, 3)}
+        layouts = ({n: _layout(term_sheets[n], grids[term_sheets[n]], warnings)
+                    for n in (1, 2, 3)} if not roster_only else {})
         input_sheets = [t for t in grids if _label(t) in ("input", "inputdata", "inputdatasheet")]
         formula_grids = {}
 
@@ -463,7 +479,8 @@ def read(content: bytes) -> EClassRecord:
 
         term_rosters = {
             n: _roster(grids[title], lambda r, c, title=title: resolve(title, r, c),
-                       after=layouts[n].highest_row, before_col=layouts[n].first_col)
+                       after=0 if roster_only else layouts[n].highest_row,
+                       before_col=MAX_COLS if roster_only else layouts[n].first_col)
             for n, title in term_sheets.items()
         }
         input_roster = []
@@ -525,7 +542,7 @@ def read(content: bytes) -> EClassRecord:
             add(entry)
         terms = []
         for n in (1, 2, 3):
-            title, layout = term_sheets[n], layouts[n]
+            title = term_sheets[n]
             roster = term_rosters[n]
             if not roster:
                 raise NotAnEClassRecord(f'"{title}" has no readable numbered learner list.')
@@ -535,6 +552,9 @@ def read(content: bytes) -> EClassRecord:
                 if index in indexes:
                     raise NotAnEClassRecord(f'"{title}" lists the same learner more than once. Resolve duplicate names before importing.')
                 indexes[index] = entry.row
+            if roster_only:
+                continue
+            layout = layouts[n]
             score_cols = layout.exam_cols + [c for groups in layout.groups.values() for group in groups for c in group.cols]
             source = formula_cells(title)
             uncached = sum(grids[title].get((r, c)) is None and _text(source.get((r, c))).startswith("=")

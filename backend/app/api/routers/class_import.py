@@ -10,6 +10,12 @@ enrolled in the section, each term's header (highest possible scores and
 weights) is written, and the scores go through the same save as a typed
 class record, so grades, early warnings and the AI forecast follow exactly
 as they would after encoding by hand.
+
+With ``roster_only`` true, an assigned subject teacher or adviser can import
+just the shared section roster without a subject or any assessment writes.
+Principals retain their existing score permissions for enrolled learners,
+but neither score imports nor roster imports may create/enroll learners for
+them.
 """
 
 from __future__ import annotations
@@ -34,7 +40,7 @@ from app.api.scoping import get_scoped, scoped
 from app.db.session import get_db
 from app.models.academic import GradeLevel, SchoolYear, Section, Subject
 from app.models.schools import School
-from app.models.staff import Staff
+from app.models.staff import ROLE_TEACHER, Staff
 from app.models.students import (
     ClassRecordSetup,
     Student,
@@ -45,6 +51,7 @@ from app.schemas.students import BulkPaceEntry, BulkPaceRequest
 from app.services import eclass_import, grading
 from app.services.access import class_access
 from app.services.audit import Action, log_event
+from app.services.roster_access import lock_roster_section, require_roster_section
 
 router = APIRouter(tags=["Class record import"])
 
@@ -83,30 +90,40 @@ async def import_class_record(
     request: Request,
     file: UploadFile = File(...),
     section_id: int = Form(...),
-    subject_id: int = Form(...),
+    subject_id: Optional[int] = Form(None),
     save: bool = Form(False),
+    roster_only: bool = Form(False),
     current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     school = await db.get(School, scope)
-    if school is not None and school.tracks_units:
+    if school is not None and school.tracks_units and not roster_only:
         raise HTTPException(
             status_code=400,
             detail="Class record import is for schools that use the DepEd class record.",
         )
 
     section = await get_scoped(db, Section, section_id, scope, "Section")
-    subject = await get_scoped(db, Subject, subject_id, scope, "Subject")
-    if subject.grade_level_id != section.grade_level_id:
-        raise HTTPException(status_code=400,
-                            detail="That subject is not taught in this section's grade level.")
-    # Only into a class this teacher grades.
-    (await class_access(db, current, scope)).require_grade(section_id, subject.subject_name)
+    can_add_students = current.role == ROLE_TEACHER
+    if roster_only or can_add_students:
+        await require_roster_section(db, current, scope, section_id)
+    subject = None
+    if not roster_only:
+        if subject_id is None:
+            raise HTTPException(status_code=400,
+                                detail="Choose a subject before importing class record scores.")
+        subject = await get_scoped(db, Subject, subject_id, scope, "Subject")
+        if subject.grade_level_id != section.grade_level_id:
+            raise HTTPException(status_code=400,
+                                detail="That subject is not taught in this section's grade level.")
+        # Roster responsibility alone never grants subject grading rights.
+        (await class_access(db, current, scope)).require_grade(section_id, subject.subject_name)
 
     content = await file.read(eclass_import.MAX_BYTES + 1)
     try:
-        record = eclass_import.read(content)
+        record = (eclass_import.read_roster(content) if roster_only
+                  else eclass_import.read(content))
     except eclass_import.NotAnEClassRecord as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -120,7 +137,7 @@ async def import_class_record(
     # header are often typed loosely, and the teacher picked the class.
     head = record.header
     notes = list(record.warnings)
-    if head["subject"] and not _same(head["subject"], subject.subject_name):
+    if subject and head["subject"] and not _same(head["subject"], subject.subject_name):
         notes.insert(0, f'The file is for "{head["subject"]}"; it will go into '
                         f"{subject.subject_name}.")
     if head["grade_level"] and level and not re.search(
@@ -137,6 +154,18 @@ async def import_class_record(
     if head["school_year"] and not _same(head["school_year"], year.year):
         notes.insert(0, f"The file is for S.Y. {head['school_year']}; the current school "
                         f"year is {year.year}.")
+
+    # A confirmed teacher import shares the section lock with manual student
+    # creation. Match again under that lock so two first imports reuse the
+    # same roster rather than creating the learners twice.
+    if save and can_add_students:
+        section = await lock_roster_section(db, scope, section_id)
+        await require_roster_section(db, current, scope, section_id)
+        if subject:
+            if subject.grade_level_id != section.grade_level_id:
+                raise HTTPException(status_code=400,
+                                    detail="That subject is not taught in this section's grade level.")
+            (await class_access(db, current, scope)).require_grade(section_id, subject.subject_name)
 
     # ── Who is who.
     enrolled = (
@@ -191,6 +220,11 @@ async def import_class_record(
                      "; skipped.")
 
     joining = sum(1 for p in plan if p[0] in (NEW, ENROL))
+    can_import = not joining or can_add_students
+    blocking_reason = None if can_import else (
+        "Principals cannot add or enroll students. An assigned teacher or "
+        "section adviser must add these learners before scores can be imported."
+    )
     if joining:
         taken = (
             await db.execute(
@@ -231,7 +265,11 @@ async def import_class_record(
     preview = {
         "file": {k: v for k, v in head.items() if v},
         "section": section.name,
-        "subject": subject.subject_name,
+        "subject": subject.subject_name if subject else None,
+        "roster_only": roster_only,
+        "can_add_students": can_add_students,
+        "can_import": can_import,
+        "blocking_reason": blocking_reason,
         "learners": [
             {
                 "name": f"{l.last_name}, {l.first_name}" + (f" {l.middle_name}" if l.middle_name else ""),
@@ -249,10 +287,12 @@ async def import_class_record(
         "terms": [term_summary(t) for t in record.terms],
         "warnings": notes,
     }
-    if not record.terms:
+    if not roster_only and not record.terms:
         preview["warnings"].append("The file has names but no scores yet.")
     if not save:
         return preview
+    if not can_import:
+        raise HTTPException(status_code=403, detail=blocking_reason)
 
     # ── Save. Learners first, so every row below has an enrolment.
     enrolment_of: dict[int, tuple[int, int]] = {}   # learner index -> (student, enrolment)
@@ -372,8 +412,10 @@ async def import_class_record(
     ai = await _score_batch(db, touched, scope) if touched else None
 
     await log_event(
-        db, Action.PACE_RECORDED, actor_id=current.id,
-        detail=(f"class record imported into section {section_id} subject {subject_id}: "
+        db, Action.STUDENT_CREATED if roster_only else Action.PACE_RECORDED,
+        actor_id=current.id,
+        detail=(f"{'student roster' if roster_only else 'class record'} imported into "
+                f"section {section_id}" + (f" subject {subject_id}" if subject else "") + ": "
                 f"{created} learners added, {enrolled_now} enrolled, "
                 f"terms {[t['term'] for t in saved_terms]}"),
         request=request,
