@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GraduationCap, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
 import { EmptyState, Modal } from '../../components/common/ui';
+import { formatPersonName } from '../../lib/personName';
 
 export function GradeSectionsTable({ data, onEdit, onDelete }) {
   if (!data.levels.length) {
@@ -41,7 +42,7 @@ export function GradeSectionsTable({ data, onEdit, onDelete }) {
                     {sections.map((section) => (
                       <tr key={section.section_id}>
                         <td className="cell-strong">{section.name}</td>
-                        <td className="muted">{section.adviser_name || 'Unassigned'}</td>
+                        <td className="muted">{formatPersonName(section.adviser_name) || 'Unassigned'}</td>
                         <td>{section.enrolled_count} / {section.capacity}</td>
                       </tr>
                     ))}

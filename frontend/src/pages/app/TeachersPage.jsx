@@ -20,6 +20,7 @@ import {
 } from '../../components/common/ui';
 import { staffApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
+import { formatPersonName } from '../../lib/personName';
 
 const STATUS_BADGE = {
   approved: 'badge-low',
@@ -92,10 +93,11 @@ export default function TeachersPage() {
       const result = await staffApi.adminAction(person.id, action);
       if (result.temporary_password) {
         toast.warning(
-          `Temporary password for ${person.first_name}: ${result.temporary_password} — share it securely.`,
+          `Temporary password for ${formatPersonName(person.first_name)}: ${result.temporary_password} — share it securely.`,
         );
       } else {
-        toast.success(result.message);
+        const fullName = result.user?.full_name || person.full_name || `${person.first_name}${person.middle_name ? ` ${person.middle_name}` : ''} ${person.last_name}`;
+        toast.success(result.message.replace(fullName, () => formatPersonName(fullName)));
       }
       setConfirm(null);
       load();
@@ -187,13 +189,13 @@ export default function TeachersPage() {
             <article key={person.id} className="tcard">
               <div className="tcard-top">
                 <Avatar
-                  name={`${person.first_name} ${person.last_name}`}
+                  name={formatPersonName(`${person.first_name} ${person.last_name}`)}
                   src={person.profile_pic}
                   size="lg"
                 />
                 <div className="tcard-id">
                   <div className="tcard-name">
-                    {person.first_name} {person.last_name}
+                    {formatPersonName(`${person.first_name} ${person.last_name}`)}
                   </div>
                   <div className="tcard-sub">
                     Joined{' '}
@@ -262,7 +264,7 @@ export default function TeachersPage() {
       {confirm && (
         <ConfirmDialog
           title={ACTIONS[confirm.action].title}
-          message={`${confirm.person.first_name} ${confirm.person.last_name} — ${
+          message={`${formatPersonName(`${confirm.person.first_name} ${confirm.person.last_name}`)} — ${
             ACTIONS[confirm.action].message
           }`}
           confirmLabel={ACTIONS[confirm.action].label}

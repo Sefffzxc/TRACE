@@ -26,6 +26,7 @@ import { useToast } from '../../context/ToastContext';
 import { useSchoolYear } from '../../context/SchoolYearContext';
 import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
 import { assignedSections, matchesSection, sectionLabel } from '../../lib/classAccess';
+import { formatPersonName } from '../../lib/personName';
 
 /** Where the learner sits against the passing mark, e.g. "4 below 75". */
 function GapToPassing({ standing, passing }) {
@@ -175,7 +176,7 @@ export default function EarlyWarningPage() {
     setBusyId(warning.warning_id);
     try {
       await warningApi.update(warning.warning_id, { is_resolved: true });
-      toast.success(`${warning.student_name} — ${warning.subject} marked as handled.`);
+      toast.success(`${formatPersonName(warning.student_name)} — ${warning.subject} marked as handled.`);
       load();
     } catch (err) {
       toast.error(err.message);
@@ -203,7 +204,7 @@ export default function EarlyWarningPage() {
     const lines = filtered.map((warning) => {
       const prediction = predictionFor.get(`${warning.student_id}::${warning.subject}`);
       return [
-        warning.student_name,
+        formatPersonName(warning.student_name),
         warning.section_name || '',
         warning.subject,
         warning.risk_level,
@@ -442,7 +443,7 @@ export default function EarlyWarningPage() {
                               }}
                               onClick={() => navigate(`/students/${warning.student_id}`)}
                             >
-                              {warning.student_name}
+                              {formatPersonName(warning.student_name)}
                             </button>
                             <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
                               {warning.section_name || '—'}
@@ -453,7 +454,7 @@ export default function EarlyWarningPage() {
                       <td>
                         <div>{warning.subject}</div>
                         <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
-                          {warning.teacher}
+                          {formatPersonName(warning.teacher)}
                         </div>
                       </td>
                       {units ? (

@@ -3,6 +3,7 @@ import { enrollmentApi, studentApi } from '../../api/endpoints';
 import { useSchoolYear } from '../../context/SchoolYearContext';
 import { useToast } from '../../context/ToastContext';
 import { ErrorNote, Modal } from './ui';
+import { formatPersonName } from '../../lib/personName';
 
 /** Reuse the school profile while creating a separate enrollment for this year. */
 export default function EnrollReturningStudentModal({ gradeLevels, sections, onClose, onSaved }) {
@@ -93,7 +94,7 @@ export default function EnrollReturningStudentModal({ gradeLevels, sections, onC
       {matches.length > 0 && <div className="stack" role="radiogroup" aria-label="Matching student profiles">
         {matches.map((row) => <label key={row.student_id} className="checkbox">
           <input type="radio" name="returning_student" value={row.student_id} checked={selectedId === row.student_id} disabled={busy} onChange={() => setSelectedId(row.student_id)} />
-          <span>{row.full_name}<span className="faint">{row.login_id ? ` · ${row.login_id}` : ''}</span></span>
+          <span>{formatPersonName(row.full_name)}<span className="faint">{row.login_id ? ` · ${row.login_id}` : ''}</span></span>
         </label>)}
       </div>}
       <p className="faint">This adds an enrollment for the current year. Previous scores and enrollments stay in their original school year.</p>

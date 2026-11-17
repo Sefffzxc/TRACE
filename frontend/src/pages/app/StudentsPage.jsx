@@ -33,6 +33,7 @@ import { useSchoolYear } from '../../context/SchoolYearContext';
 import { AiRiskBadge } from '../../components/common/ai';
 import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
 import { rosterGrades, rosterSections } from '../../lib/rosterAccess';
+import { formatPersonName } from '../../lib/personName';
 
 const PAGE_SIZE = 12;
 
@@ -250,8 +251,8 @@ export default function StudentsPage() {
     const lines = sorted.map((student) =>
       [
         student.login_id || '',
-        student.last_name,
-        student.first_name,
+        formatPersonName(student.last_name),
+        formatPersonName(student.first_name),
         student.grade_level_name || '',
         student.section_name || '',
         student.weakest_subject ?? '',
@@ -295,7 +296,7 @@ export default function StudentsPage() {
     setBusy(true);
     try {
       await studentApi.remove(deleting.student_id);
-      toast.success(`${deleting.full_name} withdrawn from the current school year. Their profile and past records are kept.`);
+      toast.success(`${formatPersonName(deleting.full_name)} withdrawn from the current school year. Their profile and past records are kept.`);
       setDeleting(null);
       load();
     } catch (err) {
@@ -495,7 +496,7 @@ export default function StudentsPage() {
                         <div className="cell-name">
                           <Avatar name={student.full_name} src={student.photo} size="sm" />
                           <div>
-                            <div className="cell-strong">{student.full_name}</div>
+                            <div className="cell-strong">{formatPersonName(student.full_name)}</div>
                             <div className="mono faint">
                               {student.login_id}
                               {student.profile_missing?.length > 0 && (
@@ -734,7 +735,7 @@ export default function StudentsPage() {
       {deleting && (
         <ConfirmDialog
           title="Withdraw from this school year?"
-          message={`Withdraw ${deleting.full_name} from ${year?.year || 'the current school year'}? Their profile, saved scores and previous school years will be preserved.`}
+          message={`Withdraw ${formatPersonName(deleting.full_name)} from ${year?.year || 'the current school year'}? Their profile, saved scores and previous school years will be preserved.`}
           confirmLabel="Withdraw student"
           busy={busy}
           onConfirm={removeStudent}

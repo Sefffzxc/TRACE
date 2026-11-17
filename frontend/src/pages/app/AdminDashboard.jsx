@@ -16,6 +16,7 @@ import { EmptyState, ErrorNote } from '../../components/common/ui';
 import { dashboardApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { IMAGES } from '../../config/images';
+import { formatPersonName } from '../../lib/personName';
 
 /**
  * The principal's dashboard: the school and its teachers, not its learners.
@@ -125,7 +126,7 @@ export default function AdminDashboard() {
         <div className="hero-inner">
           <div>
             <h1>
-              {greeting}, {user?.first_name}.
+              {greeting}, {formatPersonName(user?.first_name)}.
             </h1>
             <p className="hero-sub">
               {attentionCount > 0
@@ -216,7 +217,7 @@ export default function AdminDashboard() {
                   <tbody>
                     {data.teachers.map((teacher) => (
                       <tr key={teacher.id}>
-                        <td className="cell-strong">{teacher.name}</td>
+                        <td className="cell-strong">{formatPersonName(teacher.name)}</td>
                         <td className="right">{teacher.classes}</td>
                         <td style={{ minWidth: 170 }}>
                           {teacher.progress == null ? (
@@ -273,7 +274,7 @@ export default function AdminDashboard() {
                       Inactive 2+ weeks
                     </div>
                     <div className="muted" style={{ marginTop: '.25rem' }}>
-                      {attention.quiet_teachers.join(', ')}
+                      {attention.quiet_teachers.map(formatPersonName).join(', ')}
                     </div>
                   </div>
                 )}
@@ -289,7 +290,7 @@ export default function AdminDashboard() {
                     <ul className="muted" style={{ margin: '.25rem 0 0', paddingLeft: '1.1rem' }}>
                       {attention.classes_not_started.map((item) => (
                         <li key={`${item.section}-${item.subject}`}>
-                          {item.subject}, {item.section} · {item.teacher}
+                          {item.subject}, {item.section} · {formatPersonName(item.teacher)}
                         </li>
                       ))}
                     </ul>
@@ -340,7 +341,7 @@ export default function AdminDashboard() {
                   </span>
                   <span className="feed-body">
                     <span className="feed-title">{item.label}</span>
-                    <span className="feed-detail">{item.actor}</span>
+                    <span className="feed-detail">{formatPersonName(item.actor)}</span>
                   </span>
                   <span className="feed-when">{item.when}</span>
                 </div>

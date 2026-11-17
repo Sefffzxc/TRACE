@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { AlertTriangle, Inbox, Loader2, X } from 'lucide-react';
 import { assetUrl } from '../../api/client';
+import { formatPersonName } from '../../lib/personName';
 
 /* ── Risk badge ──────────────────────────────────────────────────────────── */
 const RISK_LABEL = {
@@ -25,8 +26,9 @@ export function RiskBadge({ level = 'low', showScore, score }) {
 
 /* ── Avatar ──────────────────────────────────────────────────────────────── */
 export function Avatar({ name = '', src, size = '', className = '' }) {
+  const displayName = formatPersonName(name);
   const initials =
-    name
+    displayName
       .split(' ')
       .filter(Boolean)
       .slice(0, 2)
@@ -35,7 +37,7 @@ export function Avatar({ name = '', src, size = '', className = '' }) {
       .toUpperCase() || '—';
   const url = assetUrl(src);
   return (
-    <span className={`avatar ${size ? `avatar-${size}` : ''} ${className}`.trim()} title={name}>
+    <span className={`avatar ${size ? `avatar-${size}` : ''} ${className}`.trim()} title={displayName}>
       {url ? <img src={url} alt="" /> : initials}
     </span>
   );

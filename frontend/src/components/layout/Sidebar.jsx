@@ -15,6 +15,7 @@ import { Avatar } from '../common/ui';
 import { SYSTEM } from '../../config/images';
 import TraceMark from '../common/TraceMark';
 import { useAuth } from '../../context/AuthContext';
+import { formatPersonName } from '../../lib/personName';
 
 export default function Sidebar({ collapsed, open, onNavigate, pendingCount, criticalCount }) {
   const { user, isAdmin, isSuperAdmin, tracksUnits, unitLabel } = useAuth();
@@ -125,13 +126,13 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
       <div className="sidebar-foot">
         <div className="sidebar-user">
           <Avatar
-            name={`${user?.first_name || ''} ${user?.last_name || ''}`}
+            name={formatPersonName(`${user?.first_name || ''} ${user?.last_name || ''}`)}
             src={user?.profile_pic}
             size="sm"
           />
           <span className="who">
             <div className="n">
-              {user?.first_name} {user?.last_name}
+              {formatPersonName(`${user?.first_name || ''} ${user?.last_name || ''}`)}
             </div>
             <div className="r">{user?.role?.replace(/_/g, ' ')}</div>
           </span>

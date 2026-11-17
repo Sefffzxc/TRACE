@@ -28,6 +28,7 @@ import {
   show,
 } from '../../lib/grading';
 import { assignedSections, sectionLabel } from '../../lib/classAccess';
+import { formatPersonName } from '../../lib/personName';
 
 /**
  * The MATATAG three-term E-Class Record.
@@ -525,7 +526,7 @@ export default function ClassRecordPage() {
                   <tr key={row.enrollment.enrollment_id} className={row.dirty ? 'cr-dirty' : ''}>
                     <th className="cr-sticky cr-name" scope="row">
                       <span className="cr-no">{index + 1}</span>
-                      {row.enrollment.student_name}
+                      {formatPersonName(row.enrollment.student_name)}
                     </th>
 
                     <ScoreCells
@@ -536,7 +537,7 @@ export default function ClassRecordPage() {
                       row={index}
                       colStart={0}
                       onChange={(i, v) => setCell(row.enrollment.enrollment_id, 'ww_scores', i, v)}
-                      label={`${row.enrollment.student_name} written work`}
+                      label={`${formatPersonName(row.enrollment.student_name)} written work`}
                     />
                     <Derived value={row.computed.ww_total} />
                     <Derived value={row.computed.ww_pct} />
@@ -550,7 +551,7 @@ export default function ClassRecordPage() {
                       row={index}
                       colStart={head.ww_highest.length}
                       onChange={(i, v) => setCell(row.enrollment.enrollment_id, 'pt_scores', i, v)}
-                      label={`${row.enrollment.student_name} performance task`}
+                      label={`${formatPersonName(row.enrollment.student_name)} performance task`}
                     />
                     <Derived value={row.computed.pt_total} />
                     <Derived value={row.computed.pt_pct} />
@@ -566,7 +567,7 @@ export default function ClassRecordPage() {
                       onChange={(i, v) =>
                         setCell(row.enrollment.enrollment_id, 'exam_scores', i, v)
                       }
-                      label={`${row.enrollment.student_name} examination`}
+                      label={`${formatPersonName(row.enrollment.student_name)} examination`}
                     />
                     {row.computed.exam_parts.map((part, i) => (
                       <Derived key={`p${i}`} value={part} />

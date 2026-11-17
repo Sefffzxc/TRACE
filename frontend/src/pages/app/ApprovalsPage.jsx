@@ -5,6 +5,7 @@ import { Avatar, EmptyState, ErrorNote, Modal, PageHead, TableSkeleton } from '.
 import ApplicationHistoryModal from '../../components/common/ApplicationHistoryModal';
 import { staffApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
+import { formatPersonName } from '../../lib/personName';
 
 const STATUSES = [
   { key: 'pending', label: 'Pending' },
@@ -98,7 +99,8 @@ export default function ApprovalsPage() {
     setBusyId(person.id);
     try {
       const result = await staffApi.adminAction(person.id, action, decisionReason ? { reason: decisionReason.trim() } : {});
-      toast.success(result.message);
+      const fullName = result.user?.full_name || person.full_name || `${person.first_name}${person.middle_name ? ` ${person.middle_name}` : ''} ${person.last_name}`;
+      toast.success(result.message.replace(fullName, () => formatPersonName(fullName)));
       setDeciding(null);
       setReason('');
       await load({ afterDecision: true });
@@ -111,7 +113,7 @@ export default function ApprovalsPage() {
   };
 
   const openHistory = (person) => setHistory({
-    name: `${person.first_name} ${person.last_name} — ${person.email}`,
+    name: `${formatPersonName(`${person.first_name} ${person.last_name}`)} — ${person.email}`,
     load: () => staffApi.applicationHistory(person.id),
   });
   const closeDecision = () => { if (busyId) return; setDeciding(null); setReason(''); };
@@ -147,9 +149,9 @@ export default function ApprovalsPage() {
               description={error ? 'Refresh requests to try again.' : status === 'pending' ? 'New requests appear here.' : 'Try another status.'} />
           ) : applications.map((person) => (
             <div className="approval" key={person.id}>
-              <Avatar name={`${person.first_name} ${person.last_name}`} size="lg" />
+              <Avatar name={formatPersonName(`${person.first_name} ${person.last_name}`)} size="lg" />
               <div className="who" style={{ overflowWrap: 'anywhere' }}>
-                <div className="n">{person.first_name} {person.middle_name ? `${person.middle_name} ` : ''}{person.last_name}</div>
+                <div className="n">{formatPersonName(`${person.first_name} ${person.middle_name ? `${person.middle_name} ` : ''}${person.last_name}`)}</div>
                 <div className="e row" style={{ gap: '.35rem' }}><Mail size={12} /> {person.email}</div>
                 <div className="e row faint" style={{ gap: '.35rem', fontSize: 'var(--text-xs)' }}><Phone size={11} /> {person.contact_number}</div>
                 {person.rejection_reason && <div className="e" style={{ marginTop: '.4rem', whiteSpace: 'pre-wrap' }}>Reason on file: {person.rejection_reason}</div>}
@@ -177,14 +179,14 @@ export default function ApprovalsPage() {
           {logs.length === 0 && !auditError ? <EmptyState icon={UserCheck} title="No recorded actions yet" /> : (
             <div className="table-wrap"><table className="table">
               <thead><tr><th>Action</th><th>Performed by</th><th>Affecting</th><th>Detail</th><th>When</th></tr></thead>
-              <tbody>{logs.map((log) => <tr key={log.id}><td className="cell-strong">{log.action.replace(/_/g, ' ')}</td><td>{log.admin_name || 'System'}</td><td>{log.target_name || '—'}</td><td className="muted">{log.detail || '—'}</td><td className="faint nowrap">{log.created_at ? new Date(log.created_at).toLocaleString() : '—'}</td></tr>)}</tbody>
+              <tbody>{logs.map((log) => <tr key={log.id}><td className="cell-strong">{log.action.replace(/_/g, ' ')}</td><td>{formatPersonName(log.admin_name) || 'System'}</td><td>{formatPersonName(log.target_name) || '—'}</td><td className="muted">{log.detail || '—'}</td><td className="faint nowrap">{log.created_at ? new Date(log.created_at).toLocaleString() : '—'}</td></tr>)}</tbody>
             </table></div>
           )}
         </div>
       </div>
 
       {deciding && <Modal title={blocking ? 'Block this application?' : 'Reject this registration?'}
-        subtitle={<span style={{ overflowWrap: 'anywhere' }}>{`${deciding.person.first_name} ${deciding.person.last_name} — ${deciding.person.email}`}</span>} size="sm" onClose={closeDecision}
+        subtitle={<span style={{ overflowWrap: 'anywhere' }}>{`${formatPersonName(`${deciding.person.first_name} ${deciding.person.last_name}`)} — ${deciding.person.email}`}</span>} size="sm" onClose={closeDecision}
         footer={<><button type="button" className="btn btn-secondary" onClick={closeDecision} disabled={busyId !== null}>Cancel</button><button type="button" className="btn btn-danger" onClick={() => decide(deciding.person, deciding.action, reason)} disabled={busyId !== null || !reason.trim()}>{busyId ? 'Working…' : blocking ? 'Block application' : 'Reject request'}</button></>}>
         <p className="muted" style={{ marginBottom: '.75rem' }}>{blocking ? 'This prevents further resubmissions. An administrator can reopen the request later.' : 'The applicant receives your reason and can correct and resubmit using the same account.'}</p>
         <div className="field"><label className="field-label" htmlFor="reject_reason">Reason (required)</label>

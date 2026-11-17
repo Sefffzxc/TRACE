@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { classRecordApi, enrollmentApi, paceApi } from '../api/endpoints';
 import { CORE, TEMPLATES, computeRow } from '../lib/grading';
+import { formatPersonName } from '../lib/personName';
 
 export const DEFAULT_RECORD_SETUP = {
   template: CORE, ww_highest: [null, null, null, null, null],
@@ -150,7 +151,7 @@ export default function useClassRecordAutosave(context, reloadVersion = 0, { can
         if (setupChanged(captured)) {
           const invalidExisting = recordRows(captured).find((row) => rowProblem(row, head));
           if (invalidExisting) {
-            throw new Error(`${invalidExisting.enrollment.student_name}: ${rowProblem(invalidExisting, head)} Correct the learner score or highest possible score before saving this setup.`);
+            throw new Error(`${formatPersonName(invalidExisting.enrollment.student_name)}: ${rowProblem(invalidExisting, head)} Correct the learner score or highest possible score before saving this setup.`);
           }
           requireWriteAccess();
           const saved = await classRecordApi.saveSetup(captured.context, normalizeSetup(head));
@@ -187,7 +188,7 @@ export default function useClassRecordAutosave(context, reloadVersion = 0, { can
             return { ...current, paces, drafts, savedAt: Date.now() };
           });
         }
-        if (invalid.length) throw new Error(`${invalid.length} learner${invalid.length === 1 ? '' : 's'} still need corrections. ${invalid[0].enrollment.student_name}: ${rowProblem(invalid[0], head)}${valid.length ? ' Other valid learner entries were saved.' : ''}`);
+        if (invalid.length) throw new Error(`${invalid.length} learner${invalid.length === 1 ? '' : 's'} still need corrections. ${formatPersonName(invalid[0].enrollment.student_name)}: ${rowProblem(invalid[0], head)}${valid.length ? ' Other valid learner entries were saved.' : ''}`);
         return !hasChanges(stateRef.current);
       } catch (err) {
         update((current) => current.key === captured.key && access.current.key === captured.key && access.current.canEdit

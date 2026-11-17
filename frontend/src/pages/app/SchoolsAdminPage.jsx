@@ -19,6 +19,7 @@ import { EmptyState, ErrorNote, Modal, PageHead, TableSkeleton } from '../../com
 import ApplicationHistoryModal from '../../components/common/ApplicationHistoryModal';
 import { schoolApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
+import { formatPersonName } from '../../lib/personName';
 
 /**
  * The filters, in the order an operator works through them: the queue first,
@@ -252,7 +253,7 @@ export default function SchoolsAdminPage() {
                   <div className="facts" style={{ overflowWrap: 'anywhere', minWidth: 0 }}>
                     <div>
                       <span className="k">Principal</span>
-                      <span className="v">{school.principal_name || '—'}</span>
+                      <span className="v">{formatPersonName(school.principal_name) || '—'}</span>
                     </div>
                     <div>
                       <span className="k">

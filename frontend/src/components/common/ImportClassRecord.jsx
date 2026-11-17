@@ -3,6 +3,7 @@ import { AlertTriangle, FileSpreadsheet, Upload } from 'lucide-react';
 import { Modal } from './ui';
 import { classRecordApi } from '../../api/endpoints';
 import { periodName } from '../../lib/grading';
+import { formatPersonName } from '../../lib/personName';
 import { useSchoolYear } from '../../context/SchoolYearContext';
 
 /* Brings a three-term E-Class Record (.xlsx) into the class record open on
@@ -185,7 +186,7 @@ export default function ImportClassRecord({ section, subject, periodLabel, roste
               <ul>
                 {preview.learners.map((l) => (
                   <li key={`${l.gender}-${l.name}`}>
-                    <span>{l.name}</span>
+                    <span>{formatPersonName(l.name)}</span>
                     <span className={`badge ${STATUS[l.status].badge}`}>{STATUS[l.status].label}</span>
                   </li>
                 ))}

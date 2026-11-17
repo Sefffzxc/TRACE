@@ -30,6 +30,7 @@ import { aiApi, assignmentApi, sectionApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useSchoolYear } from '../../context/SchoolYearContext';
 import { assignedSections, matchesSection, sectionLabel } from '../../lib/classAccess';
+import { formatPersonName } from '../../lib/personName';
 
 const LEVELS = [
   { key: 'all', label: 'All' },
@@ -175,7 +176,7 @@ export default function AiInsightsPage() {
     ];
     const lines = filtered.map((row) =>
       [
-        row.student_name, row.section_name || '', row.subject,
+        formatPersonName(row.student_name), row.section_name || '', row.subject,
         row.predicted_final ?? '', row.range_low ?? '', row.range_high ?? '', row.risk_score,
         row.risk_level, row.used_threshold, row.primary_factor || '', row.source,
         row.model_version, (row.imputed_fields || []).join('; '), row.created_at || '',
@@ -396,7 +397,7 @@ export default function AiInsightsPage() {
                               style={{ fontWeight: 600, color: 'var(--text-strong)' }}
                               onClick={() => navigate(`/students/${row.student_id}`)}
                             >
-                              {row.student_name || `Student ${row.student_id}`}
+                              {formatPersonName(row.student_name) || `Student ${row.student_id}`}
                             </button>
                             <div className="faint" style={{ fontSize: 'var(--text-2xs)' }}>
                               {row.section_name || '—'}
@@ -447,7 +448,7 @@ export default function AiInsightsPage() {
 
       {detail && (
         <Modal
-          title={`${detail.student_name || 'Student'} — ${detail.subject}`}
+          title={`${formatPersonName(detail.student_name) || 'Student'} — ${detail.subject}`}
           subtitle={
             detail.source === 'model'
               ? detail.predicted_final != null

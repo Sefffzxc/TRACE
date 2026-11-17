@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { History, RefreshCw } from 'lucide-react';
 import { EmptyState, ErrorNote, Modal, TableSkeleton } from './ui';
+import { formatPersonName } from '../../lib/personName';
 
 const label = (value) => value ? value.replace(/_/g, ' ') : 'Not submitted';
 
@@ -44,7 +45,7 @@ export default function ApplicationHistoryModal({ name, loadHistory, onClose }) 
               {entry.reason && <p style={{ margin: '.5rem 0', whiteSpace: 'pre-wrap' }}>{entry.reason}</p>}
               {entry.detail && entry.detail !== entry.reason && <p className="muted" style={{ margin: '.5rem 0', whiteSpace: 'pre-wrap' }}>{entry.detail}</p>}
               <div className="faint" style={{ fontSize: 'var(--text-xs)' }}>
-                {entry.actor_name || 'Applicant / system'} · {entry.created_at ? new Date(entry.created_at).toLocaleString() : 'Date unavailable'}
+                {formatPersonName(entry.actor_name) || 'Applicant / system'} · {entry.created_at ? new Date(entry.created_at).toLocaleString() : 'Date unavailable'}
               </div>
             </li>
           ))}

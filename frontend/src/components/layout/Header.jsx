@@ -18,6 +18,7 @@ import { Avatar } from '../common/ui';
 import { staffApi, studentApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { formatPersonName } from '../../lib/personName';
 
 const TITLES = {
   '/dashboard': 'Dashboard',
@@ -203,9 +204,9 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
                     onMouseEnter={() => setActive(index)}
                     onClick={() => openMatch(row)}
                   >
-                    <Avatar name={row.full_name} src={row.photo} size="sm" />
+                    <Avatar name={formatPersonName(row.full_name)} src={row.photo} size="sm" />
                     <span className="search-result-text">
-                      <span className="search-result-name">{row.full_name}</span>
+                      <span className="search-result-name">{formatPersonName(row.full_name)}</span>
                       <span className="search-result-sub">
                         {isAdmin
                           ? row.email || row.role
@@ -276,7 +277,7 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
                       <AlertTriangle size={16} />
                     </span>
                     <span className="notice-body">
-                      <span className="notice-title">{alert.student_name}</span>
+                      <span className="notice-title">{formatPersonName(alert.student_name)}</span>
                       <span className="notice-text">
                         {/* Each kind of school in its own terms: booklets behind,
                             or the current grade against the passing mark. */}
@@ -321,13 +322,13 @@ export default function Header({ collapsed, onToggleCollapse, onOpenMobile, aler
             aria-expanded={menuOpen}
           >
             <Avatar
-              name={`${user?.first_name || ''} ${user?.last_name || ''}`}
+              name={formatPersonName(`${user?.first_name || ''} ${user?.last_name || ''}`)}
               src={user?.profile_pic}
               size="sm"
             />
             <span className="who">
               <span className="n">
-                {user?.first_name} {user?.last_name}
+                {formatPersonName(`${user?.first_name || ''} ${user?.last_name || ''}`)}
               </span>
               <span className="r">{user?.role}</span>
             </span>

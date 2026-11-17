@@ -28,6 +28,7 @@ import { dashboardApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { IMAGES } from '../../config/images';
 import AdminDashboard from './AdminDashboard';
+import { formatPersonName } from '../../lib/personName';
 
 /* A figure card. With `to` it is a button that opens the page behind the
    number, already filtered to what the number counts. */
@@ -147,7 +148,7 @@ function TeacherDashboard() {
         <div className="hero-inner">
           <div>
             <h1>
-              {greeting}, {user?.first_name}.
+              {greeting}, {formatPersonName(user?.first_name)}.
             </h1>
             <p className="hero-sub">
               {stats.critical > 0
@@ -367,7 +368,7 @@ function TeacherDashboard() {
                         className="clickable"
                         onClick={() => navigate(`/students/${row.student_id}`)}
                       >
-                        <td className="cell-strong">{row.student_name}</td>
+                        <td className="cell-strong">{formatPersonName(row.student_name)}</td>
                         <td className="muted">{row.section}</td>
                         <td>{row.subject}</td>
                         {units ? (
@@ -431,7 +432,7 @@ function TeacherDashboard() {
                     </span>
                     <span className="feed-body">
                       <span className="feed-title">{item.label}</span>
-                      <span className="feed-detail">{item.detail || item.actor}</span>
+                      <span className="feed-detail">{item.detail || formatPersonName(item.actor)}</span>
                     </span>
                     <span className="feed-when">{item.when}</span>
                   </div>

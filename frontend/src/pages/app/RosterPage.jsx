@@ -13,6 +13,7 @@ import { enrollmentApi, paceApi, sectionApi, subjectApi } from '../../api/endpoi
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSchoolYear } from '../../context/SchoolYearContext';
+import { formatPersonName } from '../../lib/personName';
 
 /**
  * The teacher's main workflow: pick a section and a subject, type in how far
@@ -203,7 +204,7 @@ export default function RosterPage() {
 
       missingPace.forEach((row) =>
         toast.warning(
-          `${row.enrollment.student_name}: enter a current ${unitLabel} number.`,
+          `${formatPersonName(row.enrollment.student_name)}: enter a current ${unitLabel} number.`,
         ),
       );
 
@@ -350,7 +351,7 @@ export default function RosterPage() {
                               }}
                               onClick={() => navigate(`/students/${row.enrollment.student_id}`)}
                             >
-                              {row.enrollment.student_name}
+                              {formatPersonName(row.enrollment.student_name)}
                             </button>
                           </div>
                         </td>

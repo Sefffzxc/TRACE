@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useSchoolYear } from '../../context/SchoolYearContext';
 import { rosterGrades, rosterSections } from '../../lib/rosterAccess';
+import { formatPersonName } from '../../lib/personName';
 
 const BLANK = {
   first_name: '',
@@ -171,7 +172,7 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
       title={isEdit ? 'Edit student' : 'Add a student'}
       subtitle={
         isEdit
-          ? `Updating ${student.full_name}`
+          ? `Updating ${formatPersonName(student.full_name)}`
           : 'The student is enrolled in the current school year on save.'
       }
       size="lg"

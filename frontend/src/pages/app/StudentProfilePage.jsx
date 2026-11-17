@@ -23,6 +23,7 @@ import { gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
 import StudentFormModal from '../../components/common/StudentFormModal';
 import { useAuth } from '../../context/AuthContext';
 import { IMAGES } from '../../config/images';
+import { formatPersonName } from '../../lib/personName';
 
 function TrendIcon({ trend }) {
   if (trend === 'improving') return <TrendingUp size={14} style={{ color: 'var(--ok-500)' }} />;
@@ -172,7 +173,7 @@ export default function StudentProfilePage() {
         <div className="banner-inner">
           <Avatar name={student.full_name} src={student.photo} />
           <div style={{ flex: 1, minWidth: 220 }}>
-            <h1>{student.full_name}</h1>
+            <h1>{formatPersonName(student.full_name)}</h1>
             <div className="banner-meta">
               <span>
                 <GraduationCap size={13} /> {student.login_id || '—'}
@@ -185,7 +186,7 @@ export default function StudentProfilePage() {
               </span>
               {student.adviser_name && (
                 <span>
-                  <CalendarDays size={13} /> Adviser: {student.adviser_name}
+                  <CalendarDays size={13} /> Adviser: {formatPersonName(student.adviser_name)}
                 </span>
               )}
             </div>
@@ -276,7 +277,7 @@ export default function StudentProfilePage() {
                 </div>
                 <div className="detail-row">
                   <span className="k">Full name</span>
-                  <span className="v">{student.full_name}</span>
+                  <span className="v">{formatPersonName(student.full_name)}</span>
                 </div>
                 <div className="detail-row">
                   <span className="k">Date of birth</span>
@@ -317,7 +318,7 @@ export default function StudentProfilePage() {
               <div className="detail-list">
                 <div className="detail-row">
                   <span className="k">Name</span>
-                  <span className="v">{guardianName || '—'}</span>
+                  <span className="v">{formatPersonName(guardianName) || '—'}</span>
                 </div>
                 <div className="detail-row">
                   <span className="k">Relationship</span>

@@ -5,6 +5,7 @@ import { Avatar, ErrorNote, PageHead } from '../../components/common/ui';
 import { staffApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { formatPersonName } from '../../lib/personName';
 
 function scorePassword(value) {
   if (!value) return { score: 0, label: 'Enter a password' };
@@ -170,7 +171,7 @@ export default function AccountPage() {
             <div className="card-body">
               <div className="photo-editor">
                 <Avatar
-                  name={`${user?.first_name || ''} ${user?.last_name || ''}`}
+                  name={formatPersonName(`${user?.first_name || ''} ${user?.last_name || ''}`)}
                   src={user?.profile_pic}
                   size="xl"
                 />
