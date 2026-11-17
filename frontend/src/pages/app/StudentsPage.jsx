@@ -10,6 +10,7 @@ import {
   Search,
   Trash2,
   UserPlus,
+  UserCheck,
   Users,
 } from 'lucide-react';
 import {
@@ -24,9 +25,11 @@ import {
 } from '../../components/common/ui';
 import StudentFormModal from '../../components/common/StudentFormModal';
 import ImportStudentsModal from '../../components/common/ImportStudentsModal';
+import EnrollReturningStudentModal from '../../components/common/EnrollReturningStudentModal';
 import { assignmentApi, gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useSchoolYear } from '../../context/SchoolYearContext';
 import { AiRiskBadge } from '../../components/common/ai';
 import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
 import { rosterGrades, rosterSections } from '../../lib/rosterAccess';
@@ -65,6 +68,7 @@ export default function StudentsPage() {
   const isTeacher = user?.role === 'teacher';
   const navigate = useNavigate();
   const toast = useToast();
+  const { year, yearId } = useSchoolYear();
   // Standing is a grade, or a grade-shaped figure: the term grade once a
   // record is complete, and the coursework banked before that. One axis for
   // both, so a part-finished term and a finished one can sit in the same
@@ -88,6 +92,7 @@ export default function StudentsPage() {
 
   const [editing, setEditing] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -145,7 +150,7 @@ export default function StudentsPage() {
     () => isTeacher ? rosterGrades(gradeLevels, visibleSections) : gradeLevels,
     [isTeacher, gradeLevels, visibleSections],
   );
-  const canAdd = isTeacher && !loading && !error && visibleSections.length > 0;
+  const canAdd = isTeacher && Boolean(yearId) && !loading && !error && visibleSections.length > 0;
   const sectionOptions = useMemo(
     () => (gradeFilter ? visibleSections.filter((s) => String(s.grade_level_id) === gradeFilter) : visibleSections),
     [visibleSections, gradeFilter],
@@ -290,7 +295,7 @@ export default function StudentsPage() {
     setBusy(true);
     try {
       await studentApi.remove(deleting.student_id);
-      toast.success(`${deleting.full_name} removed.`);
+      toast.success(`${deleting.full_name} withdrawn from the current school year. Their profile and past records are kept.`);
       setDeleting(null);
       load();
     } catch (err) {
@@ -311,6 +316,9 @@ export default function StudentsPage() {
               <Download size={16} /> Export CSV
             </button>
             {isTeacher && <>
+              <button type="button" className="btn btn-secondary" onClick={() => setEnrolling(true)} disabled={!canAdd}>
+                <UserCheck size={16} /> Enroll returning student
+              </button>
               <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)} disabled={!canAdd}>
                 <Upload size={16} /> Import students
               </button>
@@ -325,7 +333,7 @@ export default function StudentsPage() {
       <ErrorNote message={error} />
       {error && <button type="button" className="btn btn-secondary" onClick={load}>Retry loading students</button>}
       {isTeacher && !loading && !error && !visibleSections.length && (
-        <p className="alert alert-info">You need a teaching or adviser assignment before adding or importing students. Ask your principal to assign your section.</p>
+        <p className="alert alert-info">You need a teaching or adviser assignment for {year?.year || 'the current school year'} before adding or importing students. Ask your principal to assign your section.</p>
       )}
 
       <div className="toolbar">
@@ -400,9 +408,10 @@ export default function StudentsPage() {
           ) : visible.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No students match these filters"
-              description="Try a different search or section."
+              title={students.length ? 'No students match these filters' : 'No students enrolled this school year'}
+              description={students.length ? 'Try a different search or section.' : `There are no students in your assigned sections for ${year?.year || 'the current school year'} yet. Add students, enroll returning students, or import a class roster.`}
               action={
+                students.length > 0 &&
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -668,7 +677,7 @@ export default function StudentsPage() {
                           <button
                             type="button"
                             className="btn-icon"
-                            title="Remove student"
+                            title="Withdraw from current school year"
                             onClick={() => setDeleting(student)}
                           >
                             <Trash2 size={15} />
@@ -719,11 +728,14 @@ export default function StudentsPage() {
         />
       )}
 
+      {enrolling && <EnrollReturningStudentModal gradeLevels={visibleGrades} sections={visibleSections}
+        onClose={() => setEnrolling(false)} onSaved={() => { setEnrolling(false); load(); }} />}
+
       {deleting && (
         <ConfirmDialog
-          title="Remove this student?"
-          message={`Delete ${deleting.full_name} and all their records? This cannot be undone.`}
-          confirmLabel="Remove student"
+          title="Withdraw from this school year?"
+          message={`Withdraw ${deleting.full_name} from ${year?.year || 'the current school year'}? Their profile, saved scores and previous school years will be preserved.`}
+          confirmLabel="Withdraw student"
           busy={busy}
           onConfirm={removeStudent}
           onClose={() => setDeleting(null)}

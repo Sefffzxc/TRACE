@@ -16,6 +16,7 @@ from app.models.academic import GradeLevel, Section
 from app.models.schools import School
 from app.models.staff import ROLE_TEACHER, Staff
 from app.services.access import class_access
+from app.services.school_years import require_current_year_record, resolve_school_year_id
 
 
 async def require_roster_section(
@@ -24,6 +25,7 @@ async def require_roster_section(
     scope: int,
     section_id: Optional[int],
     grade_level_id: Optional[int] = None,
+    school_year_id: Optional[int] = None,
 ) -> Section:
     """Validate the creation destination before any learner is written.
 
@@ -41,7 +43,10 @@ async def require_roster_section(
     section = await get_scoped_optional(db, Section, section_id, scope)
     if section is None:
         raise HTTPException(status_code=400, detail="That section does not exist.")
-    access = await class_access(db, current, scope)
+    year_id = await resolve_school_year_id(db, scope, required=True)
+    if school_year_id is not None:
+        await require_current_year_record(db, scope, school_year_id)
+    access = await class_access(db, current, scope, year_id)
     if section.section_id not in access.sections:
         raise HTTPException(
             status_code=403,

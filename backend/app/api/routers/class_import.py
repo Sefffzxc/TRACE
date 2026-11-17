@@ -52,6 +52,7 @@ from app.services import eclass_import, grading
 from app.services.access import class_access
 from app.services.audit import Action, log_event
 from app.services.roster_access import lock_roster_section, require_roster_section
+from app.services.school_years import resolve_school_year_id
 
 router = APIRouter(tags=["Class record import"])
 
@@ -75,13 +76,6 @@ async def _current_year(db: AsyncSession, scope: int) -> Optional[SchoolYear]:
                    SchoolYear, scope)
         )
     ).scalar_one_or_none()
-    if year is None:
-        year = (
-            await db.execute(
-                scoped(select(SchoolYear).order_by(SchoolYear.start_date.desc()).limit(1),
-                       SchoolYear, scope)
-            )
-        ).scalar_one_or_none()
     return year
 
 
@@ -97,6 +91,7 @@ async def import_class_record(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    school_year_id = await resolve_school_year_id(db, scope, required=True)
     school = await db.get(School, scope)
     if school is not None and school.tracks_units and not roster_only:
         raise HTTPException(
@@ -152,8 +147,10 @@ async def import_class_record(
         notes.insert(0, f'The file is for section "{head["section"]}"; it will go into '
                         f"{section.name}.")
     if head["school_year"] and not _same(head["school_year"], year.year):
-        notes.insert(0, f"The file is for S.Y. {head['school_year']}; the current school "
-                        f"year is {year.year}.")
+        raise HTTPException(status_code=400, detail=(
+            f"The file is for S.Y. {head['school_year']}; the current school year "
+            f"is {year.year}. Select the correct current year or import that year's file."
+        ))
 
     # A confirmed teacher import shares the section lock with manual student
     # creation. Match again under that lock so two first imports reuse the
@@ -173,11 +170,10 @@ async def import_class_record(
             scoped(
                 select(StudentEnrollment, Student)
                 .join(Student, Student.student_id == StudentEnrollment.student_id)
-                .where(StudentEnrollment.school_year_id == year.school_year_id,
-                       StudentEnrollment.is_active.is_(True)),
+                .where(StudentEnrollment.school_year_id == year.school_year_id),
                 StudentEnrollment,
                 scope,
-            )
+            ).where(Student.school_id == scope)
         )
     ).all()
     in_section = {}
@@ -192,24 +188,29 @@ async def import_class_record(
         s.section_id: s.name
         for s in (await db.execute(scoped(select(Section), Section, scope))).scalars()
     }
-    school_students = {
-        eclass_import.name_key(s.last_name, s.first_name): s
-        for s in (
-            await db.execute(
-                scoped(select(Student).where(Student.is_active.is_(True)), Student, scope)
-            )
-        ).scalars()
-    }
+    school_students = {}
+    for student in (await db.scalars(
+        select(Student).where(Student.school_id == scope, Student.is_active.is_(True))
+    )).all():
+        key = eclass_import.name_key(student.last_name, student.first_name)
+        school_students.setdefault(key, []).append(student)
 
     plan = []
     for learner in record.learners:
         key = eclass_import.name_key(learner.last_name, learner.first_name)
+        if len(school_students.get(key, [])) > 1:
+            raise HTTPException(status_code=409, detail=(
+                f"More than one student profile matches {learner.written}. "
+                "Check the school's student profiles before importing so scores "
+                "are not assigned to the wrong learner."
+            ))
         if key in in_section:
-            plan.append((MATCHED, learner, *in_section[key]))
+            student, enrollment = in_section[key]
+            plan.append((MATCHED if enrollment.is_active else ENROL, learner, student, enrollment))
         elif key in in_other:
             plan.append((ELSEWHERE, learner, None, None))
         elif key in school_students:
-            plan.append((ENROL, learner, school_students[key], None))
+            plan.append((ENROL, learner, school_students[key][0], None))
         else:
             plan.append((NEW, learner, None, None))
 
@@ -314,17 +315,20 @@ async def import_class_record(
             student.login_id = f"S{student.student_id:04d}"
             created += 1
         if status in (NEW, ENROL):
-            enrolment = StudentEnrollment(
-                school_id=scope,
-                student_id=student.student_id,
-                grade_level_id=section.grade_level_id,
-                section_id=section_id,
-                school_year_id=year.school_year_id,
-                enrolled_by=current.id,
-                enrollment_date=date.today(),
-                is_active=True,
-            )
-            db.add(enrolment)
+            if enrolment is None:
+                enrolment = StudentEnrollment(
+                    school_id=scope,
+                    student_id=student.student_id,
+                    grade_level_id=section.grade_level_id,
+                    section_id=section_id,
+                    school_year_id=year.school_year_id,
+                    enrolled_by=current.id,
+                    enrollment_date=date.today(),
+                    is_active=True,
+                )
+                db.add(enrolment)
+            else:
+                enrolment.is_active = True
             await db.flush()
             # Learners already in the school, now enrolled here. New ones
             # are counted under "added".
@@ -342,6 +346,7 @@ async def import_class_record(
                         ClassRecordSetup.section_id == section_id,
                         ClassRecordSetup.subject_id == subject_id,
                         ClassRecordSetup.grading_period == term.term,
+                        ClassRecordSetup.school_year_id == school_year_id,
                     ),
                     ClassRecordSetup,
                     scope,
@@ -350,6 +355,7 @@ async def import_class_record(
         ).scalar_one_or_none()
         if setup is None:
             setup = ClassRecordSetup(school_id=scope, section_id=section_id,
+                                     school_year_id=school_year_id,
                                      subject_id=subject_id, grading_period=term.term,
                                      template=grading.CORE)
             db.add(setup)
@@ -363,7 +369,7 @@ async def import_class_record(
 
         # Records already in this term that the file does not touch are
         # regraded against the new header too, as a header save does.
-        header = await _load_setup(db, scope, section_id, subject_id, term.term)
+        header = await _load_setup(db, scope, section_id, subject_id, term.term, school_year_id)
         existing = (
             await db.execute(
                 scoped(
@@ -371,6 +377,8 @@ async def import_class_record(
                     .join(StudentEnrollment,
                           StudentEnrollment.enrollment_id == StudentPace.enrollment_id)
                     .where(StudentEnrollment.section_id == section_id,
+                           StudentEnrollment.school_id == scope,
+                           StudentEnrollment.school_year_id == school_year_id,
                            StudentPace.subject == subject.subject_name,
                            StudentPace.grading_period == term.term),
                     StudentPace,
@@ -401,7 +409,7 @@ async def import_class_record(
         result = await save_class_rows(
             BulkPaceRequest(entries=entries, section_id=section_id,
                             subject_id=subject_id, grading_period=term.term),
-            request, current, scope, db, score=False,
+            request, current, scope, db, score=False, commit=False,
         )
         saved_terms.append({"term": term.term, "saved": result["saved"],
                             "skipped": result["skipped"]})

@@ -28,6 +28,7 @@ import {
 } from '../../components/common/ui';
 import { aiApi, assignmentApi, sectionApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
+import { useSchoolYear } from '../../context/SchoolYearContext';
 import { assignedSections, matchesSection, sectionLabel } from '../../lib/classAccess';
 
 const LEVELS = [
@@ -47,6 +48,7 @@ const LEVELS = [
 export default function AiInsightsPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { year } = useSchoolYear();
 
   const [status, setStatus] = useState(null);
   const [card, setCard] = useState(null);
@@ -362,9 +364,9 @@ export default function AiInsightsPage() {
               title={!error && !unrestricted && !sections.length ? 'No assigned classes' : rows.length === 0 ? 'Nothing scored yet' : 'No prediction matches these filters'}
               description={
                 !error && !unrestricted && !sections.length
-                  ? 'Ask your school administrator to assign your section and subject.'
+                  ? `No classes are assigned for ${year?.year || 'the current school year'}. Ask your school administrator to assign your section and subject.`
                   : rows.length === 0
-                  ? 'Forecasts appear once a first period is graded.'
+                  ? `No forecasts for ${year?.year || 'the current school year'} yet. Forecasts appear once a first period is graded for an enrolled student.`
                   : 'Try widening the filters.'
               }
             />

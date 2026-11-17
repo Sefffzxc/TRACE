@@ -26,6 +26,7 @@ from app.schemas.students import (
 from app.services import risk
 from app.services.access import class_access
 from app.services.audit import Action, log_event
+from app.services.school_years import resolve_school_year_id, require_current_year_record
 from app.services.roster_access import lock_roster_section, require_roster_section
 from app.services.enrichment import (
     school_passing_mark,
@@ -36,6 +37,7 @@ from app.services.enrichment import (
     latest_predictions,
     paces_by_student,
     sections_for_teacher,
+    enrollment_ids_for_year,
 )
 
 router = APIRouter(tags=["Students"])
@@ -53,38 +55,9 @@ async def _next_login_id(db: AsyncSession, school_id: int) -> str:
 async def _resolve_school_year(
     db: AsyncSession, given: Optional[int], school_id: int
 ) -> int:
-    if given:
-        # A school year supplied by the caller must be one of this school's own.
-        if await get_scoped_optional(db, SchoolYear, given, school_id) is None:
-            raise HTTPException(
-                status_code=400, detail="That school year does not exist."
-            )
-        return given
-    row = (
-        await db.execute(
-            scoped(
-                select(SchoolYear).where(SchoolYear.is_current.is_(True)),
-                SchoolYear,
-                school_id,
-            )
-        )
-    ).scalar_one_or_none()
-    if row is None:
-        row = (
-            await db.execute(
-                scoped(
-                    select(SchoolYear).order_by(SchoolYear.start_date.desc()).limit(1),
-                    SchoolYear,
-                    school_id,
-                )
-            )
-        ).scalar_one_or_none()
-    if row is None:
-        raise HTTPException(
-            status_code=400,
-            detail="No school year has been set up yet. Create one under Class Management first.",
-        )
-    return row.school_year_id
+    year_id = await resolve_school_year_id(db, school_id, given, required=True)
+    await require_current_year_record(db, school_id, year_id)
+    return year_id
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -97,10 +70,9 @@ async def _student_access(db: AsyncSession, current: Staff, scope: int, student_
     in sections they do not handle.
     """
     access = await class_access(db, current, scope)
-    if not access.unrestricted:
-        enrollment = (await current_enrollments(db, [student_id], school_id=scope)).get(student_id)
-        if enrollment is None or not access.can_see_section(enrollment.section_id):
-            raise HTTPException(status_code=404, detail="Student not found.")
+    enrollment = (await current_enrollments(db, [student_id], school_id=scope)).get(student_id)
+    if enrollment is None or not access.can_see_section(enrollment.section_id):
+        raise HTTPException(status_code=404, detail="Student not found in the current school year.")
     return access
 
 
@@ -116,8 +88,15 @@ async def list_students(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    school_year_id = await resolve_school_year_id(db, scope)
     stmt = scoped(
-        select(Student).order_by(Student.last_name, Student.first_name), Student, scope
+        select(Student).where(Student.student_id.in_(
+            select(StudentEnrollment.student_id).where(
+                StudentEnrollment.school_id == scope,
+                StudentEnrollment.school_year_id == (school_year_id or 0),
+                StudentEnrollment.is_active.is_(True),
+            )
+        )).order_by(Student.last_name, Student.first_name), Student, scope
     )
     if is_active is not None:
         stmt = stmt.where(Student.is_active.is_(is_active))
@@ -154,6 +133,46 @@ async def list_students(
         wanted = {lvl.strip().lower() for lvl in risk_level.split(",")}
         rows = [r for r in rows if r.risk_level in wanted]
     return rows
+
+
+@router.get("/api/students/returning")
+async def returning_students(
+    section_id: int,
+    search: str = Query(..., min_length=2, max_length=100),
+    current: Staff = Depends(get_current_user),
+    scope: int = Depends(school_scope),
+    db: AsyncSession = Depends(get_db),
+):
+    """Find a retained school profile to enroll again, without prior scores.
+
+    The teacher must have a roster assignment in the destination this year.
+    This is separate from the current-year roster, which stays empty until
+    enrollment; searching does not copy any academic data.
+    """
+    school_year_id = await resolve_school_year_id(db, scope, required=True)
+    await require_roster_section(db, current, scope, section_id)
+    already_enrolled = select(StudentEnrollment.student_id).where(
+        StudentEnrollment.school_id == scope,
+        StudentEnrollment.school_year_id == school_year_id,
+        StudentEnrollment.is_active.is_(True),
+    )
+    pattern = f"%{search.strip().lower()}%"
+    if len(search.strip()) < 2:
+        return []
+    rows = (await db.scalars(select(Student).where(
+        Student.school_id == scope,
+        Student.is_active.is_(True),
+        Student.student_id.not_in(already_enrolled),
+        or_(func.lower(Student.first_name).like(pattern),
+            func.lower(Student.last_name).like(pattern),
+            func.lower(func.coalesce(Student.login_id, "")).like(pattern),
+            func.lower(Student.first_name + " " + Student.last_name).like(pattern)),
+    ).order_by(Student.last_name, Student.first_name).limit(50))).all()
+    return [{
+        "student_id": row.student_id, "login_id": row.login_id,
+        "first_name": row.first_name, "middle_name": row.middle_name,
+        "last_name": row.last_name, "full_name": row.full_name, "gender": row.gender,
+    } for row in rows]
 
 
 @router.get("/api/students/{student_id}", response_model=StudentResponse)
@@ -203,6 +222,9 @@ async def student_profile(
             .where(
                 StudentPace.student_id == student_id,
                 StudentPace.school_id == scope,
+                StudentPace.enrollment_id.in_(enrollment_ids_for_year(
+                    scope, await resolve_school_year_id(db, scope)
+                )),
             )
             .order_by(StudentPace.subject)
         )
@@ -356,6 +378,7 @@ async def update_student(
     db: AsyncSession = Depends(get_db),
 ):
     student = await get_scoped(db, Student, student_id, scope, "Student")
+    await resolve_school_year_id(db, scope, required=True)
     await _student_access(db, current, scope, student_id)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(student, field, value)
@@ -383,9 +406,14 @@ async def delete_student(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove a learner. Teachers manage their own learners, so a teacher may
-    remove one enrolled in a section they handle; an administrator, anyone."""
+    """Remove a learner from this year's roster while retaining past records."""
     student = await get_scoped(db, Student, student_id, scope, "Student")
+    await resolve_school_year_id(db, scope, required=True)
+    enrollment = (
+        await current_enrollments(db, [student_id], school_id=scope)
+    ).get(student_id)
+    if enrollment is None:
+        raise HTTPException(status_code=404, detail="Student not found in the current school year.")
     if current.role != ROLE_ADMIN:
         enrollment = (
             await current_enrollments(db, [student_id], school_id=scope)
@@ -400,7 +428,7 @@ async def delete_student(
         db, Action.STUDENT_DELETED, actor_id=current.id, detail=student.full_name,
         request=request,
     )
-    await db.delete(student)
+    enrollment.is_active = False
     await db.commit()
 
 
@@ -417,8 +445,11 @@ async def list_enrollments(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    access = await class_access(db, current, scope)
-    stmt = scoped(select(StudentEnrollment), StudentEnrollment, scope)
+    school_year_id = await resolve_school_year_id(db, scope, school_year_id)
+    access = await class_access(db, current, scope, school_year_id)
+    stmt = scoped(select(StudentEnrollment).where(
+        StudentEnrollment.school_year_id == (school_year_id or 0)
+    ), StudentEnrollment, scope)
     if not access.unrestricted:
         stmt = stmt.where(StudentEnrollment.section_id.in_(access.sections or {0}))
     if school_year_id:
@@ -461,6 +492,7 @@ async def create_enrollment(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    await _resolve_school_year(db, payload.school_year_id, scope)
     section = await require_roster_section(
         db, current, scope, payload.section_id, payload.grade_level_id,
     )
@@ -481,7 +513,7 @@ async def create_enrollment(
             )
         )
     ).scalar_one_or_none()
-    if duplicate:
+    if duplicate and (duplicate.is_active or duplicate.section_id != payload.section_id):
         raise HTTPException(
             status_code=409,
             detail="That student is already enrolled for this school year.",
@@ -505,6 +537,12 @@ async def create_enrollment(
             detail=f"{section.name} is full ({taken}/{section.capacity}).",
         )
 
+    if duplicate is not None:
+        duplicate.is_active = True
+        await db.commit()
+        await db.refresh(duplicate)
+        return EnrollmentResponse.model_validate(duplicate)
+
     row = StudentEnrollment(
         **payload.model_dump(),
         school_id=scope,
@@ -527,7 +565,10 @@ async def update_enrollment(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, StudentEnrollment, enrollment_id, scope, "Enrolment")
+    await require_current_year_record(db, scope, row.school_year_id)
     data = payload.model_dump(exclude_unset=True)
+    if "school_year_id" in data and data["school_year_id"] != row.school_year_id:
+        raise HTTPException(status_code=409, detail="Enroll the existing student for the new year instead of moving an old enrollment.")
     access = await class_access(db, current, scope)
     access.require_section(row.section_id)
     if data.get("section_id") is not None:
@@ -566,5 +607,6 @@ async def delete_enrollment(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, StudentEnrollment, enrollment_id, scope, "Enrolment")
-    await db.delete(row)
+    await require_current_year_record(db, scope, row.school_year_id)
+    row.is_active = False
     await db.commit()

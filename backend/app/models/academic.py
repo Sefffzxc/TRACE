@@ -148,6 +148,10 @@ class TeacherAssignment(Base):
         nullable=False,
         index=True,
     )
+    school_year_id = Column(
+        Integer, ForeignKey("school_years.school_year_id", ondelete="RESTRICT"),
+        nullable=True, index=True,
+    )
     teacher_id = Column(
         GUID(), ForeignKey("staff.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -173,7 +177,7 @@ class TeacherAssignment(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "teacher_id", "section_id", "subject_id", name="uq_teacher_section_subject"
+            "school_year_id", "teacher_id", "section_id", "subject_id", name="uq_teacher_year_section_subject"
         ),
     )
 
@@ -185,6 +189,7 @@ class SectionAdviser(Base):
 
     adviser_id = Column(Integer, primary_key=True, index=True)
     school_id = Column(Integer, ForeignKey("schools.school_id", ondelete="CASCADE"), nullable=False, index=True)
+    school_year_id = Column(Integer, ForeignKey("school_years.school_year_id", ondelete="RESTRICT"), nullable=True, index=True)
     section_id = Column(Integer, ForeignKey("sections.section_id", ondelete="CASCADE"), nullable=False, index=True)
     teacher_id = Column(GUID(), ForeignKey("staff.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), default=_utcnow)
@@ -194,7 +199,7 @@ class SectionAdviser(Base):
     teacher = relationship("Staff", backref="advisory_assignments")
 
     __table_args__ = (
-        UniqueConstraint("school_id", "section_id", name="uq_section_adviser_per_school"),
+        UniqueConstraint("school_id", "school_year_id", "section_id", name="uq_section_adviser_per_year"),
     )
 
 

@@ -12,6 +12,7 @@ import {
 import { enrollmentApi, paceApi, sectionApi, subjectApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useSchoolYear } from '../../context/SchoolYearContext';
 
 /**
  * The teacher's main workflow: pick a section and a subject, type in how far
@@ -31,6 +32,7 @@ import { useToast } from '../../context/ToastContext';
 export default function RosterPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { yearId } = useSchoolYear();
   const { unitLabel, unitLabelPlural } = useAuth();
 
   const [sections, setSections] = useState([]);
@@ -190,7 +192,7 @@ export default function RosterPage() {
 
     setSaving(true);
     try {
-      const result = await paceApi.bulkSave(entries);
+      const result = await paceApi.bulkSave(entries, { school_year_id: yearId });
       toast.success(
         `Saved ${result.saved} record${result.saved === 1 ? '' : 's'}${
           result.skipped?.length ? `, ${result.skipped.length} skipped` : ''

@@ -1,4 +1,4 @@
-"""Regression tests for deleting learners with dependent records.
+"""Routine roster removal preserves learner profiles and academic history.
 
 Run from backend with: python -m unittest discover -s tests -p test_student_deletion.py
 The real route and models run against a separate, in-memory SQLite database.
@@ -152,21 +152,20 @@ class StudentDeletionTests(unittest.IsolatedAsyncioTestCase):
         async with self.sessions() as db:
             student = await self._add_student(db)
             await db.commit()
-        await self._delete_student(student.student_id)
-        self.assertEqual(await self._counts(student.student_id), (0, 0, 0, 0, 0, 0))
-        async with self.sessions() as db:
-            audit = (await db.execute(select(AuditLog))).scalar_one()
-            self.assertEqual(audit.action, Action.STUDENT_DELETED)
-            self.assertEqual(audit.admin_id, self.admin_id)
-            self.assertEqual(audit.detail, "Test Learner")
+        with self.assertRaises(HTTPException) as raised:
+            await self._delete_student(student.student_id)
+        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(await self._counts(student.student_id), (1, 0, 0, 0, 0, 0))
 
     async def test_delete_student_with_independent_prediction(self):
         async with self.sessions() as db:
             student = await self._add_student(db)
             db.add(AIRiskPrediction(school_id=1, student_id=student.student_id))
             await db.commit()
-        await self._delete_student(student.student_id)
-        self.assertEqual(await self._counts(student.student_id), (0, 0, 0, 0, 0, 0))
+        with self.assertRaises(HTTPException) as raised:
+            await self._delete_student(student.student_id)
+        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(await self._counts(student.student_id), (1, 0, 0, 0, 1, 0))
 
     async def test_delete_student_with_independent_quality_log(self):
         async with self.sessions() as db:
@@ -175,8 +174,10 @@ class StudentDeletionTests(unittest.IsolatedAsyncioTestCase):
                 school_id=1, student_id=student.student_id, issue_type="missing_record",
             ))
             await db.commit()
-        await self._delete_student(student.student_id)
-        self.assertEqual(await self._counts(student.student_id), (0, 0, 0, 0, 0, 0))
+        with self.assertRaises(HTTPException) as raised:
+            await self._delete_student(student.student_id)
+        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(await self._counts(student.student_id), (1, 0, 0, 0, 0, 1))
 
     async def test_delete_full_graph_preserves_other_students_and_school_scope(self):
         async with self.sessions() as db:
@@ -193,15 +194,18 @@ class StudentDeletionTests(unittest.IsolatedAsyncioTestCase):
 
         await self._delete_student(target.student_id)
 
-        self.assertEqual(await self._counts(target.student_id), (0, 0, 0, 0, 0, 0))
+        self.assertEqual(await self._counts(target.student_id), expected)
         self.assertEqual(await self._counts(same_school.student_id), expected)
         self.assertEqual(await self._counts(other_school.student_id), expected)
         async with self.sessions() as db:
+            removed = (await db.scalars(select(StudentEnrollment).where(
+                StudentEnrollment.student_id == target.student_id))).one()
+            self.assertFalse(removed.is_active)
             self.assertEqual((await db.execute(
                 select(func.count()).select_from(AuditLog)
             )).scalar_one(), 1)
 
-    async def test_delete_enrollment_removes_predictions_and_preserves_student(self):
+    async def test_delete_enrollment_preserves_scores_predictions_and_student(self):
         async with self.sessions() as db:
             student, enrollment = await self._add_full_graph(db)
             await db.commit()
@@ -210,10 +214,11 @@ class StudentDeletionTests(unittest.IsolatedAsyncioTestCase):
             await delete_enrollment(
                 enrollment_id=enrollment.enrollment_id, _=admin, scope=1, db=db,
             )
-        self.assertEqual(await self._counts(student.student_id), (1, 0, 0, 0, 0, 1))
+        self.assertEqual(await self._counts(student.student_id), (1, 1, 1, 1, 1, 1))
         async with self.sessions() as db:
             log = (await db.execute(select(DataQualityLog))).scalar_one()
-            self.assertIsNone(log.student_pace_id)
+            self.assertIsNotNone(log.student_pace_id)
+            self.assertFalse((await db.get(StudentEnrollment, enrollment.enrollment_id)).is_active)
 
 
 if __name__ == "__main__":

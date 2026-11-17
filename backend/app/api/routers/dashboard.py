@@ -24,6 +24,7 @@ from app.schemas.students import DashboardStats
 from app.services import risk
 from app.services.access import class_access
 from app.services.enrichment import Lookups, sections_for_teacher
+from app.services.school_years import resolve_school_year_id
 
 router = APIRouter(tags=["Dashboard"])
 
@@ -76,6 +77,7 @@ async def dashboard(
 ):
     # The bands follow the school's own passing mark, and whether the school
     # tracks units decides which half of the figures below the page draws.
+    school_year_id = await resolve_school_year_id(db, scope)
     school = await db.get(School, scope)
     passing_mark = float(school.passing_mark) if school and school.passing_mark else 75.0
     lookups = await Lookups.load(db, school_id=scope)
@@ -92,6 +94,7 @@ async def dashboard(
         await db.execute(
             select(StudentEnrollment).where(
                 StudentEnrollment.school_id == scope,
+                StudentEnrollment.school_year_id == (school_year_id or 0),
                 StudentEnrollment.is_active.is_(True),
             )
         )
@@ -116,8 +119,7 @@ async def dashboard(
             )
         )
     ).scalars().all()
-    if allowed_sections is not None:
-        warnings = [w for w in warnings if w.enrollment_id in enrollment_ids]
+    warnings = [w for w in warnings if w.enrollment_id in enrollment_ids]
 
     # Within those sections, only the subjects the teacher teaches, plus every
     # subject in the section they advise (app/services/access.py).
@@ -400,6 +402,7 @@ async def admin_dashboard(
     and subject (see below for how its teacher is found), and a learner
     counts as graded once their record for that term has a term grade.
     """
+    school_year_id = await resolve_school_year_id(db, scope)
     school = await db.get(School, scope)
     lookups = await Lookups.load(db, school_id=scope)
     now = datetime.now(timezone.utc)
@@ -433,6 +436,7 @@ async def admin_dashboard(
         await db.execute(
             select(StudentEnrollment).where(
                 StudentEnrollment.school_id == scope,
+                StudentEnrollment.school_year_id == (school_year_id or 0),
                 StudentEnrollment.is_active.is_(True),
             )
         )
@@ -442,10 +446,14 @@ async def admin_dashboard(
         learners_in.setdefault(e.section_id, set()).add(e.enrollment_id)
 
     assignments = (
-        await db.execute(select(TeacherAssignment).where(TeacherAssignment.school_id == scope))
+        await db.execute(select(TeacherAssignment).where(
+            TeacherAssignment.school_id == scope,
+            TeacherAssignment.school_year_id == (school_year_id or 0),
+        ))
     ).scalars().all()
     advised = set((await db.scalars(select(SectionAdviser.section_id).where(
         SectionAdviser.school_id == scope,
+        SectionAdviser.school_year_id == (school_year_id or 0),
     ))).all())
 
     section_of = {e.enrollment_id: e.section_id for e in enrollments}
@@ -455,7 +463,10 @@ async def admin_dashboard(
                 StudentPace.enrollment_id, StudentPace.subject, StudentPace.grading_period,
                 StudentPace.transmuted_grade, StudentPace.recorded_by,
                 StudentPace.updated_at,
-            ).where(StudentPace.school_id == scope)
+            ).where(
+                StudentPace.school_id == scope,
+                StudentPace.enrollment_id.in_({e.enrollment_id for e in enrollments} or {0}),
+            )
         )
     ).all()
     # A school that tracks units keeps no term grades: its teachers' work is

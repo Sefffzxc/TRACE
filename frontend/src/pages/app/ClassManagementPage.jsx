@@ -27,6 +27,7 @@ import {
 } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useSchoolYear } from '../../context/SchoolYearContext';
 import { GradeSectionsModal, GradeSectionsTable } from './GradeSections';
 
 const TABS = [
@@ -41,6 +42,7 @@ const TABS = [
    adding a descriptor rather than another page. */
 export default function ClassManagementPage() {
   const toast = useToast();
+  const { year, yearId, accept: acceptYear, refresh: refreshYear } = useSchoolYear();
 
   // A dashboard card can open a tab directly (?tab=sections).
   const [tab, setTab] = useState(() => {
@@ -121,7 +123,7 @@ export default function ClassManagementPage() {
       let created = 0;
       try {
         for (const item of payload) {
-          await apiFor.create(item);
+          await apiFor.create({ ...item, school_year_id: yearId });
           created += 1;
         }
         toast.success(created === 1 ? 'Created.' : `${created} assignments created.`);
@@ -141,13 +143,30 @@ export default function ClassManagementPage() {
     setBusy(true);
     try {
       if (tab === 'advisers') {
-        await adviserApi.set(existing?.section_id || payload.section_id, { teacher_id: payload.teacher_id });
+        await adviserApi.set(existing?.section_id || payload.section_id, { teacher_id: payload.teacher_id, school_year_id: yearId });
         toast.success(existing ? 'Section adviser updated.' : 'Section adviser assigned.');
       } else if (existing) {
-        await apiFor.update(existing[idField], payload);
+        const saved = await apiFor.update(existing[idField], payload);
+        if (tab === 'years') {
+          if (saved?.is_current) {
+            acceptYear(saved);
+            if (saved.school_year_id !== yearId) {
+              toast.success(`Now showing S.Y. ${saved.year}. Previous years were preserved.`);
+              return;
+            }
+          }
+          else if (existing.is_current) await refreshYear();
+        }
         toast.success('Changes saved.');
       } else {
-        await apiFor.create(payload);
+        const saved = await apiFor.create(tab === 'assignments' ? { ...payload, school_year_id: yearId } : payload);
+        if (tab === 'years' && saved?.is_current) {
+          acceptYear(saved);
+          if (saved.school_year_id !== yearId) {
+            toast.success(`Now showing S.Y. ${saved.year}. Previous years were preserved.`);
+            return;
+          }
+        }
         toast.success('Created.');
       }
       setEditing(null);
@@ -163,7 +182,7 @@ export default function ClassManagementPage() {
   const review = async (subjectIds) => {
     setBusy(true);
     try {
-      await assignmentApi.review(reviewing.assignment_id, { subject_ids: subjectIds });
+      await assignmentApi.review(reviewing.assignment_id, { subject_ids: subjectIds, school_year_id: yearId });
       toast.success('Teaching subjects confirmed. Existing grades and scores were preserved.');
       setReviewing(null);
       load();
@@ -178,7 +197,7 @@ export default function ClassManagementPage() {
   const remove = async () => {
     setBusy(true);
     try {
-      await apiFor.remove(deleting[idField]);
+      await apiFor.remove(deleting[idField], { schoolYearId: yearId });
       toast.success('Removed.');
       setDeleting(null);
       load();
@@ -211,6 +230,7 @@ export default function ClassManagementPage() {
       />
 
       <ErrorNote message={error} />
+      <p className="faint">{year ? `Showing assignments for S.Y. ${year.year}.` : 'Choose a current school year to assign teachers and enroll students.'} Grades, sections, subjects and teacher accounts are kept when you change years.</p>
 
       <div className="setup-layout">
         <nav className="setup-nav">
@@ -287,6 +307,7 @@ export default function ClassManagementPage() {
 function SetupTable({ tab, data, onEdit, onDelete, onReview }) {
   // Booklets per subject only mean something at a school that tracks units.
   const { tracksUnits, unitLabelPlural } = useAuth();
+  const { year } = useSchoolYear();
   const wrap = (headers, rows) => (
     <div className="table-wrap">
       <table className="table">
@@ -328,7 +349,7 @@ function SetupTable({ tab, data, onEdit, onDelete, onReview }) {
           <td className="cell-strong">{row.year}</td>
           <td>
             <span className={`badge ${row.is_current ? 'badge-low' : 'badge-neutral'}`}>
-              {row.is_current ? 'Current' : 'Past'}
+              {row.is_current ? 'Current' : Number(row.year?.slice(0, 4)) > Number(year?.year?.slice(0, 4) || new Date().getFullYear()) ? 'Upcoming' : 'Past'}
             </span>
           </td>
           {actions(row)}
@@ -546,6 +567,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
               <input type="checkbox" checked={form.is_current} onChange={set('is_current')} />
               Make this the current school year
             </label>
+            <p className="faint">Changing the current year shows that year's enrollments, records and teacher assignments. Previous years are kept; a new year starts empty.</p>
           </>
         )}
 

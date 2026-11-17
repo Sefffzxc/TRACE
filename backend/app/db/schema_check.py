@@ -87,7 +87,13 @@ async def verify() -> dict:
 
     ok = not result["missing_tables"] and not result["missing_columns"] and not result["obsolete_columns"]
     fixes = []
-    if result["missing_tables"] or result["missing_columns"]:
+    year_tables = {"teacher_assignments", "section_advisers", "class_record_setups"}
+    year_gap = any("school_year_id" in result["missing_columns"].get(name, []) for name in year_tables)
+    if year_gap:
+        fixes.append("python migrate_school_year_scope.py --legacy-year YOUR_EXISTING_YEAR --apply (inspect first)")
+    other_gaps = {name: [c for c in columns if not (name in year_tables and c == "school_year_id")]
+                  for name, columns in result["missing_columns"].items()}
+    if result["missing_tables"] or any(other_gaps.values()):
         fixes.append("python add_missing_columns.py --apply")
     if result["obsolete_columns"]:
         fixes.append("python migrate_academic_names.py --apply")

@@ -3,6 +3,7 @@ import { AlertTriangle, FileSpreadsheet, Upload } from 'lucide-react';
 import { Modal } from './ui';
 import { classRecordApi } from '../../api/endpoints';
 import { periodName } from '../../lib/grading';
+import { useSchoolYear } from '../../context/SchoolYearContext';
 
 /* Brings a three-term E-Class Record (.xlsx) into the class record open on
    screen. The file is read first and nothing is saved until the teacher has
@@ -16,6 +17,7 @@ const STATUS = {
 };
 
 export default function ImportClassRecord({ section, subject, periodLabel, rosterOnly = false, onClose, onDone }) {
+  const { year, yearId } = useSchoolYear();
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState('');
@@ -23,6 +25,7 @@ export default function ImportClassRecord({ section, subject, periodLabel, roste
   const savingRef = useRef(false);
 
   const target = {
+    school_year_id: yearId,
     section_id: section.section_id,
     ...(rosterOnly ? { roster_only: true } : { subject_id: subject.subject_id }),
   };
@@ -87,6 +90,7 @@ export default function ImportClassRecord({ section, subject, periodLabel, roste
       }
     >
       <div className="stack">
+        <p className="faint">Import destination: S.Y. {year?.year || 'current school year'}. Previous years remain unchanged.</p>
         <label className="import-drop">
           <FileSpreadsheet size={22} />
           <span>

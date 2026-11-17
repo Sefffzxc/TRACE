@@ -26,6 +26,7 @@ from app.models.schools import School
 from app.models.staff import ROLE_TEACHER, STATUS_APPROVED, Staff
 from app.models.students import ClassRecordSetup, StudentEnrollment
 from app.services.access import class_access
+from app.services.school_years import require_current_year_record, resolve_school_year_id
 from app.schemas.academic import (
     GradeLevelCreate,
     GradeSectionInput,
@@ -147,6 +148,16 @@ def _overlaps(a_start: str, a_end: str, b_start: str, b_end: str) -> bool:
 # ══════════════════════════════════════════════════════════════════════════════
 # School years
 # ══════════════════════════════════════════════════════════════════════════════
+async def _lock_school_year_changes(db: AsyncSession, scope: int) -> None:
+    """Serialize year switches against saves and other principal requests."""
+    if db.get_bind().dialect.name == "sqlite":
+        await db.execute(update(School).where(School.school_id == scope).values(
+            school_id=School.school_id,
+        ).execution_options(synchronize_session=False))
+    else:
+        await db.execute(select(School.school_id).where(School.school_id == scope).with_for_update())
+
+
 @router.get("/api/school-years", response_model=List[SchoolYearResponse])
 async def list_school_years(
     _: Staff = Depends(get_current_user),
@@ -171,25 +182,8 @@ async def current_school_year(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    row = (
-        await db.execute(
-            scoped(
-                select(SchoolYear).where(SchoolYear.is_current.is_(True)),
-                SchoolYear,
-                scope,
-            )
-        )
-    ).scalar_one_or_none()
-    if row is None:
-        row = (
-            await db.execute(
-                scoped(
-                    select(SchoolYear).order_by(SchoolYear.start_date.desc()).limit(1),
-                    SchoolYear,
-                    scope,
-                )
-            )
-        ).scalar_one_or_none()
+    year_id = await resolve_school_year_id(db, scope)
+    row = await db.get(SchoolYear, year_id) if year_id is not None else None
     return SchoolYearResponse.model_validate(row) if row else None
 
 
@@ -204,6 +198,7 @@ async def create_school_year(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    await _lock_school_year_changes(db, scope)
     exists = (
         await db.execute(
             scoped(
@@ -237,6 +232,7 @@ async def update_school_year(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    await _lock_school_year_changes(db, scope)
     row = await get_scoped(db, SchoolYear, school_year_id, scope, "School year")
     data = payload.model_dump(exclude_unset=True)
     if data.get("year"):
@@ -260,23 +256,18 @@ async def delete_school_year(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    await _lock_school_year_changes(db, scope)
     row = await get_scoped(db, SchoolYear, school_year_id, scope, "School year")
-    in_use = (
-        await db.execute(
-            scoped(
-                select(func.count())
-                .select_from(StudentEnrollment)
-                .where(StudentEnrollment.school_year_id == school_year_id),
-                StudentEnrollment,
-                scope,
-            )
-        )
-    ).scalar_one()
-    if in_use:
-        raise HTTPException(
-            status_code=409,
-            detail=f"{in_use} enrolment(s) still reference this school year.",
-        )
+    for model, label in (
+        (StudentEnrollment, "enrolments"), (TeacherAssignment, "subject-teacher assignments"),
+        (SectionAdviser, "section advisers"), (ClassRecordSetup, "class-record setups"),
+        (ClassSchedule, "saved schedules"),
+    ):
+        in_use = await db.scalar(select(func.count()).select_from(model).where(
+            model.school_id == scope, model.school_year_id == school_year_id,
+        ))
+        if in_use:
+            raise HTTPException(status_code=409, detail=f"Cannot delete this school year: {in_use} {label} still reference it.")
     await db.delete(row)
     await db.commit()
 
@@ -290,6 +281,7 @@ async def list_grade_levels(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    year_id = await resolve_school_year_id(db, scope)
     rows = (
         await db.execute(
             scoped(
@@ -320,7 +312,8 @@ async def list_grade_levels(
             await db.execute(
                 scoped(
                     select(StudentEnrollment.grade_level_id, func.count())
-                    .where(StudentEnrollment.is_active.is_(True))
+                    .where(StudentEnrollment.is_active.is_(True),
+                           StudentEnrollment.school_year_id == year_id if year_id is not None else False)
                     .group_by(StudentEnrollment.grade_level_id),
                     StudentEnrollment,
                     scope,
@@ -454,6 +447,7 @@ async def delete_grade_level(
 async def _decorate_sections(
     db: AsyncSession, rows, scope: int
 ) -> List[SectionResponse]:
+    year_id = await resolve_school_year_id(db, scope)
     levels = {
         lvl.grade_level_id: lvl.name
         for lvl in (
@@ -465,7 +459,8 @@ async def _decorate_sections(
             await db.execute(
                 scoped(
                     select(StudentEnrollment.section_id, func.count())
-                    .where(StudentEnrollment.is_active.is_(True))
+                    .where(StudentEnrollment.is_active.is_(True),
+                           StudentEnrollment.school_year_id == year_id if year_id is not None else False)
                     .group_by(StudentEnrollment.section_id),
                     StudentEnrollment,
                     scope,
@@ -481,6 +476,7 @@ async def _decorate_sections(
                 .join(Staff, Staff.id == SectionAdviser.teacher_id)
                 .where(
                     Staff.school_id == scope,
+                    SectionAdviser.school_year_id == year_id if year_id is not None else False,
                 ),
                 SectionAdviser,
                 scope,
@@ -668,10 +664,22 @@ async def delete_subject(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, Subject, subject_id, scope, "Subject")
+    year_id = await resolve_school_year_id(db, scope)
+    # Subject definitions are shared across years. Never remove a teaching
+    # assignment or setup belonging to an archived year as a side effect.
+    for model in (TeacherAssignment, ClassRecordSetup):
+        historical = await db.scalar(select(func.count()).select_from(model).where(
+            model.school_id == scope, model.subject_id == subject_id,
+            or_(model.school_year_id != year_id, model.school_year_id.is_(None))
+            if year_id is not None else True,
+        ))
+        if historical:
+            raise HTTPException(status_code=409, detail="This subject is used by a previous school year. Deactivate it to preserve its history.")
     # Deleting a subject must remove its teaching assignments, not turn them
     # into legacy blank-subject rows with broader access. Advice is separate.
     await db.execute(delete(TeacherAssignment).where(
         TeacherAssignment.school_id == scope, TeacherAssignment.subject_id == subject_id,
+        TeacherAssignment.school_year_id == year_id if year_id is not None else False,
     ))
     await db.delete(row)
     await db.commit()
@@ -726,8 +734,12 @@ async def list_section_advisers(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    year_id = await resolve_school_year_id(db, scope)
+    if year_id is None:
+        return []
     rows = (await db.scalars(select(SectionAdviser).where(
         SectionAdviser.school_id == scope,
+        SectionAdviser.school_year_id == year_id,
     ).order_by(SectionAdviser.section_id))).all()
     return [await _adviser_response(db, row, scope) for row in rows]
 
@@ -740,14 +752,18 @@ async def set_section_adviser(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    year_id = await resolve_school_year_id(db, scope, required=True)
+    if payload.school_year_id is not None:
+        await require_current_year_record(db, scope, payload.school_year_id)
     if await _lock_assignment_section(db, section_id, scope) is None:
         raise HTTPException(status_code=404, detail="Section not found.")
     await _approved_teacher(db, payload.teacher_id, scope)
     row = await db.scalar(select(SectionAdviser).where(
         SectionAdviser.school_id == scope, SectionAdviser.section_id == section_id,
+        SectionAdviser.school_year_id == year_id,
     ).execution_options(populate_existing=True))
     if row is None:
-        row = SectionAdviser(school_id=scope, section_id=section_id, teacher_id=payload.teacher_id)
+        row = SectionAdviser(school_id=scope, school_year_id=year_id, section_id=section_id, teacher_id=payload.teacher_id)
         db.add(row)
     else:
         row.teacher_id = payload.teacher_id
@@ -767,10 +783,12 @@ async def remove_section_adviser(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    year_id = await resolve_school_year_id(db, scope, required=True)
     if await _lock_assignment_section(db, section_id, scope) is None:
         raise HTTPException(status_code=404, detail="Section not found.")
     row = await db.scalar(select(SectionAdviser).where(
         SectionAdviser.school_id == scope, SectionAdviser.section_id == section_id,
+        SectionAdviser.school_year_id == year_id,
     ))
     if row is not None:
         await db.delete(row)
@@ -785,7 +803,12 @@ async def list_assignments(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = scoped(select(TeacherAssignment), TeacherAssignment, scope)
+    year_id = await resolve_school_year_id(db, scope)
+    if year_id is None:
+        return []
+    stmt = scoped(select(TeacherAssignment), TeacherAssignment, scope).where(
+        TeacherAssignment.school_year_id == year_id,
+    )
     if teacher_id:
         stmt = stmt.where(TeacherAssignment.teacher_id == teacher_id)
     if section_id:
@@ -825,6 +848,9 @@ async def create_assignment(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    year_id = await resolve_school_year_id(db, scope, required=True)
+    if payload.school_year_id is not None:
+        await require_current_year_record(db, scope, payload.school_year_id)
     if payload.subject_id is None:
         raise HTTPException(status_code=400, detail="Choose a specific subject. Assign section advisers separately.")
     if payload.is_adviser:
@@ -845,6 +871,7 @@ async def create_assignment(
 
     occupied = select(TeacherAssignment).where(
         TeacherAssignment.school_id == scope,
+        TeacherAssignment.school_year_id == year_id,
         TeacherAssignment.section_id == payload.section_id,
     )
     if payload.subject_id is not None:
@@ -865,7 +892,7 @@ async def create_assignment(
             "Remove the existing assignment before assigning another teacher."
         ))
 
-    row = TeacherAssignment(**payload.model_dump(), school_id=scope)
+    row = TeacherAssignment(**payload.model_dump(exclude={"school_year_id"}), school_id=scope, school_year_id=year_id)
     db.add(row)
     try:
         await db.commit()
@@ -886,9 +913,13 @@ async def review_legacy_assignment(
 ):
     """Resolve one ambiguous old assignment without touching grades or advice."""
     old = await get_scoped(db, TeacherAssignment, assignment_id, scope, "Assignment")
+    year_id = await require_current_year_record(db, scope, old.school_year_id)
+    if payload.school_year_id is not None:
+        await require_current_year_record(db, scope, payload.school_year_id)
     section = await _lock_assignment_section(db, old.section_id, scope)
     old = await db.scalar(select(TeacherAssignment).where(
         TeacherAssignment.assignment_id == assignment_id, TeacherAssignment.school_id == scope,
+        TeacherAssignment.school_year_id == year_id,
     ).execution_options(populate_existing=True))
     if section is None or old is None:
         raise HTTPException(status_code=404, detail="Assignment not found.")
@@ -904,6 +935,7 @@ async def review_legacy_assignment(
 
     existing_rows = (await db.scalars(select(TeacherAssignment).where(
         TeacherAssignment.school_id == scope,
+        TeacherAssignment.school_year_id == year_id,
         TeacherAssignment.section_id == section.section_id,
         TeacherAssignment.assignment_id != old.assignment_id,
     ))).all()
@@ -924,7 +956,7 @@ async def review_legacy_assignment(
     for subject_id in payload.subject_ids:
         row = retained.get(subject_id)
         if row is None:
-            row = TeacherAssignment(school_id=scope, teacher_id=old.teacher_id,
+            row = TeacherAssignment(school_id=scope, school_year_id=year_id, teacher_id=old.teacher_id,
                                     section_id=section.section_id, subject_id=subject_id, is_adviser=False)
             db.add(row)
         replacements.append(row)
@@ -953,9 +985,11 @@ async def delete_assignment(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, TeacherAssignment, assignment_id, scope, "Assignment")
+    year_id = await require_current_year_record(db, scope, row.school_year_id)
     await _lock_assignment_section(db, row.section_id, scope)
     row = await db.scalar(select(TeacherAssignment).where(
         TeacherAssignment.assignment_id == assignment_id, TeacherAssignment.school_id == scope,
+        TeacherAssignment.school_year_id == year_id,
     ).execution_options(populate_existing=True))
     if row is None:
         raise HTTPException(status_code=404, detail="Assignment not found.")
@@ -978,6 +1012,7 @@ async def my_classes(
     enforces the same rule on every save (app/services/access.py)."""
     access = await class_access(db, current, scope)
     return {
+        "school_year_id": await resolve_school_year_id(db, scope),
         "unrestricted": access.unrestricted,
         "grade": {str(k): sorted(v) for k, v in access.grade.items()},
         "advisory": sorted(access.advisory),

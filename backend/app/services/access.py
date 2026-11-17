@@ -31,6 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.academic import Section, SectionAdviser, Subject, TeacherAssignment
 from app.models.staff import ROLE_ADMIN, Staff
 from app.models.students import StudentEnrollment
+from app.services.school_years import resolve_school_year_id
 
 ALL = "*"  # stands for "every subject" in a section
 
@@ -86,10 +87,16 @@ class ClassAccess:
             )
 
 
-async def class_access(db: AsyncSession, current: Staff, school_id: int) -> ClassAccess:
+async def class_access(
+    db: AsyncSession, current: Staff, school_id: int, school_year_id: int | None = None,
+) -> ClassAccess:
     """The classes this person may see and grade, read from their assignments."""
     if current.role == ROLE_ADMIN:
         return ClassAccess(unrestricted=True)
+
+    year_id = await resolve_school_year_id(db, school_id, school_year_id)
+    if year_id is None:
+        return ClassAccess()
 
     subjects = {
         s.subject_id: s.subject_name
@@ -102,6 +109,7 @@ async def class_access(db: AsyncSession, current: Staff, school_id: int) -> Clas
             select(TeacherAssignment).where(
                 TeacherAssignment.school_id == school_id,
                 TeacherAssignment.teacher_id == current.id,
+                TeacherAssignment.school_year_id == year_id,
             )
         )
     ).scalars().all()
@@ -110,6 +118,7 @@ async def class_access(db: AsyncSession, current: Staff, school_id: int) -> Clas
         select(SectionAdviser.section_id).join(Section, Section.section_id == SectionAdviser.section_id).where(
             SectionAdviser.school_id == school_id, Section.school_id == school_id,
             SectionAdviser.teacher_id == current.id,
+            SectionAdviser.school_year_id == year_id,
         )
     )).all()))
     specific: dict[int, set[str]] = {}
@@ -133,6 +142,7 @@ async def class_access(db: AsyncSession, current: Staff, school_id: int) -> Clas
                     select(StudentEnrollment).where(
                         StudentEnrollment.school_id == school_id,
                         StudentEnrollment.section_id.in_(access.sections),
+                        StudentEnrollment.school_year_id == year_id,
                     )
                 )
             ).scalars()

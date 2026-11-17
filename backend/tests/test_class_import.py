@@ -94,12 +94,12 @@ class ClassImportTests(unittest.IsolatedAsyncioTestCase):
             ])
             await db.flush()
             db.add_all([
-                TeacherAssignment(school_id=1, teacher_id=self.teacher_id,
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.teacher_id,
                                   section_id=1, subject_id=i) for i in (1, 2)
             ])
-            db.add(TeacherAssignment(school_id=1, teacher_id=self.other_teacher_id,
+            db.add(TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.other_teacher_id,
                                      section_id=1, subject_id=2))
-            db.add(SectionAdviser(school_id=1, section_id=1, teacher_id=self.adviser_id))
+            db.add(SectionAdviser(school_id=1, school_year_id=1, section_id=1, teacher_id=self.adviser_id))
             await db.commit()
 
     async def asyncTearDown(self):
@@ -143,7 +143,7 @@ class ClassImportTests(unittest.IsolatedAsyncioTestCase):
         # including its exam shares, instead of retaining an old default.
         async with self.sessions() as db:
             db.add(ClassRecordSetup(
-                school_id=1, section_id=1, subject_id=1,
+                school_id=1, school_year_id=1, section_id=1, subject_id=1,
                 ww_highest="[5]", pt_highest="[5]", exam_highest="[10, 10, 10]",
                 exam_subweights="[30, 30, 40]",
             ))

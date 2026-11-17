@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_admin, get_current_user, school_scope
 from app.api.scoping import get_scoped, get_scoped_optional, scoped
 from app.db.session import get_db
-from app.models.academic import GradeLevel, Subject, TeacherAssignment
+from app.models.academic import GradeLevel, Section, Subject, TeacherAssignment
 from app.models.staff import ROLE_ADMIN, Staff
 from app.models.students import (
     AIRiskPrediction,
@@ -44,10 +44,11 @@ from app.schemas.students import (
 from app.services import grading, ml_client, risk
 from app.services.access import class_access
 from app.services.audit import Action, log_event
+from app.services.school_years import resolve_school_year_id, require_current_year_record
 from app.services.enrichment import (Lookups, latest_predictions,
                                      term_grades_by_subject,
                                      school_passing_mark as enrichment_passing_mark,
-                                     sections_for_teacher)
+                                     sections_for_teacher, enrollment_ids_for_year)
 
 router = APIRouter(tags=["PACE & Early warning"])
 
@@ -98,6 +99,7 @@ async def _load_setup(
     section_id: Optional[int],
     subject_id: Optional[int],
     grading_period: Optional[int],
+    school_year_id: Optional[int] = None,
 ) -> dict:
     """The template, highest possible scores and weights for one class record.
 
@@ -108,6 +110,9 @@ async def _load_setup(
     """
     if not (section_id and subject_id and grading_period):
         return _default_setup()
+    school_year_id = await resolve_school_year_id(db, school_id, school_year_id)
+    if school_year_id is None:
+        return _default_setup()
     row = (
         await db.execute(
             scoped(
@@ -115,6 +120,7 @@ async def _load_setup(
                     ClassRecordSetup.section_id == section_id,
                     ClassRecordSetup.subject_id == subject_id,
                     ClassRecordSetup.grading_period == grading_period,
+                    ClassRecordSetup.school_year_id == school_year_id,
                 ),
                 ClassRecordSetup,
                 school_id,
@@ -225,6 +231,7 @@ async def _sync_warning(
             scoped(
                 select(EarlyWarning).where(
                     EarlyWarning.student_id == row.student_id,
+                    EarlyWarning.enrollment_id == row.enrollment_id,
                     EarlyWarning.subject == row.subject,
                 ),
                 EarlyWarning,
@@ -420,9 +427,12 @@ async def list_paces(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    school_year_id = await resolve_school_year_id(db, scope)
     passing_mark = await _passing_mark(db, scope)
     stmt = scoped(
-        select(StudentPace).order_by(StudentPace.student_id, StudentPace.subject),
+        select(StudentPace).where(
+            StudentPace.enrollment_id.in_(enrollment_ids_for_year(scope, school_year_id))
+        ).order_by(StudentPace.student_id, StudentPace.subject),
         StudentPace,
         scope,
     )
@@ -445,7 +455,9 @@ async def list_paces(
         e.enrollment_id: e
         for e in (
             await db.execute(
-                scoped(select(StudentEnrollment), StudentEnrollment, scope)
+                scoped(select(StudentEnrollment).where(
+                    StudentEnrollment.school_year_id == (school_year_id or 0)
+                ), StudentEnrollment, scope)
             )
         ).scalars()
     }
@@ -501,6 +513,9 @@ async def create_pace(
     enrollment = await get_scoped(
         db, StudentEnrollment, payload.enrollment_id, scope, "Enrolment"
     )
+    await require_current_year_record(db, scope, enrollment.school_year_id)
+    if enrollment.student_id != payload.student_id:
+        raise HTTPException(status_code=400, detail="That enrollment belongs to another student.")
     (await class_access(db, current, scope)).require_grade(
         enrollment.section_id, payload.subject
     )
@@ -565,6 +580,7 @@ async def update_pace(
 ):
     row = await get_scoped(db, StudentPace, pace_id, scope, "PACE record")
     enrollment = await get_scoped_optional(db, StudentEnrollment, row.enrollment_id, scope)
+    await require_current_year_record(db, scope, enrollment.school_year_id if enrollment else None)
     (await class_access(db, current, scope)).require_grade(
         enrollment.section_id if enrollment else None, row.subject
     )
@@ -575,7 +591,15 @@ async def update_pace(
         else:
             setattr(row, field, value)
     if any(field in sent for field in SCORE_ARRAYS):
-        _recompute_grades(row, _default_setup())
+        subject_id = (await db.scalars(select(Subject.subject_id).where(
+            Subject.school_id == scope,
+            Subject.grade_level_id == enrollment.grade_level_id,
+            Subject.subject_name == row.subject,
+        ))).first()
+        _recompute_grades(row, await _load_setup(
+            db, scope, enrollment.section_id, subject_id,
+            row.grading_period or 1, enrollment.school_year_id,
+        ))
     if row.current_pace > row.total_paces:
         raise HTTPException(
             status_code=400,
@@ -619,10 +643,12 @@ async def save_class_rows(
     db: AsyncSession,
     *,
     score: bool = True,
+    commit: bool = True,
 ) -> dict:
     """The save behind the endpoint above. ``score`` False leaves the AI
     forecast for the caller to ask for once, as an import of three terms
     does, instead of once per term."""
+    school_year_id = await resolve_school_year_id(db, scope, required=True)
     saved, skipped = 0, []
     touched: list[StudentPace] = []
 
@@ -631,7 +657,8 @@ async def save_class_rows(
     # taken from the request, so a client cannot choose the numbers a grade
     # is computed from.
     setup = await _load_setup(
-        db, scope, payload.section_id, payload.subject_id, payload.grading_period
+        db, scope, payload.section_id, payload.subject_id, payload.grading_period,
+        school_year_id,
     )
     passing_mark = await _passing_mark(db, scope)
     # Which term is being encoded. Everything written below belongs to it,
@@ -667,6 +694,14 @@ async def save_class_rows(
                 "enrolment not found in this school"
             )
             continue
+        # A stale tab must never write into an archived enrollment. Fail the
+        # whole transaction rather than partially saving a mixture of years.
+        if enrollment.school_year_id != school_year_id:
+            raise HTTPException(status_code=409, detail="The current school year changed. Refresh this page before saving.")
+        if enrollment.student_id != entry.student_id:
+            raise HTTPException(status_code=400, detail="That enrollment belongs to another student.")
+        if payload.section_id is not None and enrollment.section_id != payload.section_id:
+            raise HTTPException(status_code=400, detail="That enrollment is not in the selected section.")
         if not access.can_grade(enrollment.section_id, entry.subject):
             skipped.append(
                 f"{entry.subject}: you are not assigned to teach it in this section"
@@ -740,7 +775,8 @@ async def save_class_rows(
         db, Action.PACE_RECORDED, actor_id=current.id, detail=f"bulk saved={saved}",
         request=request,
     )
-    await db.commit()
+    if commit:
+        await db.commit()
     return {"saved": saved, "skipped": skipped, "ai": ai_summary, "rows": touched}
 
 
@@ -839,6 +875,9 @@ async def get_class_record_setup(
     error.
     """
     subject = await get_scoped(db, Subject, subject_id, scope)
+    section = await get_scoped(db, Section, section_id, scope)
+    if subject.grade_level_id != section.grade_level_id:
+        raise HTTPException(status_code=400, detail="That subject is not taught in this section's grade level.")
     access = await class_access(db, current, scope)
     if not access.can_see(section_id, subject.subject_name):
         access.require_grade(section_id, subject.subject_name)
@@ -866,7 +905,11 @@ async def put_class_record_setup(
     percentage and grade. Recomputing them here is what stops the sheet from
     showing grades derived from a denominator that no longer exists.
     """
+    school_year_id = await resolve_school_year_id(db, scope, required=True)
     header_subject = await get_scoped(db, Subject, subject_id, scope)
+    section = await get_scoped(db, Section, section_id, scope)
+    if header_subject.grade_level_id != section.grade_level_id:
+        raise HTTPException(status_code=400, detail="That subject is not taught in this section's grade level.")
     (await class_access(db, current, scope)).require_grade(
         section_id, header_subject.subject_name
     )
@@ -878,6 +921,7 @@ async def put_class_record_setup(
                     ClassRecordSetup.section_id == section_id,
                     ClassRecordSetup.subject_id == subject_id,
                     ClassRecordSetup.grading_period == grading_period,
+                    ClassRecordSetup.school_year_id == school_year_id,
                 ),
                 ClassRecordSetup,
                 scope,
@@ -888,6 +932,7 @@ async def put_class_record_setup(
         row = ClassRecordSetup(
             school_id=scope, section_id=section_id, subject_id=subject_id,
             grading_period=grading_period,
+            school_year_id=school_year_id,
         )
         db.add(row)
 
@@ -903,7 +948,7 @@ async def put_class_record_setup(
     row.updated_at = _now()
     await db.flush()
 
-    setup = await _load_setup(db, scope, section_id, subject_id, grading_period)
+    setup = await _load_setup(db, scope, section_id, subject_id, grading_period, school_year_id)
     subject = await get_scoped(db, Subject, subject_id, scope)
     affected = (
         await db.execute(
@@ -912,6 +957,8 @@ async def put_class_record_setup(
                 .join(StudentEnrollment,
                       StudentEnrollment.enrollment_id == StudentPace.enrollment_id)
                 .where(StudentEnrollment.section_id == section_id,
+                       StudentEnrollment.school_id == scope,
+                       StudentEnrollment.school_year_id == school_year_id,
                        StudentPace.subject == subject.subject_name,
                        # This header is one term's; the other terms keep theirs.
                        StudentPace.grading_period == grading_period),
@@ -945,6 +992,8 @@ async def delete_pace(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, StudentPace, pace_id, scope, "PACE record")
+    enrollment = await get_scoped_optional(db, StudentEnrollment, row.enrollment_id, scope)
+    await require_current_year_record(db, scope, enrollment.school_year_id if enrollment else None)
     await db.delete(row)
     await db.commit()
 
@@ -962,8 +1011,11 @@ async def list_warnings(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    school_year_id = await resolve_school_year_id(db, scope)
     stmt = scoped(
-        select(EarlyWarning).order_by(EarlyWarning.risk_score.desc()),
+        select(EarlyWarning).where(
+            EarlyWarning.enrollment_id.in_(enrollment_ids_for_year(scope, school_year_id))
+        ).order_by(EarlyWarning.risk_score.desc()),
         EarlyWarning,
         scope,
     )
@@ -982,7 +1034,9 @@ async def list_warnings(
         e.enrollment_id: e
         for e in (
             await db.execute(
-                scoped(select(StudentEnrollment), StudentEnrollment, scope)
+                scoped(select(StudentEnrollment).where(
+                    StudentEnrollment.school_year_id == (school_year_id or 0)
+                ), StudentEnrollment, scope)
             )
         ).scalars()
     }
@@ -1032,10 +1086,14 @@ async def warning_summary(
     """Open flags, counted two ways: ``counts`` per subject flag, and
     ``student_counts`` per student at their worst flag, the way the dashboard
     counts. ``mine`` narrows both to the sections the teacher handles."""
+    school_year_id = await resolve_school_year_id(db, scope)
     rows = (
         await db.execute(
             scoped(
-                select(EarlyWarning).where(EarlyWarning.is_resolved.is_(False)),
+                select(EarlyWarning).where(
+                    EarlyWarning.is_resolved.is_(False),
+                    EarlyWarning.enrollment_id.in_(enrollment_ids_for_year(scope, school_year_id)),
+                ),
                 EarlyWarning,
                 scope,
             )
@@ -1049,7 +1107,9 @@ async def warning_summary(
             e.enrollment_id: e.section_id
             for e in (
                 await db.execute(
-                    scoped(select(StudentEnrollment), StudentEnrollment, scope)
+                    scoped(select(StudentEnrollment).where(
+                    StudentEnrollment.school_year_id == (school_year_id or 0)
+                ), StudentEnrollment, scope)
                 )
             ).scalars()
         }
@@ -1093,6 +1153,8 @@ async def update_warning(
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, EarlyWarning, warning_id, scope, "Warning")
+    enrollment = await get_scoped_optional(db, StudentEnrollment, row.enrollment_id, scope)
+    await require_current_year_record(db, scope, enrollment.school_year_id if enrollment else None)
     if not (await class_access(db, current, scope)).can_see_record(
         row.enrollment_id, row.subject
     ):
@@ -1114,12 +1176,21 @@ async def update_warning(
 @router.get("/api/data-quality-logs", response_model=List[DataQualityResponse])
 async def list_quality_logs(
     resolved: Optional[bool] = None,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    school_year_id = await resolve_school_year_id(db, scope)
+    records = (await db.scalars(select(StudentPace).where(
+        StudentPace.school_id == scope,
+        StudentPace.enrollment_id.in_(enrollment_ids_for_year(scope, school_year_id)),
+    ))).all()
+    access = await class_access(db, current, scope)
+    pace_ids = {row.pace_id for row in records if access.can_see_record(row.enrollment_id, row.subject)}
     stmt = scoped(
-        select(DataQualityLog).order_by(DataQualityLog.created_at.desc()),
+        select(DataQualityLog).where(
+            DataQualityLog.student_pace_id.in_(pace_ids or {0})
+        ).order_by(DataQualityLog.created_at.desc()),
         DataQualityLog,
         scope,
     )
@@ -1140,6 +1211,17 @@ async def list_quality_logs(
     return out
 
 
+async def _current_quality_pace(db, scope, current, pace_id):
+    if pace_id is None:
+        raise HTTPException(status_code=400, detail="Choose a current-school-year class record for this quality report.")
+    pace = await get_scoped(db, StudentPace, pace_id, scope, "Class record")
+    enrollment = await get_scoped_optional(db, StudentEnrollment, pace.enrollment_id, scope)
+    await require_current_year_record(db, scope, enrollment.school_year_id if enrollment else None)
+    if not (await class_access(db, current, scope)).can_see_record(pace.enrollment_id, pace.subject):
+        raise HTTPException(status_code=404, detail="Class record not found.")
+    return pace
+
+
 @router.post("/api/data-quality-logs", response_model=DataQualityResponse, status_code=201)
 async def create_quality_log(
     payload: DataQualityCreate,
@@ -1147,6 +1229,9 @@ async def create_quality_log(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    pace = await _current_quality_pace(db, scope, current, payload.student_pace_id)
+    if pace.student_id != payload.student_id:
+        raise HTTPException(status_code=400, detail="That class record belongs to another student.")
     if await get_scoped_optional(db, Student, payload.student_id, scope) is None:
         raise HTTPException(status_code=400, detail="That student does not exist.")
     # Both of these default to something already in scope when left out — the
@@ -1174,11 +1259,12 @@ async def create_quality_log(
 @router.patch("/api/data-quality-logs/{log_id}", response_model=DataQualityResponse)
 async def resolve_quality_log(
     log_id: int,
-    _: Staff = Depends(get_current_user),
+    current: Staff = Depends(get_current_user),
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
     row = await get_scoped(db, DataQualityLog, log_id, scope, "Log entry")
+    await _current_quality_pace(db, scope, current, row.student_pace_id)
     row.resolved = True
     row.resolved_date = _now()
     await db.commit()

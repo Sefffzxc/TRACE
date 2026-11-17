@@ -31,7 +31,7 @@ class SectionAdviserTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase):
 
     async def _legacy(self, teacher="Teacher A", section=10, adviser=True):
         async with self.sessions() as db:
-            row = TeacherAssignment(school_id=1, teacher_id=self.people[teacher].id,
+            row = TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people[teacher].id,
                                     section_id=section, subject_id=None, is_adviser=adviser)
             db.add(row)
             await db.commit()
@@ -55,7 +55,7 @@ class SectionAdviserTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase):
         self.assertFalse(access.can_see(11, "English"))
         self.actor = self.people["Teacher A"].id
         response = await self.client.get("/api/my-classes")
-        self.assertEqual(response.json(), {"unrestricted": False, "grade": {}, "advisory": [10]})
+        self.assertEqual(response.json(), {"school_year_id": 1, "unrestricted": False, "grade": {}, "advisory": [10]})
 
     async def test_adviser_and_teaching_rights_are_independent(self):
         self.assertEqual((await self._adviser()).status_code, 200)
@@ -196,7 +196,7 @@ class SectionAdviserTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase):
 
     async def test_review_cannot_read_foreign_assignments_or_re_review_concrete_rows(self):
         async with self.sessions() as db:
-            row = TeacherAssignment(school_id=2, teacher_id=self.people["Private Other Teacher"].id,
+            row = TeacherAssignment(school_id=2, school_year_id=2, teacher_id=self.people["Private Other Teacher"].id,
                                     section_id=20, subject_id=None)
             db.add(row)
             await db.commit()
@@ -210,8 +210,6 @@ class SectionAdviserTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase):
     async def test_adviser_reads_saved_scores_and_setup_but_all_write_paths_refuse(self):
         await self._adviser()
         async with self.sessions() as db:
-            db.add(SchoolYear(school_year_id=1, school_id=1, year="2026-2027",
-                start_date=date(2026, 6, 1), end_date=date(2027, 5, 31), is_current=True))
             db.add(Student(student_id=1, school_id=1, first_name="Test", last_name="Learner"))
             await db.flush()
             db.add(StudentEnrollment(enrollment_id=1, student_id=1, school_id=1,

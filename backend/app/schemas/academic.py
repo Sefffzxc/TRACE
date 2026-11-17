@@ -191,6 +191,7 @@ class SubjectResponse(ORMModel, SubjectBase):
 
 # ── Teacher assignment ────────────────────────────────────────────────────────
 class TeacherAssignmentCreate(BaseModel):
+    school_year_id: Optional[int] = Field(default=None, gt=0)
     teacher_id: uuid.UUID
     section_id: int
     subject_id: Optional[int] = None
@@ -198,6 +199,7 @@ class TeacherAssignmentCreate(BaseModel):
 
 
 class TeacherAssignmentResponse(ORMModel):
+    school_year_id: Optional[int] = None
     assignment_id: int
     teacher_id: uuid.UUID
     section_id: int
@@ -210,6 +212,7 @@ class TeacherAssignmentResponse(ORMModel):
 
 
 class TeacherAssignmentReview(BaseModel):
+    school_year_id: Optional[int] = Field(default=None, gt=0)
     subject_ids: list[int] = Field(max_length=200)
 
     @field_validator("subject_ids")
@@ -221,10 +224,12 @@ class TeacherAssignmentReview(BaseModel):
 
 
 class SectionAdviserSet(BaseModel):
+    school_year_id: Optional[int] = Field(default=None, gt=0)
     teacher_id: uuid.UUID
 
 
 class SectionAdviserResponse(ORMModel):
+    school_year_id: Optional[int] = None
     adviser_id: int
     section_id: int
     teacher_id: uuid.UUID

@@ -295,6 +295,12 @@ class ClassRecordSetup(Base):
         nullable=False,
         index=True,
     )
+    school_year_id = Column(
+        Integer,
+        ForeignKey("school_years.school_year_id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     section_id = Column(
         Integer, ForeignKey("sections.section_id", ondelete="CASCADE"), nullable=False
     )
@@ -330,7 +336,8 @@ class ClassRecordSetup(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "section_id", "subject_id", "grading_period", name="uq_class_record_setup"
+            "school_year_id", "section_id", "subject_id", "grading_period",
+            name="uq_class_record_setup_per_year",
         ),
     )
 

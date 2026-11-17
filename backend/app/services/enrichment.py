@@ -18,6 +18,20 @@ from app.models.students import (
 from app.schemas.students import StudentResponse
 from app.services import risk
 from app.services.risk import evaluate_row
+from app.services.school_years import resolve_school_year_id
+
+
+def enrollment_ids_for_year(school_id: int, school_year_id: Optional[int]):
+    """A tenant and year boundary for every enrollment-backed academic record.
+
+    A missing current year deliberately matches no enrollments. Never infer a
+    year from the most recently inserted enrollment or record.
+    """
+    return select(StudentEnrollment.enrollment_id).where(
+        StudentEnrollment.school_id == school_id,
+        StudentEnrollment.school_year_id == (school_year_id or 0),
+        StudentEnrollment.is_active.is_(True),
+    )
 
 
 class Lookups:
@@ -31,8 +45,9 @@ class Lookups:
         self.staff: Dict[str, str] = {}
 
     @classmethod
-    async def load(cls, db: AsyncSession, *, school_id: int) -> "Lookups":
+    async def load(cls, db: AsyncSession, *, school_id: int, school_year_id=None) -> "Lookups":
         self = cls()
+        school_year_id = await resolve_school_year_id(db, school_id, school_year_id)
         for level in (
             await db.execute(
                 select(GradeLevel).where(GradeLevel.school_id == school_id)
@@ -54,6 +69,7 @@ class Lookups:
             await db.execute(
                 select(SectionAdviser).where(
                     SectionAdviser.school_id == school_id,
+                    SectionAdviser.school_year_id == (school_year_id or 0),
                 )
             )
         ).scalars().all()
@@ -69,10 +85,13 @@ async def current_enrollments(
     student_ids: Optional[Iterable[int]] = None,
     *,
     school_id: int,
+    school_year_id: Optional[int] = None,
 ) -> Dict[int, StudentEnrollment]:
-    """The active enrolment per student, keyed by student id."""
+    """The active enrollment in the selected/current year, keyed by student."""
+    school_year_id = await resolve_school_year_id(db, school_id, school_year_id)
     stmt = select(StudentEnrollment).where(
         StudentEnrollment.school_id == school_id,
+        StudentEnrollment.school_year_id == (school_year_id or 0),
         StudentEnrollment.is_active.is_(True),
     )
     if student_ids is not None:
@@ -99,11 +118,16 @@ async def paces_by_student(
     risk_line: float = 80.0,
     terms_per_year: Optional[int] = None,
     visible: Optional[Callable[[Optional[int], Optional[str]], bool]] = None,
+    school_year_id: Optional[int] = None,
 ) -> Dict[int, List[dict]]:
     """``visible(enrollment_id, subject)``, when given, keeps only the
     subjects the viewer may see (see app/services/access.py), so a subject
     teacher's summary of a learner is built from their own subjects."""
-    stmt = select(StudentPace).where(StudentPace.school_id == school_id)
+    school_year_id = await resolve_school_year_id(db, school_id, school_year_id)
+    stmt = select(StudentPace).where(
+        StudentPace.school_id == school_id,
+        StudentPace.enrollment_id.in_(enrollment_ids_for_year(school_id, school_year_id)),
+    )
     if student_ids is not None:
         ids = list(student_ids)
         if not ids:
@@ -116,7 +140,7 @@ async def paces_by_student(
     # Every term of every subject, so each record can be judged on where its
     # YEAR is heading rather than on the term it happens to sit in.
     years = await term_grades_by_subject(
-        db, school_id=school_id, student_ids=student_ids
+        db, school_id=school_id, student_ids=student_ids, school_year_id=school_year_id
     )
 
     out: Dict[int, List[dict]] = {}
@@ -221,7 +245,7 @@ def build_student_response(
 
 
 async def term_grades_by_subject(
-    db: AsyncSession, *, school_id: int, student_ids=None
+    db: AsyncSession, *, school_id: int, student_ids=None, school_year_id=None
 ) -> Dict[tuple, list]:
     """Every term grade a learner has in each subject, keyed by enrolment.
 
@@ -229,7 +253,11 @@ async def term_grades_by_subject(
     looking at all their terms at once rather than at the one being
     encoded. Loaded in a single query for the whole page.
     """
-    stmt = select(StudentPace).where(StudentPace.school_id == school_id)
+    school_year_id = await resolve_school_year_id(db, school_id, school_year_id)
+    stmt = select(StudentPace).where(
+        StudentPace.school_id == school_id,
+        StudentPace.enrollment_id.in_(enrollment_ids_for_year(school_id, school_year_id)),
+    )
     if student_ids is not None:
         ids = list(student_ids)
         if not ids:
@@ -288,6 +316,8 @@ async def build_student_list(
 
     out = []
     for student in students:
+        if student.student_id not in enrollments:
+            continue
         item = build_student_response(
             student, enrollments.get(student.student_id),
             paces.get(student.student_id, []), lookups,
@@ -342,6 +372,7 @@ async def latest_predictions(
     enrollment_ids: Optional[Iterable[int]] = None,
     *,
     school_id: int,
+    school_year_id: Optional[int] = None,
 ) -> Dict[tuple, "AIRiskPrediction"]:
     """The current year-model prediction per enrolment and subject, keyed by
     ``(enrollment_id, subject)``, so every term of a subject shows it.
@@ -349,9 +380,13 @@ async def latest_predictions(
     Done in Python rather than with a window function so the same query works
     on SQLite and PostgreSQL.
     """
+    school_year_id = await resolve_school_year_id(db, school_id, school_year_id)
     stmt = (
         select(AIRiskPrediction)
-        .where(AIRiskPrediction.school_id == school_id)
+        .where(
+            AIRiskPrediction.school_id == school_id,
+            AIRiskPrediction.enrollment_id.in_(enrollment_ids_for_year(school_id, school_year_id)),
+        )
         .order_by(AIRiskPrediction.prediction_id)
     )
     if enrollment_ids is not None:
@@ -372,6 +407,7 @@ async def latest_prediction_per_student(
     *,
     school_id: int,
     visible: Optional[Callable[[Optional[int], Optional[str]], bool]] = None,
+    school_year_id: Optional[int] = None,
 ) -> Dict[int, "AIRiskPrediction"]:
     """The student's worst current prediction across their subjects.
     ``visible`` keeps only the subjects the viewer may see.
@@ -381,9 +417,13 @@ async def latest_prediction_per_student(
     among that student's newest per-subject predictions — the same "worst
     subject wins" rule the rule-based summary uses.
     """
+    school_year_id = await resolve_school_year_id(db, school_id, school_year_id)
     stmt = (
         select(AIRiskPrediction)
-        .where(AIRiskPrediction.school_id == school_id)
+        .where(
+            AIRiskPrediction.school_id == school_id,
+            AIRiskPrediction.enrollment_id.in_(enrollment_ids_for_year(school_id, school_year_id)),
+        )
         .order_by(AIRiskPrediction.prediction_id)
     )
     if student_ids is not None:
@@ -403,11 +443,13 @@ async def latest_prediction_per_student(
     return worst
 
 
-async def sections_for_teacher(db: AsyncSession, teacher_id, *, school_id: int) -> List[int]:
+async def sections_for_teacher(db: AsyncSession, teacher_id, *, school_id: int, school_year_id=None) -> List[int]:
+    school_year_id = await resolve_school_year_id(db, school_id, school_year_id)
     rows = (
         await db.execute(
             select(TeacherAssignment.section_id).where(
                 TeacherAssignment.school_id == school_id,
+                TeacherAssignment.school_year_id == (school_year_id or 0),
                 TeacherAssignment.teacher_id == teacher_id,
                 or_(TeacherAssignment.subject_id.is_not(None), TeacherAssignment.is_adviser.is_(False)),
             )
@@ -417,6 +459,7 @@ async def sections_for_teacher(db: AsyncSession, teacher_id, *, school_id: int) 
         await db.execute(
             select(SectionAdviser.section_id).where(
                 SectionAdviser.school_id == school_id,
+                SectionAdviser.school_year_id == (school_year_id or 0),
                 SectionAdviser.teacher_id == teacher_id,
             )
         )

@@ -18,6 +18,8 @@
  * service name with no domain — fails here with ERR_NAME_NOT_RESOLVED, because
  * this code runs in the visitor's browser, not inside Render's network.
  */
+import { getSchoolYearScope } from '../lib/schoolYearScope';
+
 function resolveApiBase(raw) {
   const value = (raw || 'http://localhost:8000').trim().replace(/\/$/, '');
   if (!value || value.includes('://')) return value;
@@ -152,7 +154,7 @@ async function refreshAccessToken() {
   return refreshing;
 }
 
-async function request(path, { method = 'GET', body, params, auth = true, raw = false } = {}) {
+async function request(path, { method = 'GET', body, params, auth = true, raw = false, schoolYearId = getSchoolYearScope() } = {}) {
   const url = new URL(`${API_BASE}${path}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -165,6 +167,7 @@ async function request(path, { method = 'GET', body, params, auth = true, raw = 
   const send = async () => {
     const headers = {};
     if (auth && tokens.access) headers.Authorization = `Bearer ${tokens.access}`;
+    if (auth && schoolYearId != null) headers['X-School-Year-Id'] = String(schoolYearId);
 
     let payload = body;
     if (body !== undefined && !(body instanceof FormData)) {
@@ -208,6 +211,9 @@ async function request(path, { method = 'GET', body, params, auth = true, raw = 
   }
 
   if (!response.ok) {
+    if (response.status === 409 && data?.detail?.code === 'school_year_changed') {
+      window.dispatchEvent(new CustomEvent('trace:school-year-conflict'));
+    }
     throw new ApiError(
       readDetail(data, `Request failed (${response.status}).`),
       response.status,
@@ -224,9 +230,9 @@ export const api = {
   // an account to authenticate with.
   get: (path, params, options) => request(path, { params, ...options }),
   post: (path, body, options) => request(path, { method: 'POST', body, ...options }),
-  patch: (path, body) => request(path, { method: 'PATCH', body }),
-  put: (path, body) => request(path, { method: 'PUT', body }),
-  delete: (path) => request(path, { method: 'DELETE' }),
+  patch: (path, body, options) => request(path, { method: 'PATCH', body, ...options }),
+  put: (path, body, options) => request(path, { method: 'PUT', body, ...options }),
+  delete: (path, options) => request(path, { method: 'DELETE', ...options }),
   base: API_BASE,
 };
 

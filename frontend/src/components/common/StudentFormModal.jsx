@@ -3,6 +3,7 @@ import { Modal, ErrorNote } from './ui';
 import { assignmentApi, studentApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { useSchoolYear } from '../../context/SchoolYearContext';
 import { rosterGrades, rosterSections } from '../../lib/rosterAccess';
 
 const BLANK = {
@@ -30,6 +31,7 @@ const BLANK = {
 export default function StudentFormModal({ student, gradeLevels, sections, onClose, onSaved }) {
   const toast = useToast();
   const { user } = useAuth();
+  const { yearId } = useSchoolYear();
   const isEdit = Boolean(student?.student_id);
 
   const [form, setForm] = useState(BLANK);
@@ -150,6 +152,7 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
       } else {
         await studentApi.create({
           ...payload,
+          school_year_id: yearId,
           grade_level_id: Number(form.grade_level_id),
           section_id: Number(form.section_id),
         });

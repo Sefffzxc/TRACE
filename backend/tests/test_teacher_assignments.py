@@ -7,6 +7,7 @@ each PostgreSQL test creates and removes its own randomly named schema.
 from __future__ import annotations
 
 import asyncio
+from datetime import date
 import os
 from pathlib import Path
 import sys
@@ -28,7 +29,7 @@ import app.models
 from app.api import deps
 from app.api.routers import academic
 from app.db.session import Base, get_db
-from app.models.academic import GradeLevel, Section, Subject, TeacherAssignment
+from app.models.academic import GradeLevel, SchoolYear, Section, Subject, TeacherAssignment
 from app.models.schools import School
 from app.models.staff import Staff
 
@@ -63,6 +64,9 @@ class AssignmentFixture:
         self.people = {}
         async with self.sessions() as db:
             db.add_all([School(school_id=i, name=f"Test School {i}", status="approved") for i in (1, 2)])
+            await db.flush()
+            db.add_all([SchoolYear(school_year_id=i, school_id=i, year="2026-2027",
+                start_date=date(2026, 6, 1), end_date=date(2027, 5, 31), is_current=True) for i in (1, 2)])
             await db.flush()
             for name, role, school_id in (
                 ("Principal", "admin", 1), ("Teacher A", "teacher", 1),
@@ -182,7 +186,7 @@ class TeacherAssignmentTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase
 
     async def test_legacy_all_subjects_blocks_specific_assignments_until_reviewed(self):
         async with self.sessions() as db:
-            db.add(TeacherAssignment(school_id=1, teacher_id=self.people["Teacher A"].id,
+            db.add(TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["Teacher A"].id,
                                      section_id=10, subject_id=None, is_adviser=False))
             await db.commit()
         for teacher, subject in (("Teacher A", 100), ("Teacher B", 101)):
@@ -209,7 +213,7 @@ class TeacherAssignmentTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase
 
     async def test_legacy_adviser_only_row_does_not_occupy_subject(self):
         async with self.sessions() as db:
-            db.add(TeacherAssignment(school_id=1, teacher_id=self.people["Teacher A"].id,
+            db.add(TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["Teacher A"].id,
                                      section_id=10, subject_id=None, is_adviser=True))
             await db.commit()
         response = await self._create("Teacher B")
@@ -234,7 +238,7 @@ class TeacherAssignmentTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase
 
     async def test_other_school_teacher_section_subject_and_assignment_stay_private(self):
         async with self.sessions() as db:
-            other = TeacherAssignment(school_id=2, teacher_id=self.people["Private Other Teacher"].id,
+            other = TeacherAssignment(school_id=2, school_year_id=2, teacher_id=self.people["Private Other Teacher"].id,
                                       section_id=20, subject_id=200)
             db.add(other)
             await db.commit()
@@ -259,7 +263,7 @@ class TeacherAssignmentTests(AssignmentFixture, unittest.IsolatedAsyncioTestCase
     async def test_legacy_duplicates_are_retained_and_new_conflicts_do_not_crash(self):
         async with self.sessions() as db:
             db.add_all([
-                TeacherAssignment(school_id=1, teacher_id=self.people[teacher].id, section_id=10, subject_id=subject)
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people[teacher].id, section_id=10, subject_id=subject)
                 for teacher, subject in (("Teacher A", 100), ("Teacher B", 100), ("Teacher A", None), ("Teacher A", None))
             ])
             await db.commit()

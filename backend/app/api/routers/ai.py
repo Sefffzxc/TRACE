@@ -40,9 +40,10 @@ from app.schemas.students import (
 )
 from app.services import ml_client
 from app.services.access import class_access
+from app.services.school_years import resolve_school_year_id
 from app.services.enrichment import (Lookups, is_year_prediction,
                                      newest_year_predictions,
-                                     sections_for_teacher)
+                                     sections_for_teacher, enrollment_ids_for_year)
 
 router = APIRouter(prefix="/api/ai", tags=["AI risk classification"])
 
@@ -113,8 +114,11 @@ async def list_predictions(
     scope: int = Depends(school_scope),
     db: AsyncSession = Depends(get_db),
 ):
+    school_year_id = await resolve_school_year_id(db, scope)
     stmt = scoped(
-        select(AIRiskPrediction).order_by(AIRiskPrediction.prediction_id.desc()),
+        select(AIRiskPrediction).where(
+            AIRiskPrediction.enrollment_id.in_(enrollment_ids_for_year(scope, school_year_id))
+        ).order_by(AIRiskPrediction.prediction_id.desc()),
         AIRiskPrediction,
         scope,
     )
@@ -139,7 +143,9 @@ async def list_predictions(
         e.enrollment_id: e
         for e in (
             await db.execute(
-                scoped(select(StudentEnrollment), StudentEnrollment, scope)
+                scoped(select(StudentEnrollment).where(
+                    StudentEnrollment.school_year_id == (school_year_id or 0)
+                ), StudentEnrollment, scope)
             )
         ).scalars()
     }
@@ -196,6 +202,10 @@ async def get_prediction(
     """One prediction with the exact input that produced it — the "show me why"
     view, and what makes any number on screen checkable by hand."""
     row = await get_scoped(db, AIRiskPrediction, prediction_id, scope, "Prediction")
+    school_year_id = await resolve_school_year_id(db, scope)
+    enrollment = await db.get(StudentEnrollment, row.enrollment_id) if row.enrollment_id else None
+    if enrollment is None or enrollment.school_id != scope or enrollment.school_year_id != school_year_id:
+        raise HTTPException(status_code=404, detail="Prediction not found in the current school year.")
     if not (await class_access(db, current, scope)).can_see_record(
         row.enrollment_id, row.subject
     ):
@@ -216,10 +226,13 @@ async def prediction_summary(
     saying that four of those came from the fallback, or that six were scored
     with missing assessment data, is overstating what the model knows.
     """
+    school_year_id = await resolve_school_year_id(db, scope)
     rows = (
         await db.execute(
             scoped(
-                select(AIRiskPrediction).order_by(AIRiskPrediction.prediction_id),
+                select(AIRiskPrediction).where(
+                    AIRiskPrediction.enrollment_id.in_(enrollment_ids_for_year(scope, school_year_id))
+                ).order_by(AIRiskPrediction.prediction_id),
                 AIRiskPrediction,
                 scope,
             )
@@ -274,11 +287,15 @@ async def rescore(
     stay, so "what did the model say before we filled in the Performance Tasks"
     is always answerable.
     """
+    school_year_id = await resolve_school_year_id(db, scope, required=True)
     # The model reads a learner's graded first term and answers for the rest
     # of the year, so those are the only records it is asked about.
     stmt = scoped(
         select(StudentPace)
-        .where(StudentPace.grading_period == ml_client.FIRST_TERM)
+        .where(
+            StudentPace.grading_period == ml_client.FIRST_TERM,
+            StudentPace.enrollment_id.in_(enrollment_ids_for_year(scope, school_year_id)),
+        )
         .order_by(StudentPace.pace_id),
         StudentPace,
         scope,
@@ -296,7 +313,9 @@ async def rescore(
         e.enrollment_id: e
         for e in (
             await db.execute(
-                scoped(select(StudentEnrollment), StudentEnrollment, scope)
+                scoped(select(StudentEnrollment).where(
+                    StudentEnrollment.school_year_id == (school_year_id or 0)
+                ), StudentEnrollment, scope)
             )
         ).scalars()
     }

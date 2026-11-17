@@ -75,13 +75,13 @@ class StudentCreationAccessTests(unittest.IsolatedAsyncioTestCase):
             ])
             await db.flush()
             db.add_all([
-                TeacherAssignment(school_id=1, teacher_id=self.people["Teacher"], section_id=10, subject_id=100),
-                SectionAdviser(school_id=1, teacher_id=self.people["Adviser"], section_id=11),
-                TeacherAssignment(school_id=1, teacher_id=self.people["FormerAdviser"], section_id=12,
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["Teacher"], section_id=10, subject_id=100),
+                SectionAdviser(school_id=1, school_year_id=1, teacher_id=self.people["Adviser"], section_id=11),
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["FormerAdviser"], section_id=12,
                     subject_id=None, is_adviser=True),
                 # Even a legacy teaching row cannot turn a principal into a teacher.
-                TeacherAssignment(school_id=1, teacher_id=self.people["Principal"], section_id=12, subject_id=100),
-                TeacherAssignment(school_id=2, teacher_id=self.people["ForeignTeacher"], section_id=20, subject_id=101),
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["Principal"], section_id=12, subject_id=100),
+                TeacherAssignment(school_id=2, school_year_id=2, teacher_id=self.people["ForeignTeacher"], section_id=20, subject_id=101),
             ])
             await db.commit()
         self.actor = self.people["Teacher"]
@@ -205,7 +205,7 @@ class StudentCreationAccessTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_no_school_year_is_rejected_before_student_insert(self):
         async with self.sessions() as db:
-            await db.delete(await db.get(SchoolYear, 1))
+            (await db.get(SchoolYear, 1)).is_current = False
             await db.commit()
         payload = self._student_payload()
         payload.pop("school_year_id")

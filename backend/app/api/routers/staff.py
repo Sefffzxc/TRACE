@@ -55,6 +55,7 @@ from app.schemas.staff import (
 from app.services.audit import Action, log_event
 from app.services.applications import ensure_legacy_rejection_event, record_application_event
 from app.services.email import EmailDeliveryError, send_account_decision_email
+from app.services.school_years import resolve_school_year_id
 
 router = APIRouter(tags=["Staff"])
 
@@ -224,6 +225,7 @@ async def list_teachers(
     db: AsyncSession = Depends(get_db),
 ):
     """Teacher directory enriched with the sections each one handles."""
+    year_id = await resolve_school_year_id(db, scope)
     teachers = (
         await db.execute(
             select(Staff)
@@ -243,6 +245,7 @@ async def list_teachers(
             .join(Section, Section.section_id == TeacherAssignment.section_id)
             .where(
                 TeacherAssignment.school_id == scope,
+                TeacherAssignment.school_year_id == year_id if year_id is not None else False,
                 Section.school_id == scope,
             )
         )
@@ -256,7 +259,8 @@ async def list_teachers(
     advisers = (await db.execute(
         select(SectionAdviser, Section)
         .join(Section, Section.section_id == SectionAdviser.section_id)
-        .where(SectionAdviser.school_id == scope, Section.school_id == scope)
+        .where(SectionAdviser.school_id == scope, Section.school_id == scope,
+               SectionAdviser.school_year_id == year_id if year_id is not None else False)
     )).all()
     for adviser, section in advisers:
         adviser_of[adviser.teacher_id] = section.name

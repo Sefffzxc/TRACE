@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import { schoolYearApi, staffApi, warningApi } from '../../api/endpoints';
+import { staffApi, warningApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
+import { SchoolYearProvider, useSchoolYear } from '../../context/SchoolYearContext';
+import { ErrorNote, TableSkeleton } from '../common/ui';
 
 const COLLAPSE_KEY = 'trace.sidebar-collapsed';
 
@@ -13,7 +15,12 @@ const COLLAPSE_KEY = 'trace.sidebar-collapsed';
  * fetch them itself.
  */
 export default function AppShell() {
-  const { isAdmin, isSuperAdmin, tracksUnits, unitLabel } = useAuth();
+  return <SchoolYearProvider><SchoolYearShell /></SchoolYearProvider>;
+}
+
+function SchoolYearShell() {
+  const { isAdmin, isSuperAdmin } = useAuth();
+  const { year, yearId, ready, error: yearError, refresh: refreshYear } = useSchoolYear();
   const { pathname } = useLocation();
 
   const [collapsed, setCollapsed] = useState(
@@ -22,7 +29,8 @@ export default function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
-  const [schoolYear, setSchoolYear] = useState(null);
+  const activeYear = useRef(yearId);
+  activeYear.current = yearId;
 
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
@@ -34,27 +42,21 @@ export default function AppShell() {
   }, [pathname]);
 
   const loadChrome = useCallback(async () => {
+    const capturedYear = yearId;
     // The system operator belongs to no school, so there are no warnings and
     // no school year to fetch — and the API would rightly refuse both. Asking
     // anyway would mean two failing requests every two minutes, which makes a
     // deliberate boundary look like a broken page in the network tab.
     if (isSuperAdmin) {
       setAlerts([]);
-      setSchoolYear(null);
       setPendingCount(0);
       return;
     }
     try {
       // Student warnings are the teachers' to act on; the principal's screens
       // follow the school and its teachers, so their bell carries none.
-      const [warnings, year] = await Promise.all([
-        isAdmin
-          ? Promise.resolve([])
-          : warningApi.list({ risk_level: 'critical,high', mine: true }),
-        schoolYearApi.current(),
-      ]);
-      setAlerts(warnings || []);
-      setSchoolYear(year?.year || null);
+      const warnings = isAdmin ? [] : await warningApi.list({ risk_level: 'critical,high', mine: true });
+      if (activeYear.current === capturedYear) setAlerts(warnings || []);
     } catch {
       /* The chrome degrades quietly — the pages surface their own errors. */
     }
@@ -66,13 +68,15 @@ export default function AppShell() {
         /* ignore */
       }
     }
-  }, [isAdmin, isSuperAdmin]);
+  }, [isAdmin, isSuperAdmin, yearId]);
 
   useEffect(() => {
+    setAlerts([]);
+    if (!ready) return undefined;
     loadChrome();
     const timer = setInterval(loadChrome, 120000);
     return () => clearInterval(timer);
-  }, [loadChrome]);
+  }, [loadChrome, ready]);
 
   // Critical STUDENTS, as on the dashboard and Early Warning tiles, not
   // critical subject flags: one learner failing two subjects counts once.
@@ -97,14 +101,26 @@ export default function AppShell() {
 
       <div className="main">
         <Header
+          key={yearId ?? 'no-current-year'}
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed((value) => !value)}
           onOpenMobile={() => setMobileOpen(true)}
           alerts={alerts}
-          schoolYear={schoolYear}
+          schoolYear={year?.year || null}
         />
         <div className="content">
-          <Outlet context={{ refreshChrome: loadChrome }} />
+          {!ready ? (
+            <>
+              <ErrorNote message={yearError} />
+              {yearError ? <button type="button" className="btn btn-secondary" onClick={refreshYear}>Retry loading school year</button> : <TableSkeleton rows={5} />}
+            </>
+          ) : (
+            // Recreate page-local selections, import previews and autosave
+            // writers together; no old-year state can remain on screen.
+            <div key={yearId ?? 'no-current-year'}>
+              <Outlet context={{ refreshChrome: loadChrome }} />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -17,6 +17,7 @@ import {
 } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useSchoolYear } from '../../context/SchoolYearContext';
 import useClassRecordAutosave, { scoreText as asText } from '../../hooks/useClassRecordAutosave';
 import {
   CORE,
@@ -61,6 +62,7 @@ import { assignedSections, sectionLabel } from '../../lib/classAccess';
 
 export default function ClassRecordPage() {
   const toast = useToast();
+  const { year, yearId } = useSchoolYear();
 
   const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -159,6 +161,7 @@ export default function ClassRecordPage() {
   const canEdit = Boolean(subject && (myClasses.unrestricted || taughtSubjects.includes('*') || taughtSubjects.includes(subject.subject_name)));
 
   const record = useClassRecordAutosave({
+    school_year_id: yearId,
     section_id: sectionId, subject_id: subjectId,
     subject_name: subject?.subject_name, grading_period: term,
   }, setupVersion, { canEdit });
@@ -382,12 +385,12 @@ export default function ClassRecordPage() {
       ) : !subject || !record.ready ? (
         <EmptyState
           title={!sections.length ? 'No assigned classes' : !subject ? 'No assigned subjects' : 'Class record unavailable'}
-          description={!sections.length || !subject ? 'Ask your school administrator to assign your section and subject before entering scores.' : 'Retry loading this record before entering scores.'}
+          description={!sections.length || !subject ? `No classes are assigned for ${year?.year || 'the current school year'}. Ask your school administrator to assign your section and subject.` : 'Retry loading this record before entering scores.'}
         />
       ) : !rows.length ? (
         <EmptyState
           title={record.allRows.length ? "No matching learners" : "No learners here yet"}
-          description={record.allRows.length ? "Clear the search to see this class. Hidden learner changes still save." : "No learners enrolled in this section yet."}
+          description={record.allRows.length ? "Clear the search to see this class. Hidden learner changes still save." : `No learners are enrolled in this section for ${year?.year || 'the current school year'}. Add or enroll students, or import this year's workbook.`}
         />
       ) : (
         <div className="card cr-card">

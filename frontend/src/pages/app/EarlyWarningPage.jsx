@@ -23,6 +23,7 @@ import { AiRiskBadge } from '../../components/common/ai';
 import { aiApi, assignmentApi, sectionApi, warningApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useSchoolYear } from '../../context/SchoolYearContext';
 import { BASIS_HINT, BASIS_LABEL } from '../../lib/standing';
 import { assignedSections, matchesSection, sectionLabel } from '../../lib/classAccess';
 
@@ -73,6 +74,7 @@ function Trend({ value }) {
 export default function EarlyWarningPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { year } = useSchoolYear();
   /* A school that tracks units (PACE booklets) is read on how far behind a
      learner is; every other school is read on grades, and has no booklets,
      completion or pace trend to show. Until the school's settings arrive the
@@ -389,9 +391,9 @@ export default function EarlyWarningPage() {
               title={!error && !unrestricted && !sections.length ? 'No assigned classes' : 'No warnings to show'}
               description={
                 !error && !unrestricted && !sections.length
-                  ? 'Ask your school administrator to assign your section and subject.'
+                  ? `No classes are assigned for ${year?.year || 'the current school year'}. Ask your school administrator to assign your section and subject.`
                   : warnings.length === 0
-                  ? 'Every student is on track.'
+                  ? `No warning records for ${year?.year || 'the current school year'}. Warnings appear after enrolled students have progress or scores recorded.`
                   : 'No flag matches these filters.'
               }
             />

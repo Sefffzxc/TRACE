@@ -142,7 +142,11 @@ async def get_super_admin(current: Staff = Depends(get_current_user)) -> Staff:
 # ══════════════════════════════════════════════════════════════════════════════
 # The tenant boundary
 # ══════════════════════════════════════════════════════════════════════════════
-async def school_scope(current: Staff = Depends(get_current_user)) -> int:
+async def school_scope(
+    request: Request,
+    current: Staff = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> int:
     """The school whose records this request may touch — and the one rule that
     keeps the super admin out of them.
 
@@ -176,7 +180,63 @@ async def school_scope(current: Staff = Depends(get_current_user)) -> int:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="This account is not attached to a school.",
         )
+    await _check_school_year_header(request, db, int(current.school_id))
     return int(current.school_id)
+
+
+async def _check_school_year_header(request: Request, db: AsyncSession, school_id: int) -> None:
+    """Stop a stale browser from saving one year's draft into another year.
+
+    The header is a version check, never authorization to choose a school or
+    gain access to an archived year. Requests without it still use the normal
+    current-year filters. Short shared locks serialize academic operations
+    against the principal's year switch on PostgreSQL.
+    """
+    raw = request.headers.get("X-School-Year-Id")
+    if raw is None:
+        return
+    path = request.url.path
+    prefixes = (
+        "/api/students", "/api/enrollments", "/api/paces", "/api/class-record",
+        "/api/early-warnings", "/api/ai", "/api/dashboard", "/api/grade-levels",
+        "/api/sections", "/api/subjects", "/api/section-advisers",
+        "/api/teacher-assignments", "/api/my-classes", "/api/class-import",
+        "/api/import", "/api/data-quality-logs",
+        "/api/staff/teachers",
+    )
+    year_action = path.startswith("/api/school-years") and request.method not in ("GET", "HEAD", "OPTIONS")
+    if not year_action and not any(path == p or path.startswith(p + "/") for p in prefixes):
+        return
+    try:
+        expected = int(raw)
+        if expected < 1:
+            raise ValueError
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid school-year version. Refresh this page.") from None
+    from app.models.academic import SchoolYear
+
+    if not year_action:
+        # Match the year resolver's lock order: school first, then year.
+        # A principal switching years takes the school's exclusive lock.
+        await db.execute(select(School.school_id).where(
+            School.school_id == school_id,
+        ).with_for_update(read=True, key_share=True))
+    stmt = select(SchoolYear.school_year_id).where(
+        SchoolYear.school_id == school_id, SchoolYear.is_current.is_(True),
+    )
+    if not year_action:
+        stmt = stmt.with_for_update(read=True)
+    rows = (await db.scalars(stmt)).all()
+    selected = rows[0] if len(rows) == 1 else None
+    if expected != selected:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "school_year_changed",
+                "message": "The current school year has changed. Reload this page before continuing.",
+                "current_school_year_id": selected,
+            },
+        )
 
 
 async def school_admin_scope(

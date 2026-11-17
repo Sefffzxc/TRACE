@@ -144,30 +144,31 @@ export const assignmentApi = {
   list: (params) => api.get('/api/teacher-assignments', params),
   /* The signed-in teacher's own classes: what they may grade. */
   mine: () => api.get('/api/my-classes'),
-  create: (payload) => api.post('/api/teacher-assignments', payload),
-  review: (id, payload) => api.post(`/api/teacher-assignments/${id}/review`, payload),
-  remove: (id) => api.delete(`/api/teacher-assignments/${id}`),
+  create: (payload) => api.post('/api/teacher-assignments', payload, { schoolYearId: payload.school_year_id }),
+  review: (id, payload) => api.post(`/api/teacher-assignments/${id}/review`, payload, { schoolYearId: payload.school_year_id }),
+  remove: (id, options) => api.delete(`/api/teacher-assignments/${id}`, options),
 };
 
 export const adviserApi = {
   list: () => api.get('/api/section-advisers'),
-  set: (sectionId, payload) => api.put(`/api/sections/${sectionId}/adviser`, payload),
-  remove: (sectionId) => api.delete(`/api/sections/${sectionId}/adviser`),
+  set: (sectionId, payload) => api.put(`/api/sections/${sectionId}/adviser`, payload, { schoolYearId: payload.school_year_id }),
+  remove: (sectionId, options) => api.delete(`/api/sections/${sectionId}/adviser`, options),
 };
 
 /* ── Students ────────────────────────────────────────────────────────────── */
 export const studentApi = {
+  returning: (params) => api.get('/api/students/returning', params),
   list: (params) => api.get('/api/students', params),
   get: (id) => api.get(`/api/students/${id}`),
   profile: (id) => api.get(`/api/students/${id}/profile`),
-  create: (payload) => api.post('/api/students', payload),
+  create: (payload) => api.post('/api/students', payload, { schoolYearId: payload.school_year_id }),
   update: (id, payload) => api.patch(`/api/students/${id}`, payload),
   remove: (id) => api.delete(`/api/students/${id}`),
 };
 
 export const enrollmentApi = {
   list: (params) => api.get('/api/enrollments', params),
-  create: (payload) => api.post('/api/enrollments', payload),
+  create: (payload) => api.post('/api/enrollments', payload, { schoolYearId: payload.school_year_id }),
   update: (id, payload) => api.patch(`/api/enrollments/${id}`, payload),
   remove: (id) => api.delete(`/api/enrollments/${id}`),
 };
@@ -181,7 +182,7 @@ export const paceApi = {
   // record being saved. The server needs them to look up the highest possible
   // scores and the weights, which it will not accept from the client.
   bulkSave: (entries, context = {}) =>
-    api.post('/api/paces/bulk', { entries, ...context }),
+    api.post('/api/paces/bulk', { entries, ...context }, { schoolYearId: context.school_year_id }),
   remove: (id) => api.delete(`/api/paces/${id}`),
 };
 
@@ -193,16 +194,17 @@ export const classRecordApi = {
       `/api/class-record/setup?section_id=${params.section_id}` +
         `&subject_id=${params.subject_id}&grading_period=${params.grading_period}`,
       payload,
+      { schoolYearId: params.school_year_id },
     ),
   /** Read a DepEd E-Class Record workbook; with save it is imported. */
-  importFile: (file, { section_id, subject_id, save = false, roster_only = false }) => {
+  importFile: (file, { section_id, subject_id, school_year_id, save = false, roster_only = false }) => {
     const form = new FormData();
     form.append('file', file);
     form.append('section_id', section_id);
     if (subject_id != null) form.append('subject_id', subject_id);
     if (roster_only) form.append('roster_only', 'true');
     form.append('save', save ? 'true' : 'false');
-    return api.post('/api/class-record/import', form);
+    return api.post('/api/class-record/import', form, { schoolYearId: school_year_id });
   },
 };
 

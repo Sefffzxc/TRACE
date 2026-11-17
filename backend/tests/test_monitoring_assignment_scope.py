@@ -84,14 +84,14 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
             # Each real class has a single owner. Advisory visibility extends
             # beyond the adviser’s own English grading assignment.
             db.add_all([
-                TeacherAssignment(school_id=1, teacher_id=self.people["Teacher"], section_id=10, subject_id=100),
-                TeacherAssignment(school_id=1, teacher_id=self.people["Teacher"], section_id=11, subject_id=111),
-                TeacherAssignment(school_id=1, teacher_id=self.people["Adviser"], section_id=10, subject_id=101),
-                SectionAdviser(school_id=1, teacher_id=self.people["Adviser"], section_id=10),
-                SectionAdviser(school_id=1, teacher_id=self.people["AdviserOnly"], section_id=11),
-                TeacherAssignment(school_id=1, teacher_id=self.people["FormerAdviser"], section_id=12, subject_id=None, is_adviser=True),
-                TeacherAssignment(school_id=1, teacher_id=self.people["Wildcard"], section_id=12, subject_id=None),
-                TeacherAssignment(school_id=2, teacher_id=self.people["Foreign"], section_id=20, subject_id=None),
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["Teacher"], section_id=10, subject_id=100),
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["Teacher"], section_id=11, subject_id=111),
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["Adviser"], section_id=10, subject_id=101),
+                SectionAdviser(school_id=1, school_year_id=1, teacher_id=self.people["Adviser"], section_id=10),
+                SectionAdviser(school_id=1, school_year_id=1, teacher_id=self.people["AdviserOnly"], section_id=11),
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["FormerAdviser"], section_id=12, subject_id=None, is_adviser=True),
+                TeacherAssignment(school_id=1, school_year_id=1, teacher_id=self.people["Wildcard"], section_id=12, subject_id=None),
+                TeacherAssignment(school_id=2, school_year_id=2, teacher_id=self.people["Foreign"], section_id=20, subject_id=None),
             ])
             for student_id, enrollment_id, school_id, grade, section, year in (
                 (101, 1001, 1, 1, 10, 1), (102, 1002, 1, 2, 11, 1),
@@ -166,7 +166,7 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_my_classes_reports_grading_and_advisory_separately(self):
         classes = await self._get("/api/my-classes")
-        self.assertEqual(classes, {"unrestricted": False,
+        self.assertEqual(classes, {"school_year_id": 1, "unrestricted": False,
             "grade": {"10": ["Mathematics"], "11": ["English"]}, "advisory": []})
         self.actor = self.people["Adviser"]
         classes = await self._get("/api/my-classes")
@@ -198,7 +198,7 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
     async def test_adviser_without_teaching_assignments_sees_both_monitoring_pages(self):
         self.actor = self.people["AdviserOnly"]
         self.assertEqual(await self._get("/api/my-classes"), {
-            "unrestricted": False, "grade": {}, "advisory": [11],
+            "school_year_id": 1, "unrestricted": False, "grade": {}, "advisory": [11],
         })
         async with self.sessions() as db:
             self.assertEqual(await sections_for_teacher(db, self.actor, school_id=1), [11])
@@ -212,7 +212,7 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
     async def test_old_adviser_flag_alone_does_not_restore_read_or_write_access(self):
         self.actor = self.people["FormerAdviser"]
         self.assertEqual(await self._get("/api/my-classes"), {
-            "unrestricted": False, "grade": {}, "advisory": [],
+            "school_year_id": 1, "unrestricted": False, "grade": {}, "advisory": [],
         })
         async with self.sessions() as db:
             self.assertEqual(await sections_for_teacher(db, self.actor, school_id=1), [])
@@ -243,7 +243,7 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status_code, 204, result.text)
         self.actor = self.people["Adviser"]
         self.assertEqual(await self._get("/api/my-classes"), {
-            "unrestricted": False, "grade": {}, "advisory": [10],
+            "school_year_id": 1, "unrestricted": False, "grade": {}, "advisory": [10],
         })
         self.assertEqual(await self._monitoring_pairs("/api/ai/predictions", mine=True),
             {(10, "Mathematics"), (10, "English")})
@@ -258,7 +258,7 @@ class MonitoringAssignmentScopeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_unassigned_teacher_receives_no_monitoring_rows_or_counts(self):
         self.actor = self.people["Unassigned"]
-        self.assertEqual(await self._get("/api/my-classes"), {"unrestricted": False, "grade": {}, "advisory": []})
+        self.assertEqual(await self._get("/api/my-classes"), {"school_year_id": 1, "unrestricted": False, "grade": {}, "advisory": []})
         for path in ("/api/ai/predictions", "/api/early-warnings"):
             self.assertEqual(await self._get(path), [])
         self.assertEqual((await self._get("/api/ai/summary"))["total_scored"], 0)

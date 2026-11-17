@@ -68,7 +68,7 @@ function rowProblem(row, head) {
  * Failed/uncertain batches require an edit or explicit retry, preventing loops. */
 export default function useClassRecordAutosave(context, reloadVersion = 0, { canEdit = false } = {}) {
   const key = context.section_id && context.subject_id && context.subject_name
-    ? `${context.section_id}:${context.subject_id}:${context.grading_period}` : '';
+    ? `${context.school_year_id}:${context.section_id}:${context.subject_id}:${context.grading_period}` : '';
   const [state, setState] = useState({ key: '', context: {}, ready: false, loading: false,
     enrollments: [], paces: [], setup: DEFAULT_RECORD_SETUP, setupDraft: null, drafts: {},
     revision: 0, saving: false, error: '', savedAt: null });
@@ -91,11 +91,11 @@ export default function useClassRecordAutosave(context, reloadVersion = 0, { can
   useEffect(() => {
     if (!key) return undefined;
     let live = true;
-    const sheetContext = { section_id: Number(context.section_id), subject_id: Number(context.subject_id), grading_period: context.grading_period, subject_name: context.subject_name };
+    const sheetContext = { school_year_id: context.school_year_id, section_id: Number(context.section_id), subject_id: Number(context.subject_id), grading_period: context.grading_period, subject_name: context.subject_name };
     update((current) => ({ ...current, loading: true, ready: false, error: '' }));
     Promise.all([
-      enrollmentApi.list({ section_id: sheetContext.section_id, is_active: true }),
-      paceApi.list({ section_id: sheetContext.section_id }),
+      enrollmentApi.list({ section_id: sheetContext.section_id, school_year_id: sheetContext.school_year_id, is_active: true }),
+      paceApi.list({ section_id: sheetContext.section_id, school_year_id: sheetContext.school_year_id }),
       classRecordApi.getSetup(sheetContext),
     ]).then(([enrollments, paces, setup]) => {
       if (!live) return;
