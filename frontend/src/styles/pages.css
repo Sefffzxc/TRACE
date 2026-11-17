@@ -607,6 +607,14 @@
   color: var(--text-faint);
 }
 
+.assignment-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; margin-top: 1rem; }
+.assignment-sort { display: grid; gap: .35rem; flex: 1 1 220px; max-width: 320px; min-width: 0; }
+.assignment-sort .field-label { margin-bottom: 0; }
+@media (max-width: 640px) {
+  .assignment-sort { flex-basis: 100%; max-width: none; }
+  .assignment-toolbar > .btn { width: 100%; justify-content: center; }
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    Profile settings
    ══════════════════════════════════════════════════════════════════════════ */

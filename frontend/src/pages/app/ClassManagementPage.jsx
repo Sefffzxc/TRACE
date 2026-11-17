@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ArrowUpDown,
   BookOpen,
   CalendarDays,
   Layers,
@@ -29,6 +30,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useSchoolYear } from '../../context/SchoolYearContext';
 import { formatPersonName } from '../../lib/personName';
+import { arrangeAssignments } from '../../lib/assignmentOrder';
 import { GradeSectionsModal, GradeSectionsTable } from './GradeSections';
 
 const TABS = [
@@ -66,6 +68,12 @@ export default function ClassManagementPage() {
   const [deleting, setDeleting] = useState(null);
   const [reviewing, setReviewing] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [assignmentSort, setAssignmentSort] = useState('grade');
+  const [assignmentDirection, setAssignmentDirection] = useState('asc');
+  const orderedAssignments = useMemo(
+    () => arrangeAssignments(data.assignments, data.sections, data.levels, assignmentSort, assignmentDirection),
+    [data.assignments, data.sections, data.levels, assignmentSort, assignmentDirection],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -254,7 +262,38 @@ export default function ClassManagementPage() {
 
         <div className="card">
           {tab === 'advisers' && <div className="card-body"><p className="muted">Advisers can view every subject in their section. They can edit scores only for subjects assigned separately under Subject teachers.</p></div>}
-          {tab === 'assignments' && <div className="card-body"><p className="muted">Assign one teacher to each section and subject. Adviser access is managed separately and does not reserve any teaching subjects.</p>{data.assignments.some((row) => row.needs_subject_review || row.subject_id == null) && <ErrorNote message="Older All subjects assignments need review. Confirm the actual teaching subjects; existing grades and scores will be kept." />}</div>}
+          {tab === 'assignments' && (
+            <div className="card-body">
+              <p className="muted">Assign one teacher to each section and subject. Adviser access is managed separately and does not reserve any teaching subjects.</p>
+              <div className="assignment-toolbar">
+                <div className="assignment-sort">
+                  <label className="field-label" htmlFor="assignment-sort">Arrange by</label>
+                  <select
+                    id="assignment-sort" className="select" value={assignmentSort}
+                    disabled={loading || data.assignments.length < 2}
+                    onChange={(event) => setAssignmentSort(event.target.value)}
+                  >
+                    <option value="grade">Grade level</option>
+                    <option value="teacher">Teacher name</option>
+                    <option value="section">Section</option>
+                    <option value="subject">Subject</option>
+                  </select>
+                </div>
+                <button
+                  type="button" className="btn btn-secondary"
+                  disabled={loading || data.assignments.length < 2}
+                  title={assignmentDirection === 'asc' ? 'Switch to descending order' : 'Switch to ascending order'}
+                  onClick={() => setAssignmentDirection((current) => current === 'asc' ? 'desc' : 'asc')}
+                >
+                  <ArrowUpDown size={16} />
+                  {assignmentSort === 'grade'
+                    ? assignmentDirection === 'asc' ? 'Lowest grade first' : 'Highest grade first'
+                    : assignmentDirection === 'asc' ? 'A–Z' : 'Z–A'}
+                </button>
+              </div>
+              {data.assignments.some((row) => row.needs_subject_review || row.subject_id == null) && <ErrorNote message="Older All subjects assignments need review. Confirm the actual teaching subjects; existing grades and scores will be kept." />}
+            </div>
+          )}
           <div className="card-body flush">
             {loading ? (
               <TableSkeleton rows={5} columns={4} />
@@ -262,6 +301,7 @@ export default function ClassManagementPage() {
               <SetupTable
                 tab={tab}
                 data={data}
+                assignmentRows={orderedAssignments}
                 onEdit={setEditing}
                 onDelete={setDeleting}
                 onReview={setReviewing}
@@ -305,7 +345,7 @@ export default function ClassManagementPage() {
 }
 
 /* ── Tables ──────────────────────────────────────────────────────────────── */
-function SetupTable({ tab, data, onEdit, onDelete, onReview }) {
+function SetupTable({ tab, data, assignmentRows, onEdit, onDelete, onReview }) {
   // Booklets per subject only mean something at a school that tracks units.
   const { tracksUnits, unitLabelPlural } = useAuth();
   const { year } = useSchoolYear();
@@ -406,7 +446,7 @@ function SetupTable({ tab, data, onEdit, onDelete, onReview }) {
   }
   return wrap(
     ['Teacher', 'Section', 'Subject', 'Access', 'Actions'],
-    data.assignments.map((row) => (
+    assignmentRows.map((row) => (
       <tr key={row.assignment_id}>
         <td className="cell-strong">{formatPersonName(row.teacher_name)}</td>
         <td>{row.section_name}{row.grade_level_name ? ` — ${row.grade_level_name}` : ''}</td>
