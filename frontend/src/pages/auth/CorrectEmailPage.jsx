@@ -8,7 +8,7 @@ import { ErrorNote, FieldError } from '../../components/common/ui';
 import useRetryAfter from '../../hooks/useRetryAfter';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const EXPIRED = 'This email correction has expired or is no longer valid. Ask the administrator to send a new verification.';
+const EXPIRED = 'This request expired. Ask your administrator for a new code.';
 
 /** The recipient can verify a corrected address without their unreachable old inbox. */
 export default function CorrectEmailPage() {
@@ -60,9 +60,9 @@ export default function CorrectEmailPage() {
     const replacement = email.trim();
     const fields = {};
     const emailInput = formRef.current?.querySelector('[name="new_email"]');
-    if (!replacement) fields.new_email = 'Enter the replacement email that received the code.';
+    if (!replacement) fields.new_email = 'Enter your new email.';
     else if (emailInput?.validity.typeMismatch) fields.new_email = 'Enter a valid email address.';
-    if (!/^\d{6}$/.test(code)) fields.code = 'Enter all six digits from the verification email.';
+    if (!/^\d{6}$/.test(code)) fields.code = 'Enter the six-digit code.';
     setError('');
     if (Object.keys(fields).length) return flagErrors(fields);
     busyRef.current = true;
@@ -80,7 +80,7 @@ export default function CorrectEmailPage() {
       retry.start(err.retryAfter);
       const terminal = err.status === 410 || err.payload?.detail?.code === 'email_correction_expired';
       setExpired(terminal);
-      setError(terminal ? EXPIRED : err.retryAfter > 0 ? 'Please wait before trying again.' : err.status === 400 ? 'The email or verification code is incorrect. Check the email and use its latest code.' : err.message);
+      setError(terminal ? EXPIRED : err.retryAfter > 0 ? 'Please wait before trying again.' : err.status === 400 ? 'Incorrect email or code. Use the latest code.' : err.message);
       setCode('');
       flagErrors({});
     } finally {
@@ -94,9 +94,9 @@ export default function CorrectEmailPage() {
       <div className="auth-success">
         <span className="success-mark"><CheckCircle2 size={34} /></span>
         <h2 ref={headingRef} tabIndex={-1}>Email corrected</h2>
-        <p className="muted" style={{ overflowWrap: 'anywhere' }}>Your account now uses <strong>{verifiedEmail}</strong>.</p>
-        <p className="field-hint">Your assignments, grades and approval status are preserved. Sign in with this email and your existing password. You may be asked for a new sign-in code.</p>
-        <Link className="btn btn-primary btn-block" to={`/login?email=${encodeURIComponent(verifiedEmail)}`}>Go to sign in</Link>
+        <p className="muted" style={{ overflowWrap: 'anywhere' }}><strong>{verifiedEmail}</strong></p>
+        <p className="field-hint">Sign in with this email and your existing password.</p>
+        <Link className="btn btn-primary btn-block" to={`/login?email=${encodeURIComponent(verifiedEmail)}`}>Sign in</Link>
       </div>
     </AuthLayout>
   );
@@ -105,26 +105,26 @@ export default function CorrectEmailPage() {
   return (
     <AuthLayout>
       <Link className="auth-back" to="/login"><ArrowLeft size={15} /> Back to sign in</Link>
-      <h2>Verify your corrected email</h2>
-      <p className="auth-lede">Your administrator requested an email correction. Enter the replacement email and the six-digit code sent to it. The code is valid for five minutes.</p>
+      <h2>Verify new email</h2>
+      <p className="auth-lede">Enter your new email and the six-digit code. Expires in five minutes.</p>
       {!validLink ? (
-        <ErrorNote message="This verification link is missing or invalid. Open the link in your verification email, or ask your administrator to send a new correction request." />
+        <ErrorNote message="Invalid link. Open the link in your email or ask your administrator for a new one." />
       ) : (
         <form ref={formRef} className="auth-form" onSubmit={submit} noValidate>
           {error && <div ref={errorRef} tabIndex={-1}><ErrorNote message={error} /></div>}
           <div className="field">
-            <label className="field-label" htmlFor="correct_email_new_email">Replacement email <span className="req">*</span></label>
+            <label className="field-label" htmlFor="correct_email_new_email">New email <span className="req">*</span></label>
             <FieldError id="correct_email_new_email" message={fieldErrors.new_email} />
             <input {...controlProps('new_email')} name="new_email" className="input" type="email" required maxLength={254} autoComplete="email" autoCapitalize="none" spellCheck={false} value={email} disabled={blocked} onChange={(event) => { setEmail(event.target.value); clearField('new_email'); }} autoFocus />
           </div>
           <div className="field">
-            <label className="field-label" htmlFor="correct_email_code">Six-digit verification code <span className="req">*</span></label>
+            <label className="field-label" htmlFor="correct_email_code">Verification code <span className="req">*</span></label>
             <FieldError id="correct_email_code" message={fieldErrors.code} />
             <input {...controlProps('code')} className="input" type="text" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} pattern="[0-9]{6}" value={code} disabled={blocked} onChange={(event) => { setCode(event.target.value.replace(/\D/g, '').slice(0, 6)); clearField('code'); }} />
           </div>
           {retry.seconds > 0 && <p className="field-hint" role="status">Try again in {retry.seconds} second(s).</p>}
           {!expired && <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={blocked}>{busy ? <><span className="spinner" /> Verifying…</> : <><MailCheck size={17} /> Verify and update email</>}</button>}
-          <p className="field-hint">Need a new code or a different email? Ask your school principal to start another correction. Principals should contact the system administrator.</p>
+          <p className="field-hint">Need a new code? Contact your administrator.</p>
         </form>
       )}
     </AuthLayout>

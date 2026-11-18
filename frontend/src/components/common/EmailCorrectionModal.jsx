@@ -54,12 +54,12 @@ export default function EmailCorrectionModal({ targetName, currentEmail, targetI
     const replacement = email.trim();
     const fields = {};
     const emailInput = formRef.current?.querySelector('[name="new_email"]');
-    if (!replacement) fields.new_email = 'Enter the email this person can open.';
+    if (!replacement) fields.new_email = 'Enter an email they can open.';
     else if (emailInput?.validity.typeMismatch) fields.new_email = 'Enter a valid email address.';
     else if (replacement.toLowerCase() === currentEmail?.trim().toLowerCase()) fields.new_email = 'Enter a different email address.';
-    if (!reason.trim()) fields.reason = 'Briefly explain why this email needs correcting.';
-    if (!password) fields.current_password = 'Enter your own password to confirm this request.';
-    if (!confirmed) fields.identity_confirmed = 'Confirm that you verified this person’s identity.';
+    if (!reason.trim()) fields.reason = 'Enter a reason.';
+    if (!password) fields.current_password = 'Enter your administrator password.';
+    if (!confirmed) fields.identity_confirmed = 'Confirm their identity and request.';
     setError('');
     if (Object.keys(fields).length) return flagErrors(fields);
     busyRef.current = true;
@@ -83,8 +83,8 @@ export default function EmailCorrectionModal({ targetName, currentEmail, targetI
           }
         }
       }
-      if (err.payload?.detail?.code === 'password_incorrect') fieldsFromServer.current_password = 'Your password is incorrect. Enter it again.';
-      if (err.payload?.detail?.code === 'email_already_used') fieldsFromServer.new_email = 'This email is already used by an account. Choose a different address.';
+      if (err.payload?.detail?.code === 'password_incorrect') fieldsFromServer.current_password = 'Incorrect password. Try again.';
+      if (err.payload?.detail?.code === 'email_already_used') fieldsFromServer.new_email = 'Email already in use. Choose another.';
       setError(err.retryAfter > 0 ? 'Please wait before requesting another correction.' : err.message);
       setPassword('');
       flagErrors(fieldsFromServer);
@@ -99,42 +99,39 @@ export default function EmailCorrectionModal({ targetName, currentEmail, targetI
     <Modal title={targetType === 'principal' ? 'Correct principal email' : 'Correct teacher email'} subtitle={<span style={{ overflowWrap: 'anywhere' }}>{targetName}</span>} onClose={close} size="sm">
       {sent ? (
         <div className="stack" style={{ gap: '1rem', overflowWrap: 'anywhere' }}>
-          <div ref={successRef} tabIndex={-1} role="status" className="alert alert-success"><CheckCircle2 size={18} /><span>Verification sent to <strong>{sent.new_email || email.trim()}</strong>.</span></div>
-          <p>Ask this person to open the email and use its verification link and six-digit code within <strong>five minutes</strong>.</p>
-          <p className="muted">Their current email stays in place until verification succeeds. They can then sign in with the corrected email and their existing password.</p>
+          <div ref={successRef} tabIndex={-1} role="status" className="alert alert-success"><CheckCircle2 size={18} /><span>Code sent to <strong>{sent.new_email || email.trim()}</strong>.</span></div>
+          <p>Use the emailed link and code within <strong>five minutes</strong>. The email changes after verification.</p>
           {verificationPath && <a className="btn btn-secondary" href={verificationPath} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} /> Open verification page</a>}
-          <p className="field-hint">If the code expires or the email does not arrive, close this window and start a new correction request.</p>
+          <p className="field-hint">No email or expired code? Start a new request.</p>
           <button type="button" className="btn btn-primary" onClick={close}>Done</button>
         </div>
       ) : (
         <form ref={formRef} className="stack" style={{ gap: '1rem' }} onSubmit={submit} noValidate>
-          <p className="muted">Use this when the person cannot access their account email. Confirm their identity before continuing. Their assignments, grades and account status are preserved.</p>
-          <div className="field"><span className="field-label">Current account email</span><p style={{ margin: '.25rem 0', overflowWrap: 'anywhere' }}>{currentEmail}</p></div>
+          <div className="field"><span className="field-label">Current email</span><p style={{ margin: '.25rem 0', overflowWrap: 'anywhere' }}>{currentEmail}</p></div>
           {error && <div ref={errorRef} tabIndex={-1}><ErrorNote message={error} /></div>}
           <div className="field">
-            <label className="field-label" htmlFor="email_correction_new_email">Replacement email <span className="req">*</span></label>
+            <label className="field-label" htmlFor="email_correction_new_email">New email <span className="req">*</span></label>
             <FieldError id="email_correction_new_email" message={fieldErrors.new_email} />
             <input {...controlProps('new_email')} name="new_email" className="input" type="email" autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={254} value={email} disabled={busy} autoFocus onChange={(event) => { setEmail(event.target.value); clearField('new_email'); }} />
-            <span className="field-hint">The person must be able to open this inbox. A verification code will be sent there.</span>
+            <span className="field-hint">Use an inbox they can access.</span>
           </div>
           <div className="field">
-            <label className="field-label" htmlFor="email_correction_reason">Reason for correction <span className="req">*</span></label>
+            <label className="field-label" htmlFor="email_correction_reason">Reason <span className="req">*</span></label>
             <FieldError id="email_correction_reason" message={fieldErrors.reason} />
-            <textarea {...controlProps('reason')} className="textarea" required maxLength={500} value={reason} disabled={busy} onChange={(event) => { setReason(event.target.value); clearField('reason'); }} placeholder="For example: the teacher entered an incorrect email during testing." />
+            <textarea {...controlProps('reason')} className="textarea" required maxLength={500} value={reason} disabled={busy} onChange={(event) => { setReason(event.target.value); clearField('reason'); }} placeholder="e.g. Incorrect email during testing" />
           </div>
           <div className="field">
-            <label className="field-label" htmlFor="email_correction_current_password">Your password <span className="req">*</span></label>
+            <label className="field-label" htmlFor="email_correction_current_password">Your admin password <span className="req">*</span></label>
             <FieldError id="email_correction_current_password" message={fieldErrors.current_password} />
             <div className="input-group">
               <span className="input-icon"><Lock size={16} /></span>
               <input {...controlProps('current_password')} className="input" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required value={password} disabled={busy} onChange={(event) => { setPassword(event.target.value); clearField('current_password'); }} />
               <button type="button" className="input-affix" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((value) => !value)} disabled={busy}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
             </div>
-            <span className="field-hint">Enter your own administrator password.</span>
           </div>
           <div className="field">
             <FieldError id="email_correction_identity_confirmed" message={fieldErrors.identity_confirmed} />
-            <label className="checkbox" style={{ alignItems: 'flex-start' }}><input {...controlProps('identity_confirmed')} type="checkbox" required checked={confirmed} disabled={busy} onChange={(event) => { setConfirmed(event.target.checked); clearField('identity_confirmed'); }} /> I verified this person’s identity and confirmed that they requested this email correction.</label>
+            <label className="checkbox" style={{ alignItems: 'flex-start' }}><input {...controlProps('identity_confirmed')} type="checkbox" required checked={confirmed} disabled={busy} onChange={(event) => { setConfirmed(event.target.checked); clearField('identity_confirmed'); }} /> I verified their identity and they requested this change.</label>
           </div>
           {retry.seconds > 0 && <p className="field-hint" role="status">Try again in {retry.seconds} second(s).</p>}
           <div className="row" style={{ justifyContent: 'flex-end', flexWrap: 'wrap', gap: '.75rem' }}>
