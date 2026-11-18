@@ -68,7 +68,10 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 def _create_token(data: dict[str, Any], expires_delta: timedelta, token_type: str) -> str:
     payload = data.copy()
     now = datetime.now(timezone.utc)
-    payload.update({"exp": now + expires_delta, "iat": now, "type": token_type})
+    # JWT dates have second precision. A nonce keeps two sessions issued in the
+    # same second distinct, so revoking one cannot be undone by a later login.
+    payload.update({"exp": now + expires_delta, "iat": now, "type": token_type,
+                    "jti": secrets.token_urlsafe(24)})
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 

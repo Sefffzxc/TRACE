@@ -12,19 +12,20 @@ export function AuthProvider({ children }) {
      while the tab was closed does not show a signed-in shell with no data. */
   useEffect(() => {
     let cancelled = false;
-    if (!tokens.access) {
+    const accessAtStart = tokens.access;
+    if (!accessAtStart) {
       setBooting(false);
       return undefined;
     }
     (async () => {
       try {
         const fresh = await authApi.me();
-        if (!cancelled) {
+        if (!cancelled && tokens.access === accessAtStart) {
           setUser(fresh);
           storedUser.set(fresh);
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && tokens.access === accessAtStart) {
           tokens.clear();
           setUser(null);
         }

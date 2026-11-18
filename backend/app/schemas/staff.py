@@ -27,6 +27,7 @@ class StaffRegisterRequest(BaseModel):
 
     school_id: int = Field(description="Chosen from GET /api/schools/directory")
     captcha_token: Optional[str] = Field(default=None, max_length=2048, repr=False)
+    email_verification_token: Optional[str] = Field(default=None, max_length=200, repr=False)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)

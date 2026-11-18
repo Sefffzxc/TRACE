@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from typing import List
+from urllib.parse import urlsplit
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -85,6 +86,8 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = Field(default="", repr=False)
     # A verified sender, e.g. TRACE <noreply@auth.yourtrace.app>.
     EMAIL_FROM: str = ""
+    # Fixed trusted origin for verification links; never derive it from a request Host header.
+    PUBLIC_FRONTEND_URL: str = "https://www.traceedu.app"
     EMAIL_TIMEOUT_SECONDS: float = Field(default=10.0, gt=0, le=60)
     # Pace request starts across OTPs and account decisions from this worker.
     # Conservative default also supports Resend teams with the older 2/s cap.
@@ -134,6 +137,19 @@ class Settings(BaseSettings):
     def _normalise_ai_url(cls, value: str) -> str:
         """Accept a bare hostname, because that is all Render can inject."""
         return _with_scheme(value)
+
+    @field_validator("PUBLIC_FRONTEND_URL")
+    @classmethod
+    def _public_frontend_origin(cls, value: str) -> str:
+        value = _with_scheme(value)
+        parsed = urlsplit(value)
+        if (not parsed.hostname or parsed.username is not None or parsed.password is not None
+                or parsed.query or parsed.fragment or parsed.path not in ("", "/")
+                or any(character.isspace() for character in value)
+                or parsed.scheme not in {"http", "https"}
+                or (parsed.scheme == "http" and parsed.hostname not in {"localhost", "127.0.0.1", "::1"})):
+            raise ValueError("PUBLIC_FRONTEND_URL must be an HTTPS origin (HTTP is allowed for localhost).")
+        return value.rstrip("/")
 
     @property
     def cors_origins(self) -> List[str]:

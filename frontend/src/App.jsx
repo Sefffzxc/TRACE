@@ -13,6 +13,7 @@ import VerifyOtpPage from './pages/auth/VerifyOtpPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import ResubmitPage from './pages/auth/ResubmitPage';
+import CorrectEmailPage from './pages/auth/CorrectEmailPage';
 
 import DashboardPage from './pages/app/DashboardPage';
 import StudentsPage from './pages/app/StudentsPage';
@@ -134,6 +135,7 @@ function Router() {
   return (
     <Routes>
       {/* Signed out */}
+      <Route path="/correct-email" element={<CorrectEmailPage />} />
       <Route
         path="/login"
         element={

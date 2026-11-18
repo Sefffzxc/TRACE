@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { Ban, Check, Clock, History, Mail, Phone, RefreshCw, RotateCcw, ShieldCheck, UserCheck, X } from 'lucide-react';
 import { Avatar, EmptyState, ErrorNote, Modal, PageHead, TableSkeleton } from '../../components/common/ui';
 import ApplicationHistoryModal from '../../components/common/ApplicationHistoryModal';
+import EmailCorrectionModal from '../../components/common/EmailCorrectionModal';
 import { staffApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { formatPersonName } from '../../lib/personName';
@@ -28,6 +29,7 @@ export default function ApprovalsPage() {
   const [deciding, setDeciding] = useState(null);
   const [reason, setReason] = useState('');
   const [history, setHistory] = useState(null);
+  const [emailCorrection, setEmailCorrection] = useState(null);
   const requests = useRef(new Map());
   const auditRequest = useRef(null);
   const activeStatus = useRef(status);
@@ -161,6 +163,7 @@ export default function ApprovalsPage() {
                 <div><span className="k">Submitted</span><span className="v">{person.created_at ? new Date(person.created_at).toLocaleDateString() : '—'}</span></div>
               </div>
               <div className="acts" style={{ flexWrap: 'wrap' }}>
+                {person.role === 'teacher' && <button type="button" className="btn btn-secondary btn-sm" disabled={busyId !== null} onClick={() => setEmailCorrection(person)}><Mail size={15} /> Correct email</button>}
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => openHistory(person)}><History size={15} /> History</button>
                 {status === 'pending' && <button type="button" className="btn btn-secondary btn-sm" disabled={busyId !== null} onClick={() => { setReason(''); setDeciding({ person, action: 'reject' }); }}><X size={15} /> Reject</button>}
                 {status !== 'pending' && <button type="button" className="btn btn-secondary btn-sm" disabled={busyId !== null} onClick={() => decide(person, 'reopen')}><RotateCcw size={15} /> Reopen</button>}
@@ -195,6 +198,12 @@ export default function ApprovalsPage() {
         </div>
       </Modal>}
       {history && <ApplicationHistoryModal name={history.name} loadHistory={history.load} onClose={() => setHistory(null)} />}
+      {emailCorrection && <EmailCorrectionModal
+        targetId={emailCorrection.id}
+        targetName={formatPersonName(`${emailCorrection.first_name} ${emailCorrection.last_name}`)}
+        currentEmail={emailCorrection.email}
+        onClose={() => setEmailCorrection(null)}
+      />}
     </div>
   );
 }

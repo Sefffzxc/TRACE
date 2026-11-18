@@ -22,6 +22,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -63,7 +64,8 @@ from app.schemas.schools import (
 from app.services.audit import Action, log_event
 from app.services.applications import ensure_legacy_rejection_event, record_application_event
 from app.services.email import EmailDeliveryError, send_account_decision_email
-from app.services.captcha import verify_captcha
+from app.services.email_identity import canonical_email, lock_email_identity
+from app.services.registration_email import check_proof, consume_proof
 
 router = APIRouter(prefix="/api/schools", tags=["Schools"])
 
@@ -118,10 +120,14 @@ async def register_school(
     Both are created pending. Nothing is usable until the operator approves,
     which is what stops anyone from creating a school and walking straight in.
     """
-    await verify_captcha(payload.captcha_token, action="register_school")
-    email = str(payload.email).lower()
+    email = canonical_email(payload.email)
+    await check_proof(db, payload.email_verification_token, email=email, kind="school")
+    await db.commit()
+    password_hash = await async_get_password_hash(payload.password)
+    await consume_proof(db, payload.email_verification_token, email=email, kind="school")
+    await lock_email_identity(db, email)
     existing = (
-        await db.execute(select(Staff).where(Staff.email == email))
+        await db.execute(select(Staff).where(func.lower(Staff.email) == email))
     ).scalar_one_or_none()
     if existing is not None:
         raise HTTPException(
@@ -157,7 +163,7 @@ async def register_school(
     principal = Staff(
         school_id=school.school_id,
         email=email,
-        password_hash=await async_get_password_hash(payload.password),
+        password_hash=password_hash,
         first_name=payload.first_name.strip(),
         middle_name=(payload.middle_name or "").strip() or None,
         last_name=payload.last_name.strip(),
@@ -169,20 +175,24 @@ async def register_school(
         is_approved=False,
     )
     db.add(principal)
-    await db.flush()
-    await record_application_event(
-        db, principal, action="submitted", from_status=None,
-        to_status=STATUS_PENDING, actor_id=None,
-    )
+    try:
+        await db.flush()
+        await record_application_event(
+            db, principal, action="submitted", from_status=None,
+            to_status=STATUS_PENDING, actor_id=None,
+        )
 
-    await log_event(
-        db,
-        Action.SCHOOL_REGISTERED,
-        target_user_id=principal.id,
-        detail=f"{school.name} ({school.city}) — awaiting approval",
-        request=request,
-    )
-    await db.commit()
+        await log_event(
+            db,
+            Action.SCHOOL_REGISTERED,
+            target_user_id=principal.id,
+            detail=f"{school.name} ({school.city}) — awaiting approval",
+            request=request,
+        )
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(409, detail="That email or employee number is already in use. Please review your registration.") from None
 
     return {
         "message": (

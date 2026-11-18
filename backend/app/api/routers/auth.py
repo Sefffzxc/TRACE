@@ -13,10 +13,12 @@ import math
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
+    _staff_from_token,
     get_current_user,
     get_user_from_refresh_token,
     limit_login,
@@ -63,6 +65,8 @@ from app.services.applications import application_eligible, record_application_e
 from app.services.email import EmailDeliveryError, log_otp_code, send_otp_email
 from app.services.captcha import verify_captcha
 from app.services.login_captcha import login_risk
+from app.services.email_identity import canonical_email, lock_email_identity
+from app.services.registration_email import check_proof, consume_proof
 
 router = APIRouter(tags=["Authentication"])
 
@@ -114,6 +118,36 @@ def _aware(value: datetime | None) -> datetime | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value
+
+
+def _credential_snapshot(staff: Staff) -> tuple:
+    """Reject work started before an email/password/account-state change."""
+    return (staff.email, staff.password_hash, staff.role, staff.school_id,
+            _aware(staff.updated_at))
+
+
+async def _lock_auth_staff(db: AsyncSession, staff_id) -> Staff | None:
+    # Other privileged flows lock schools before staff. Authentication only
+    # reads school state, and must never acquire a school row lock afterwards.
+    return await db.scalar(select(Staff).where(Staff.id == staff_id)
+                           .with_for_update().execution_options(populate_existing=True))
+
+
+async def _fresh_account_access(staff: Staff, db: AsyncSession) -> None:
+    if staff.school_id is not None:
+        await db.scalar(select(School).where(School.school_id == staff.school_id)
+                        .execution_options(populate_existing=True))
+    await require_account_access(staff, db)
+
+
+def _check_login_lock(staff: Staff) -> None:
+    if staff.permanent_lock:
+        raise HTTPException(403, detail="This account is permanently locked after repeated failed sign-ins. Please contact your administrator.")
+    locked_until = _aware(staff.locked_until)
+    if locked_until and locked_until > _now():
+        seconds = max(1, math.ceil((locked_until - _now()).total_seconds()))
+        raise HTTPException(401, detail=f"Account temporarily locked. Try again in {math.ceil(seconds / 60)} minute(s).",
+                            headers={"Retry-After": str(seconds)})
 
 
 def _token_bundle(staff: Staff) -> tuple[str, str, datetime]:
@@ -175,28 +209,33 @@ async def register(
     school's first administrator is created with the school itself at
     `POST /api/schools/register`.
     """
-    await verify_captcha(payload.captcha_token, action="register_teacher")
-    existing = await db.execute(select(Staff).where(Staff.email == payload.email))
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="An account with that email address already exists.",
-        )
+    email = canonical_email(payload.email)
+    await check_proof(db, payload.email_verification_token, email=email, kind="teacher")
+    await db.commit()
+    # Verified applicants can wait for bcrypt without occupying a DB connection.
+    password_hash = await async_get_password_hash(payload.password)
+    await consume_proof(db, payload.email_verification_token, email=email, kind="teacher")
+    await lock_email_identity(db, email)
 
     # The school must exist and be approved. A pending or suspended school
     # cannot take on staff, and an unapproved one is not visible in the
     # directory the sign-up form reads from in the first place.
-    school = await db.get(School, payload.school_id)
+    school = await db.scalar(select(School).where(
+        School.school_id == payload.school_id,
+    ).with_for_update())
     if school is None or school.status != SCHOOL_APPROVED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Please choose a school from the list.",
         )
 
+    if await db.scalar(select(Staff.id).where(func.lower(Staff.email) == email).limit(1)) is not None:
+        raise HTTPException(409, detail="An account with that email address already exists.")
+
     staff = Staff(
         school_id=school.school_id,
-        email=str(payload.email).lower(),
-        password_hash=await async_get_password_hash(payload.password),
+        email=email,
+        password_hash=password_hash,
         first_name=payload.first_name.strip(),
         middle_name=(payload.middle_name or "").strip() or None,
         last_name=payload.last_name.strip(),
@@ -208,18 +247,22 @@ async def register(
         is_approved=False,
     )
     db.add(staff)
-    await db.flush()
-    await record_application_event(
-        db, staff, "submitted", None, STATUS_PENDING, actor_id=None,
-    )
-    await log_event(
-        db,
-        Action.REGISTER,
-        target_user_id=staff.id,
-        detail=f"teacher at {school.name} (#{school.school_id})",
-        request=request,
-    )
-    await db.commit()
+    try:
+        await db.flush()
+        await record_application_event(
+            db, staff, "submitted", None, STATUS_PENDING, actor_id=None,
+        )
+        await log_event(
+            db,
+            Action.REGISTER,
+            target_user_id=staff.id,
+            detail=f"teacher at {school.name} (#{school.school_id})",
+            request=request,
+        )
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(409, detail="That email or employee number is already in use. Please review your registration.") from None
 
     return {
         "message": (
@@ -252,8 +295,13 @@ async def login(
         select(Staff).where(Staff.email == str(payload.email).lower())
     )
     staff = result.scalar_one_or_none()
-
-    if _needs_login_captcha(request, staff) or payload.captcha_token:
+    captcha_required = _needs_login_captcha(request, staff) or bool(payload.captcha_token)
+    staff_id = staff.id if staff is not None else None
+    snapshot = _credential_snapshot(staff) if staff is not None else None
+    password_hash = staff.password_hash if staff is not None else None
+    # Neither Turnstile nor bcrypt should occupy a database pool connection.
+    await db.commit()
+    if captcha_required:
         await verify_captcha(payload.captcha_token, action="login")
 
     # Same message whether the email exists or not, so accounts cannot be
@@ -263,25 +311,15 @@ async def login(
             login_risk.record_failure(_login_ip(request))
         raise _login_failure(request, staff, "Invalid email or password.")
 
-    if staff.permanent_lock:
-        raise HTTPException(
-            status_code=403,
-            detail="This account is permanently locked after repeated failed sign-ins. "
-            "Please contact your administrator.",
-        )
-
-    locked_until = _aware(staff.locked_until)
-    if locked_until and locked_until > _now():
-        remaining_seconds = max(1, math.ceil((locked_until - _now()).total_seconds()))
-        remaining = math.ceil(remaining_seconds / 60)
-        raise HTTPException(
-            status_code=401,
-            detail=f"Account temporarily locked. Try again in {remaining} minute(s).",
-            headers={"Retry-After": str(remaining_seconds)},
-        )
+    _check_login_lock(staff)
+    password_valid = await async_verify_password(payload.password, password_hash)
+    staff = await _lock_auth_staff(db, staff_id)
+    if staff is None or _credential_snapshot(staff) != snapshot:
+        raise _login_failure(request, staff, "Invalid email or password.")
+    _check_login_lock(staff)
 
     # ── wrong password ────────────────────────────────────────────────────────
-    if not await async_verify_password(payload.password, staff.password_hash):
+    if not password_valid:
         if settings.CAPTCHA_ENABLED:
             login_risk.record_failure(_login_ip(request))
         staff.login_attempts = (staff.login_attempts or 0) + 1
@@ -337,7 +375,7 @@ async def login(
     # ── correct password — clear the lockout ladder ───────────────────────────
     # Only disclose decisions/reasons after the password proves identity.
     try:
-        await require_account_access(staff, db)
+        await _fresh_account_access(staff, db)
     except HTTPException as denial:
         if denial.status_code == 403 and staff.account_status == STATUS_REJECTED:
             school = await db.get(School, staff.school_id) if staff.school_id is not None else None
@@ -372,8 +410,10 @@ async def login(
         # before waiting on an external email service. A group signing in must
         # not occupy the whole database pool while OTP emails are delivered.
         await db.commit()
+        snapshot = _credential_snapshot(staff)
+        delivery_email = staff.email
         try:
-            await send_otp_email(staff.email, code, purpose="login")
+            await send_otp_email(delivery_email, code, purpose="login")
         except EmailDeliveryError:
             # Nothing usable is issued when the provider rejects delivery.
             raise HTTPException(
@@ -381,6 +421,11 @@ async def login(
                 detail="We couldn't send your verification email. Please try again "
                        "later or contact your administrator.",
             ) from None
+        staff = await _lock_auth_staff(db, staff_id)
+        if staff is None or _credential_snapshot(staff) != snapshot:
+            raise _login_failure(request, staff, "Account details changed. Please sign in again.")
+        _check_login_lock(staff)
+        await _fresh_account_access(staff, db)
         db.add(
             OTPCode(
                 staff_id=staff.id,
@@ -422,9 +467,7 @@ async def verify_otp(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    staff = (
-        await db.execute(select(Staff).where(Staff.id == payload.user_id))
-    ).scalar_one_or_none()
+    staff = await _lock_auth_staff(db, payload.user_id)
     if staff is None:
         raise HTTPException(status_code=404, detail="Account not found.")
 
@@ -437,6 +480,7 @@ async def verify_otp(
                 OTPCode.is_used.is_(False),
             )
             .order_by(OTPCode.created_at.desc())
+            .with_for_update().execution_options(populate_existing=True)
         )
     ).scalars().first()
 
@@ -467,7 +511,8 @@ async def verify_otp(
         )
 
     # A decision may have changed after this code was issued.
-    await require_account_access(staff, db)
+    await _fresh_account_access(staff, db)
+    _check_login_lock(staff)
     otp.is_used = True
 
     device = (
@@ -506,17 +551,25 @@ async def verify_otp(
 # ══════════════════════════════════════════════════════════════════════════════
 @router.post("/api/auth/refresh", response_model=TokenResponse)
 async def refresh_session(
+    request: Request,
     staff: Staff = Depends(get_user_from_refresh_token),
     db: AsyncSession = Depends(get_db),
 ):
-    access, refresh, expires = _token_bundle(staff)
+    staff = await _lock_auth_staff(db, staff.id)
+    if staff is None:
+        raise HTTPException(401, detail="Account no longer exists.")
+    token = request.headers.get("authorization", "").partition(" ")[2]
+    await _staff_from_token(token, db, "refresh")
+    await _fresh_account_access(staff, db)
     session = (
         await db.execute(
             select(StaffSession)
-            .where(StaffSession.staff_id == staff.id, StaffSession.is_active.is_(True))
-            .order_by(StaffSession.created_at.desc())
+            .where(StaffSession.staff_id == staff.id, StaffSession.refresh_token == token,
+                   StaffSession.is_active.is_(True))
+            .with_for_update().execution_options(populate_existing=True)
         )
     ).scalars().first()
+    access, refresh, expires = _token_bundle(staff)
     if session is not None:
         session.access_token = access
         session.refresh_token = refresh
@@ -537,6 +590,11 @@ async def logout(
     staff: Staff = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    staff = await _lock_auth_staff(db, staff.id)
+    if staff is None:
+        raise HTTPException(401, detail="Account no longer exists.")
+    token = request.headers.get("authorization", "").partition(" ")[2]
+    await _staff_from_token(token, db, "access")
     sessions = (
         await db.execute(
             select(StaffSession).where(
@@ -573,12 +631,17 @@ async def forgot_password(
     ).scalar_one_or_none()
     if staff is None:
         return generic
-
+    staff_id = staff.id
+    staff = await _lock_auth_staff(db, staff_id)
+    if staff is None or staff.email != str(payload.email).lower():
+        return generic
+    snapshot = _credential_snapshot(staff)
     record = (
         await db.execute(
             select(PasswordReset)
             .where(PasswordReset.staff_id == staff.id)
             .order_by(PasswordReset.created_at.desc())
+            .with_for_update().execution_options(populate_existing=True)
         )
     ).scalars().first()
 
@@ -589,31 +652,35 @@ async def forgot_password(
                 status_code=429,
                 detail="Too many reset requests. Please try again in an hour.",
             )
-        record.request_count += 1
-    else:
-        record = PasswordReset(staff_id=staff.id, request_count=1, window_start=now)
-        db.add(record)
-
     code = generate_otp()
-    db.add(
-        OTPCode(
-            staff_id=staff.id,
-            code=code,
-            purpose="password-reset",
-            expires_at=now + timedelta(minutes=settings.OTP_EXPIRY_MINUTES),
-        )
-    )
-    await log_event(
-        db, Action.PASSWORD_RESET_REQUESTED, target_user_id=staff.id, request=request
-    )
+    delivery_email = staff.email
+    # Nothing usable is persisted until delivery succeeds. Release staff locks
+    # and the connection while the mail provider is processing the message.
+    await db.commit()
     try:
-        await send_otp_email(staff.email, code, purpose="password-reset")
+        await send_otp_email(delivery_email, code, purpose="password-reset")
     except EmailDeliveryError:
         # Preserve the same public response for known and unknown addresses,
         # including during a provider outage. The email helper logs a safe
         # diagnostic for the operator; the failed OTP is not committed.
         await db.rollback()
         return generic
+    staff = await _lock_auth_staff(db, staff_id)
+    if staff is None or _credential_snapshot(staff) != snapshot:
+        return generic
+    record = await db.scalar(select(PasswordReset).where(PasswordReset.staff_id == staff_id)
+                             .order_by(PasswordReset.created_at.desc()).limit(1)
+                             .with_for_update().execution_options(populate_existing=True))
+    now = _now()
+    if record is not None and _aware(record.window_start) > now - timedelta(hours=1):
+        if record.request_count >= settings.RESET_MAX_REQUESTS_PER_HOUR:
+            raise HTTPException(429, detail="Too many reset requests. Please try again in an hour.")
+        record.request_count += 1
+    else:
+        db.add(PasswordReset(staff_id=staff_id, request_count=1, window_start=now))
+    db.add(OTPCode(staff_id=staff_id, code=code, purpose="password-reset",
+                   expires_at=now + timedelta(minutes=settings.OTP_EXPIRY_MINUTES)))
+    await log_event(db, Action.PASSWORD_RESET_REQUESTED, target_user_id=staff_id, request=request)
     await db.commit()
     log_otp_code(staff.email, code, purpose="password-reset")
 
@@ -633,6 +700,9 @@ async def verify_reset_otp(
     ).scalar_one_or_none()
     if staff is None:
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
+    staff = await _lock_auth_staff(db, staff.id)
+    if staff is None or staff.email != str(payload.email).lower():
+        raise HTTPException(status_code=400, detail="Invalid or expired code.")
 
     otp = (
         await db.execute(
@@ -643,13 +713,20 @@ async def verify_reset_otp(
                 OTPCode.is_used.is_(False),
             )
             .order_by(OTPCode.created_at.desc())
+            .with_for_update().execution_options(populate_existing=True)
         )
     ).scalars().first()
 
     if otp is None or _aware(otp.expires_at) <= _now():
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
+    if otp.attempts >= settings.OTP_MAX_ATTEMPTS:
+        otp.is_used = True
+        await db.commit()
+        raise HTTPException(status_code=400, detail="Invalid or expired code.")
     if otp.code != payload.code:
         otp.attempts += 1
+        if otp.attempts >= settings.OTP_MAX_ATTEMPTS:
+            otp.is_used = True
         await db.commit()
         raise HTTPException(status_code=400, detail="Invalid or expired code.")
 
@@ -697,14 +774,25 @@ async def reset_password(
     ).scalar_one_or_none()
     if staff is None:
         raise HTTPException(status_code=404, detail="Account not found.")
-
-    if await async_verify_password(payload.new_password, staff.password_hash):
+    staff_id, reset_id = staff.id, record.id
+    snapshot = _credential_snapshot(staff)
+    password_hash = staff.password_hash
+    await db.commit()
+    if await async_verify_password(payload.new_password, password_hash):
         raise HTTPException(
             status_code=400,
             detail="Your new password must be different from the current one.",
         )
 
-    staff.password_hash = await async_get_password_hash(payload.new_password)
+    new_password_hash = await async_get_password_hash(payload.new_password)
+    staff = await _lock_auth_staff(db, staff_id)
+    record = await db.scalar(select(PasswordReset).where(PasswordReset.id == reset_id)
+                             .with_for_update().execution_options(populate_existing=True))
+    if (staff is None or _credential_snapshot(staff) != snapshot or record is None
+            or record.used_at is not None or record.reset_token != payload.token
+            or record.token_expires is None or _aware(record.token_expires) <= _now()):
+        raise HTTPException(400, detail="This reset link has expired. Please start the reset again.")
+    staff.password_hash = new_password_hash
     staff.requires_password_change = False
     staff.login_attempts = 0
     staff.locked_until = None

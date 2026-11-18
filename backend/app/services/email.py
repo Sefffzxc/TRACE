@@ -17,6 +17,7 @@ from pathlib import Path
 import threading
 import time
 from typing import Literal
+from urllib.parse import urlencode
 
 import httpx
 
@@ -275,6 +276,76 @@ async def send_account_decision_email(
         email, subject=f"TRACE: your account has been {decision}", text=text,
         html=_email_layout(f"Account {decision}", body),
     )
+
+
+async def send_registration_verification_email(email: str, code: str, *, kind: str) -> None:
+    """Verify a real inbox before creating an application; never expose the code in the UI."""
+    account = "teacher" if kind == "teacher" else "school administrator"
+    text = (
+        f"Your TRACE {account} registration verification code is: {code}\n\n"
+        f"This code expires in {settings.OTP_EXPIRY_MINUTES} minutes and can be used once.\n"
+        "Enter it on the registration page to submit your application for approval.\n"
+        "Do not share this code. If you did not request an account, ignore this email."
+    )
+    body = (
+        f"<p>Verify this email address for your {account} registration.</p>"
+        '<p style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#16275e">'
+        f"{escape(code)}</p>"
+        f"<p>This code expires in {settings.OTP_EXPIRY_MINUTES} minutes and can be used once.</p>"
+        "<p>Enter it on the registration page to submit your application for approval.</p>"
+        "<p>Do not share this code. If you did not request an account, ignore this email.</p>"
+    )
+    await _send_email(email, subject="TRACE: verify your registration email", text=text,
+                      html=_email_layout("Verify your email", body))
+
+
+async def send_email_correction_code(
+    email: str, code: str, *, challenge_id: str, full_name: str, requested_by: str,
+) -> None:
+    """The code and the fixed-origin link prove ownership of the replacement inbox."""
+    link = f"{settings.PUBLIC_FRONTEND_URL}/correct-email?{urlencode({'challenge': challenge_id})}"
+    text = (
+        f"Hello {full_name},\n\n{requested_by} requested an email correction for your TRACE account.\n\n"
+        f"Your email correction code is: {code}\n"
+        f"This code expires in {settings.OTP_EXPIRY_MINUTES} minutes and can be used once.\n\n"
+        f"Open {link} and enter this email address and code to confirm the correction.\n"
+        "Your existing account and school records will be kept.\n"
+        "Do not share this code. If this request was unexpected, do not confirm it; contact your school administrator."
+    )
+    body = (
+        f"<p>Hello {escape(full_name)},</p>"
+        f"<p>{escape(requested_by)} requested an email correction for your TRACE account.</p>"
+        '<p style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#16275e">'
+        f"{escape(code)}</p>"
+        f"<p>This code expires in {settings.OTP_EXPIRY_MINUTES} minutes and can be used once.</p>"
+        f'<p><a href="{escape(link, quote=True)}">Confirm your email correction</a>, '
+        "then enter this email address and the code above.</p>"
+        "<p>Your existing account and school records will be kept.</p>"
+        "<p>Do not share this code. If this request was unexpected, do not confirm it; contact your school administrator.</p>"
+    )
+    await _send_email(email, subject="TRACE: confirm your email correction", text=text,
+                      html=_email_layout("Confirm your email correction", body))
+
+
+async def send_email_correction_notice(
+    email: str, *, full_name: str, new_email: str, is_previous: bool,
+) -> None:
+    outcome = (
+        "The email address registered to your TRACE account has been changed. "
+        "This address will no longer receive sign-in codes for that account."
+        if is_previous else
+        f"Your TRACE account email has been updated to {new_email}. "
+        "You can now sign in with this email and your existing password."
+    )
+    instruction = "If this change was unexpected, contact your school administrator or the TRACE system administrator."
+    text = f"Hello {full_name},\n\n{outcome}\n\nYour existing account and records were preserved.\n{instruction}"
+    body = (
+        f"<p>Hello {escape(full_name)},</p><p>{escape(outcome)}</p>"
+        "<p>Your existing account and records were preserved.</p>"
+        f"<p>{instruction}</p>"
+    )
+    await _send_email(email, subject="TRACE: account email updated", text=text,
+                      html=_email_layout("Account email updated", body))
 
 
 def log_otp_code(email: str, code: str, *, purpose: OTPPurpose) -> None:

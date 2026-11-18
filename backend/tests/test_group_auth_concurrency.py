@@ -35,6 +35,7 @@ from app.db.session import Base, get_db
 from app.models.schools import School
 from app.models.staff import OTPCode, Staff, StaffSession
 from app.services.login_captcha import login_risk
+from registration_email_helpers import issue_registration_proof
 
 
 PASSWORD = "SyntheticPassword1!"
@@ -188,6 +189,7 @@ class GroupAuthenticationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_thirteen_same_network_registrations_are_immediately_visible_to_own_admin(self):
         emails = {f"group-register-{index}@example.com" for index in range(GROUP_SIZE)}
+        proofs = {email: await issue_registration_proof(self.sessions, email) for email in sorted(emails)}
         with patch.object(
             auth, "async_get_password_hash", new_callable=AsyncMock, return_value=self.password_hash,
         ):
@@ -196,6 +198,7 @@ class GroupAuthenticationTests(unittest.IsolatedAsyncioTestCase):
                     "school_id": 1, "email": email, "password": PASSWORD,
                     "first_name": "Synthetic", "last_name": "Applicant",
                     "contact_number": "09123456789",
+                    "email_verification_token": proofs[email],
                 }) for email in sorted(emails)
             ]), timeout=10)
         for response in responses:

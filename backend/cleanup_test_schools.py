@@ -31,6 +31,7 @@ class CleanupError(RuntimeError):
 # actor. Unknown relationships are inspected as owning relationships instead.
 _ACTOR_COLUMNS = {
     ("application_events", "actor_id"),
+    ("email_correction_challenges", "actor_id"),
     ("audit_logs", "admin_id"),
     ("students", "created_by"),
     ("student_enrollments", "enrolled_by"),
@@ -40,6 +41,7 @@ _ACTOR_COLUMNS = {
 }
 _AUTH_TABLES = {
     "staff_devices", "sessions", "otp_codes", "password_resets", "resubmission_challenges",
+    "email_correction_challenges",
 }
 
 

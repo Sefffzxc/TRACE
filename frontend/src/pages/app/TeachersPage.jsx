@@ -21,6 +21,7 @@ import {
 import { staffApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { formatPersonName } from '../../lib/personName';
+import EmailCorrectionModal from '../../components/common/EmailCorrectionModal';
 
 const STATUS_BADGE = {
   approved: 'badge-low',
@@ -49,6 +50,7 @@ export default function TeachersPage() {
   }, [urlQuery]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [confirm, setConfirm] = useState(null);
+  const [emailCorrection, setEmailCorrection] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -203,6 +205,15 @@ export default function TeachersPage() {
                   </div>
                 </div>
                 <div className="tcard-actions">
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    title="Correct email"
+                    aria-label={`Correct email for ${formatPersonName(`${person.first_name} ${person.last_name}`)}`}
+                    onClick={() => setEmailCorrection(person)}
+                  >
+                    <Mail size={15} />
+                  </button>
                   {person.permanent_lock && (
                     <button
                       type="button"
@@ -272,6 +283,14 @@ export default function TeachersPage() {
           busy={busy}
           onConfirm={runAction}
           onClose={() => setConfirm(null)}
+        />
+      )}
+      {emailCorrection && (
+        <EmailCorrectionModal
+          targetId={emailCorrection.id}
+          targetName={formatPersonName(`${emailCorrection.first_name} ${emailCorrection.last_name}`)}
+          currentEmail={emailCorrection.email}
+          onClose={() => setEmailCorrection(null)}
         />
       )}
     </div>

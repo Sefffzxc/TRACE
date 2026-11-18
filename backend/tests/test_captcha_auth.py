@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 import app.models
 from app.api import deps
-from app.api.routers import auth, schools
+from app.api.routers import auth, registration_email, schools
 from app.core.config import settings
 from app.db.session import Base, get_db
 from app.models.schools import School
@@ -98,9 +98,11 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         self.application = FastAPI()
         self.application.include_router(auth.router)
         self.application.include_router(schools.router)
+        self.application.include_router(registration_email.router)
         self.application.dependency_overrides[get_db] = isolated_db
         self.application.dependency_overrides[deps.limit_login] = no_throttle
         self.application.dependency_overrides[deps.limit_register] = no_throttle
+        self.application.dependency_overrides[deps.limit_otp] = no_throttle
         self.client = self._client(CLIENT_IP)
 
         self.provider_requests = []
@@ -132,6 +134,9 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         send = patch.object(auth, "send_otp_email", new_callable=AsyncMock)
         self.send_email = send.start()
         self.addCleanup(send.stop)
+        send_registration = patch.object(registration_email, "send_registration_verification_email", new_callable=AsyncMock)
+        send_registration.start()
+        self.addCleanup(send_registration.stop)
 
     def _client(self, ip):
         return HTTPClient(
@@ -162,6 +167,20 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         }
         if token is not None:
             payload["captcha_token"] = token
+        return payload
+
+    async def verified_payload(self, kind, token=None):
+        payload = self.teacher_payload() if kind == "teacher" else self.school_payload()
+        with patch.object(registration_email, "generate_otp", return_value="654321"):
+            response = await self.client.post("/api/auth/registration-email/request", json={
+                "email": payload["email"], "kind": kind, "captcha_token": token,
+            })
+        self.assertEqual(response.status_code, 202, response.text)
+        response = await self.client.post("/api/auth/registration-email/verify", json={
+            "email": payload["email"], "challenge_id": response.json()["challenge_id"], "code": "654321",
+        })
+        self.assertEqual(response.status_code, 200, response.text)
+        payload["email_verification_token"] = response.json()["email_verification_token"]
         return payload
 
     async def login(self, *, password=PASSWORD, email=EMAIL, token=None, client=None, headers=None):
@@ -210,16 +229,15 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(response.json()["enabled"], False)
         self.assertFalse(response.json()["site_key"])
 
-    async def test_both_registrations_require_captcha_before_database_reads_or_password_hashing(self):
+    async def test_both_registration_email_requests_require_captcha_before_database_reads(self):
         with patch.object(AsyncSession, "execute", side_effect=AssertionError("Unexpected database query")):
             with patch.object(auth, "async_get_password_hash", new_callable=AsyncMock) as teacher_hash:
                 with patch.object(schools, "async_get_password_hash", new_callable=AsyncMock) as principal_hash:
-                    for path, payload in (
-                        ("/api/auth/register", self.teacher_payload()),
-                        ("/api/schools/register", self.school_payload()),
-                    ):
-                        with self.subTest(path=path):
-                            response = await self.client.post(path, json=payload)
+                    for kind, email in (("teacher", "newteacher@example.com"), ("school", "newprincipal@example.com")):
+                        with self.subTest(kind=kind):
+                            response = await self.client.post("/api/auth/registration-email/request", json={
+                                "email": email, "kind": kind,
+                            })
                             self.assert_captcha_error(response)
                     teacher_hash.assert_not_called()
                     principal_hash.assert_not_called()
@@ -231,12 +249,11 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
     async def test_expired_or_wrong_form_tokens_leave_both_registrations_unchanged(self):
         for failure in ("timeout-or-duplicate", None):
             self.provider_failure = failure
-            for path, payload in (
-                ("/api/auth/register", self.teacher_payload("valid-login-token")),
-                ("/api/schools/register", self.school_payload("valid-login-token")),
-            ):
-                with self.subTest(path=path, provider_failure=failure):
-                    response = await self.client.post(path, json=payload)
+            for kind in ("teacher", "school"):
+                with self.subTest(kind=kind, provider_failure=failure):
+                    response = await self.client.post("/api/auth/registration-email/request", json={
+                        "email": "newteacher@example.com", "kind": kind, "captcha_token": "valid-login-token",
+                    })
                     self.assert_captcha_error(response, "captcha_invalid")
         self.assertEqual(await self.count(Staff), 1)
         self.assertEqual(await self.count(School), 1)
@@ -244,13 +261,13 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_valid_teacher_and_principal_requests_are_saved_pending(self):
         response = await self.client.post(
-            "/api/auth/register", json=self.teacher_payload("valid-teacher-token"),
+            "/api/auth/register", json=await self.verified_payload("teacher", "valid-teacher-token"),
         )
         self.assertEqual(response.status_code, 201, response.text)
         self.assertEqual(response.json()["account_status"], "pending")
         self.assertIs(response.json()["is_approved"], False)
         response = await self.client.post(
-            "/api/schools/register", json=self.school_payload("valid-school-token"),
+            "/api/schools/register", json=await self.verified_payload("school", "valid-school-token"),
         )
         self.assertEqual(response.status_code, 201, response.text)
         self.assertEqual(response.json()["status"], "pending")
@@ -419,7 +436,9 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
     async def test_captcha_provider_outage_cannot_create_accounts_or_authenticate(self):
         self.provider_failure = "internal-error"
         response = await self.client.post(
-            "/api/auth/register", json=self.teacher_payload("valid-teacher-token"),
+            "/api/auth/registration-email/request", json={
+                "email": "newteacher@example.com", "kind": "teacher", "captcha_token": "valid-teacher-token",
+            },
         )
         self.assert_captcha_error(response, "captcha_unavailable", status=503)
         await self.set_staff(login_attempts=3)
@@ -431,9 +450,9 @@ class CaptchaAuthenticationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_disabled_captcha_preserves_existing_registration_and_login_behavior(self):
         settings.CAPTCHA_ENABLED = False
-        response = await self.client.post("/api/auth/register", json=self.teacher_payload())
+        response = await self.client.post("/api/auth/register", json=await self.verified_payload("teacher"))
         self.assertEqual(response.status_code, 201, response.text)
-        response = await self.client.post("/api/schools/register", json=self.school_payload())
+        response = await self.client.post("/api/schools/register", json=await self.verified_payload("school"))
         self.assertEqual(response.status_code, 201, response.text)
         await self.set_staff(login_attempts=3)
         response = await self.login(password="WrongPassword1!")

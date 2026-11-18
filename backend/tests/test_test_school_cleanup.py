@@ -22,6 +22,7 @@ import app.models  # Registers the full current schema, including retired tables
 from app.db.session import Base
 from app.models.staff import Staff
 from cleanup_test_schools import CleanupError, cleanup_connection, list_schools
+from registration_email_helpers import issue_registration_proof
 
 
 TEST_IDS = [10, 11, 12, 13]
@@ -221,6 +222,39 @@ class TestSchoolCleanupTests(unittest.TestCase):
         with self.engine.connect() as conn:
             self.assertEqual(self._snapshot(conn), before)
 
+    def test_operator_assisted_email_corrections_follow_target_account_ownership(self):
+        removed, retained = uuid4(), uuid4()
+        expires = datetime.now(timezone.utc) + timedelta(minutes=5)
+        with self.engine.begin() as conn:
+            for challenge_id, target in ((removed, self.people[10][0]), (retained, self.people[99][0])):
+                self._insert(conn, "email_correction_challenges", id=challenge_id,
+                             staff_id=target, actor_id=self.operator_id,
+                             new_email=f"replacement-{challenge_id}@example.com",
+                             code_digest="synthetic-digest", state_digest="synthetic-state",
+                             reason="Identity confirmed", expires_at=expires)
+        with self.engine.connect() as conn:
+            preview = cleanup_connection(conn, [10])
+            self.assertEqual(preview["table_counts"]["email_correction_challenges"], 1)
+        self._apply(ids=[10])
+        table = Base.metadata.tables["email_correction_challenges"]
+        with self.engine.connect() as conn:
+            remaining = conn.execute(select(table.c.id, table.c.staff_id, table.c.actor_id)).all()
+            self.assertEqual(remaining, [(retained, self.people[99][0], self.operator_id)])
+            self.assertIsNotNone(conn.execute(select(Staff.id).where(Staff.id == self.operator_id)).scalar_one_or_none())
+            self.assertEqual(conn.exec_driver_sql("PRAGMA foreign_key_check").all(), [])
+
+    def test_retained_email_correction_cannot_cascade_from_deleted_foreign_actor(self):
+        with self.engine.begin() as conn:
+            self._insert(conn, "email_correction_challenges", staff_id=self.people[99][0],
+                         actor_id=self.people[10][0], new_email="retained@example.com",
+                         code_digest="synthetic-digest", state_digest="synthetic-state",
+                         reason="Malformed foreign-school actor", expires_at=datetime.now(timezone.utc))
+            before = self._snapshot(conn)
+        with self.assertRaises(CleanupError):
+            self._apply(ids=[10])
+        with self.engine.connect() as conn:
+            self.assertEqual(self._snapshot(conn), before)
+
     def test_foreign_school_cascade_reference_aborts_without_touching_other_school(self):
         assignments = Base.metadata.tables["teacher_assignments"]
         with self.engine.begin() as conn:
@@ -314,14 +348,16 @@ class TestSchoolCleanupTests(unittest.TestCase):
 
             sessions = async_sessionmaker(engine, expire_on_commit=False)
             try:
+                proof = await issue_registration_proof(sessions, "principal-10@example.com", kind="school")
                 async with sessions() as db:
                     payload = SchoolRegisterRequest(
                         school={"name": "Gumagamot Elementary School", "city": "Lala", "school_type": "public"},
                         first_name="New", last_name="Principal", email="principal-10@example.com",
                         contact_number="09123456789", password="ValidPassword123!",
+                        email_verification_token=proof,
                     )
                     request = Request({"type": "http", "headers": [], "client": ("127.0.0.1", 9000)})
-                    with patch.object(schools, "verify_captcha", AsyncMock()), patch.object(
+                    with patch.object(
                         schools, "async_get_password_hash", AsyncMock(return_value="new-test-hash")
                     ):
                         response = await schools.register_school(payload, request, db)

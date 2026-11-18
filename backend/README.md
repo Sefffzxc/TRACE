@@ -125,6 +125,7 @@ Copy `.env.example` to `.env`. The important ones:
 | `EMAIL_ENABLED` | `false` | Send verification codes and account approval/rejection notices through Resend. |
 | `RESEND_API_KEY` | empty | API-server secret, never a frontend variable. |
 | `EMAIL_FROM` | empty | Verified sender, e.g. `TRACE <noreply@auth.yourtrace.app>`. |
+| `PUBLIC_FRONTEND_URL` | `https://www.traceedu.app` | Trusted frontend origin for email correction links; HTTPS required except localhost development. |
 | `EMAIL_TIMEOUT_SECONDS` | `10` | HTTP timeout per email request: more than 0, at most 60 seconds. |
 | `ALLOWED_ORIGINS` | localhost dev ports | Comma-separated frontend origins |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` | |
@@ -167,6 +168,39 @@ new-device login fails rather than issuing an inaccessible code.
 
 See [the Student Pack guide](../STUDENT_HOSTING_GUIDE.md) for the domain/DNS,
 Resend account and Ubuntu server configuration.
+
+## Verifying registration emails and recovering unreachable addresses
+
+Teacher and school registrations verify the applicant's inbox before creating
+an account. `POST /api/auth/registration-email/request` accepts `email`, `kind`
+(`teacher` or `school`) and the existing CAPTCHA token. Its six-digit code lasts
+five minutes. `POST /api/auth/registration-email/verify` exchanges the code for
+a single-use, fifteen-minute `email_verification_token`. Include that token in
+the final teacher or school registration request. It is bound to the email and
+registration kind; approval is still required. CAPTCHA is consumed when sending
+the email, so the final registration does not reuse it.
+
+For existing unreachable or mistyped emails, principals use **Correct email**
+in Teachers or Approvals. The operator uses **Correct principal email** in
+Schools. The initiator supplies their own password, confirms the person's
+identity and records a reason. Only teachers in the principal's school can be
+changed; principal corrections require the operator. The recipient opens the
+new inbox and verifies its code at `/correct-email`. The old inbox is not
+required, and the stored email changes only after successful verification.
+The account ID, assignments, scores and approval status remain intact. Existing
+sessions, trusted devices, login/reset codes and application correction tokens
+are revoked. Sign in again with the new email and existing password.
+
+Both flows require working email delivery and never expose their verification
+codes through `DEBUG_OTP` or `LOG_OTP_CODES`. Requests and verification attempts
+are limited; email correction actions are audited. Set `PUBLIC_FRONTEND_URL`
+to the deployed frontend origin, and keep production debug/log flags false.
+
+Deploy the API and frontend together. API startup creates
+`registration_email_challenges`, `registration_email_limits`,
+`email_correction_challenges` and `email_correction_guards` through the existing
+`init_models()` mechanism. No existing-table columns or academic records are
+changed by this installation; there is no manual backfill or reset to run.
 
 ## Correcting rejected applications
 

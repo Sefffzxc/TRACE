@@ -30,6 +30,8 @@ export const schoolApi = {
 export const authApi = {
   captchaConfig: () => api.get('/api/auth/captcha-config', undefined, { auth: false }),
   register: (payload) => api.post('/api/auth/register', payload, { auth: false }),
+  requestRegistrationEmail: (payload) => api.post('/api/auth/registration-email/request', payload, { auth: false }),
+  verifyRegistrationEmail: (payload) => api.post('/api/auth/registration-email/verify', payload, { auth: false }),
 
   requestResubmission: (email, captchaToken) => api.post(
     '/api/auth/resubmission/request',
@@ -106,6 +108,12 @@ export const staffApi = {
   adminAction: (staffId, action, extra = {}) =>
     api.patch(`/api/staff/${staffId}`, { action, ...extra }),
   remove: (staffId) => api.delete(`/api/staff/${staffId}`),
+};
+
+export const emailCorrectionApi = {
+  requestTeacher: (staffId, payload) => api.post(`/api/staff/${staffId}/email-correction`, payload),
+  requestPrincipal: (schoolId, payload) => api.post(`/api/schools/${schoolId}/principal-email-correction`, payload),
+  verify: (payload) => api.post('/api/auth/email-correction/verify', payload, { auth: false }),
 };
 
 /* ── Class management ────────────────────────────────────────────────────── */

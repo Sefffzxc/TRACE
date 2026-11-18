@@ -19,6 +19,7 @@ from app.core.security import decode_token
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.schools import SCHOOL_APPROVED, SCHOOL_PENDING, School
+from app.models.email_corrections import EmailCorrectionChallenge
 from app.models.staff import ROLE_ADMIN, ROLE_SUPER_ADMIN, STATUS_BLOCKED, STATUS_REJECTED, Staff, StaffSession
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -95,13 +96,17 @@ async def _staff_from_token(
         StaffSession.staff_id == staff_id, token_column == token,
         StaffSession.is_active.is_(True),
     ).exists()
-    result = await db.execute(select(Staff, revoked, active).where(Staff.id == staff_id))
+    corrected = select(EmailCorrectionChallenge.id).where(
+        EmailCorrectionChallenge.staff_id == staff_id,
+        EmailCorrectionChallenge.completed_at.is_not(None),
+    ).exists()
+    result = await db.execute(select(Staff, revoked, active, corrected).where(Staff.id == staff_id))
     row = result.one_or_none()
     if row is None:
         raise HTTPException(status_code=401, detail="Account no longer exists.")
-    staff, has_revoked_session, has_active_session = row
+    staff, has_revoked_session, has_active_session, has_email_correction = row
     await require_account_access(staff, db)
-    if has_revoked_session and not has_active_session:
+    if (has_revoked_session or has_email_correction) and not has_active_session:
         raise HTTPException(status_code=401, detail="This session has ended. Please sign in again.")
     return staff
 

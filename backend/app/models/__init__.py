@@ -45,6 +45,8 @@ from app.models.students import (  # noqa: F401
     StudentPace,
 )
 from app.models.applications import ApplicationEvent, ResubmissionChallenge  # noqa: F401
+from app.models.email_corrections import EmailCorrectionChallenge, EmailCorrectionGuard  # noqa: F401
+from app.models.registration_email import RegistrationEmailChallenge, RegistrationEmailLimit  # noqa: F401
 
 __all__ = [
     "School",
@@ -63,6 +65,10 @@ __all__ = [
     "AuditLog",
     "ApplicationEvent",
     "ResubmissionChallenge",
+    "EmailCorrectionChallenge",
+    "EmailCorrectionGuard",
+    "RegistrationEmailChallenge",
+    "RegistrationEmailLimit",
     "SchoolYear",
     "GradeLevel",
     "Section",

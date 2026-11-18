@@ -13,6 +13,7 @@ import AuthLayout from './AuthLayout';
 import { authApi, schoolApi } from '../../api/endpoints';
 import AddressFields from '../../components/common/AddressFields';
 import CaptchaField from '../../components/common/CaptchaField';
+import RegistrationEmailModal from '../../components/common/RegistrationEmailModal';
 import useCaptchaConfig from '../../hooks/useCaptchaConfig';
 import useRetryAfter from '../../hooks/useRetryAfter';
 import { ErrorNote, FieldError } from '../../components/common/ui';
@@ -130,6 +131,10 @@ export default function RegisterPage() {
   const retry = useRetryAfter();
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaReset, setCaptchaReset] = useState(0);
+  const [verification, setVerification] = useState(null);
+  const [verificationError, setVerificationError] = useState('');
+  const [emailProof, setEmailProof] = useState(null);
+  const emailVersion = useRef(0);
 
   /* `null` means "not fetched yet", which is different from an empty list: the
      first shows a loading note, the second means no school has been approved
@@ -141,6 +146,8 @@ export default function RegisterPage() {
   const [singularTouched, setSingularTouched] = useState(false);
 
   const password = mode === 'teacher' ? teacher.password : admin.password;
+  const registrationEmail = (mode === 'teacher' ? teacher.email : admin.email).trim().toLowerCase();
+  const proofIsCurrent = emailProof?.email === registrationEmail && emailProof?.kind === mode && emailProof.expiresAt > Date.now();
   const confirm = mode === 'teacher' ? teacher.confirm : admin.confirm;
   const strength = useMemo(() => scorePassword(password), [password]);
 
@@ -220,14 +227,22 @@ export default function RegisterPage() {
     };
   }, [mode, directory]);
 
-  const setTeacherField = (field) => (event) =>
+  const setTeacherField = (field) => (event) => {
+    if (field === 'email') { emailVersion.current += 1; setEmailProof(null); }
     setTeacher((current) => ({ ...current, [field]: event.target.value }));
+  };
   const setSchoolField = (field) => (event) =>
     setSchool((current) => ({ ...current, [field]: event.target.value }));
-  const setAdminField = (field) => (event) =>
+  const setAdminField = (field) => (event) => {
+    if (field === 'email') { emailVersion.current += 1; setEmailProof(null); }
     setAdmin((current) => ({ ...current, [field]: event.target.value }));
+  };
 
   const switchMode = (next) => {
+    if (busy) return;
+    emailVersion.current += 1;
+    setEmailProof(null);
+    setVerification(null);
     setMode(next);
     setError('');
     setDuplicateEmail('');
@@ -253,9 +268,9 @@ export default function RegisterPage() {
     }));
   };
 
-  const submitTeacher = async () => {
+  const submitTeacher = async (emailVerificationToken) => {
     const result = await authApi.register({
-      ...(captcha.config?.enabled ? { captcha_token: captchaToken } : {}),
+      email_verification_token: emailVerificationToken,
       school_id: Number(teacher.school_id),
       role: 'teacher',
       email: teacher.email.trim(),
@@ -272,10 +287,10 @@ export default function RegisterPage() {
     });
   };
 
-  const submitSchool = async () => {
+  const submitSchool = async (emailVerificationToken) => {
     const tracks = school.tracks_units === true;
     const result = await schoolApi.register({
-      ...(captcha.config?.enabled ? { captcha_token: captchaToken } : {}),
+      email_verification_token: emailVerificationToken,
       /* The school's own fields are nested, because this one call creates two
          records — the school and the person who will run it — and keeping them
          apart in the payload is what makes that readable on the server. */
@@ -308,12 +323,57 @@ export default function RegisterPage() {
     setDone({ kind: 'school', ...result, school_name: school.name.trim() });
   };
 
+  const handleRegistrationError = (err) => {
+    retry.start(err.retryAfter);
+    if (err.status === 409 && /email/i.test(err.message)) {
+      setDuplicateEmail((mode === 'teacher' ? teacher.email : admin.email).trim());
+    }
+    if (err.payload?.detail?.code?.startsWith('email_verification') || err.payload?.detail?.code?.startsWith('registration_email')) setEmailProof(null);
+    const { fields, unmapped } = registrationApiErrors(err, mode);
+    if (err.payload?.detail?.code?.startsWith('captcha_')) fields.captcha = err.message;
+    setFieldErrors(fields);
+    if (unmapped || !Object.keys(fields).length) setError(readSubmitError(err));
+    setFocusRequest((current) => current + 1);
+  };
+
+  const verifyAndSubmit = async (code) => {
+    if (busy || !verification || retry.seconds > 0) return;
+    setBusy(true);
+    setVerificationError('');
+    let verified = false;
+    try {
+      const result = await authApi.verifyRegistrationEmail({ email: verification.email, challenge_id: verification.challenge_id, code });
+      const proof = { email: verification.email, kind: verification.kind, token: result.email_verification_token, expiresAt: Date.now() + result.expires_in * 1000 };
+      setEmailProof(proof);
+      verified = true;
+      setVerification(null);
+      if (mode === 'teacher') await submitTeacher(proof.token);
+      else await submitSchool(proof.token);
+    } catch (err) {
+      if (verified) handleRegistrationError(err);
+      else { retry.start(err.retryAfter); setVerificationError(readSubmitError(err)); }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const closeVerification = () => {
+    if (busy) return;
+    setVerification(null);
+    setVerificationError('');
+    requestAnimationFrame(() => {
+      const input = document.getElementById(mode === 'teacher' ? 'reg_email' : 'a_email');
+      input?.focus({ preventScroll: true });
+      input?.closest('.field')?.scrollIntoView({ block: 'center' });
+    });
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     if (busy || retry.seconds > 0) return;
     setError('');
     setDuplicateEmail('');
-    if (captcha.loading || captcha.error || !captcha.config) {
+    if (!proofIsCurrent && (captcha.loading || captcha.error || !captcha.config)) {
       setError('Security verification settings are unavailable. Use Retry below and submit again.');
       setFocusRequest((current) => current + 1);
       return;
@@ -321,7 +381,7 @@ export default function RegisterPage() {
     const errors = validateRegistration(event.currentTarget, {
       mode, school, password, confirm, passwordScore: strength.score,
     });
-    if (captcha.config.enabled && !captchaToken) errors.captcha = 'Please complete the human verification.';
+    if (!proofIsCurrent && captcha.config?.enabled && !captchaToken) errors.captcha = 'Please complete the human verification.';
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
       setFocusRequest((current) => current + 1);
@@ -330,18 +390,22 @@ export default function RegisterPage() {
 
     setBusy(true);
     try {
-      if (mode === 'teacher') await submitTeacher();
-      else await submitSchool();
-    } catch (err) {
-      retry.start(err.retryAfter);
-      if (err.status === 409 && /email/i.test(err.message)) {
-        setDuplicateEmail((mode === 'teacher' ? teacher.email : admin.email).trim());
+      if (proofIsCurrent) {
+        if (mode === 'teacher') await submitTeacher(emailProof.token);
+        else await submitSchool(emailProof.token);
+      } else {
+        const submittedVersion = emailVersion.current;
+        const result = await authApi.requestRegistrationEmail({ email: registrationEmail, kind: mode, ...(captcha.config?.enabled ? { captcha_token: captchaToken } : {}) });
+        if (submittedVersion !== emailVersion.current) {
+          setError('Your email changed. Submit again to verify the new address.');
+          setFocusRequest((current) => current + 1);
+          return;
+        }
+        setVerificationError('');
+        setVerification({ ...result, email: registrationEmail, kind: mode });
       }
-      const { fields, unmapped } = registrationApiErrors(err, mode);
-      if (err.payload?.detail?.code?.startsWith('captcha_')) fields.captcha = err.message;
-      setFieldErrors(fields);
-      if (unmapped || !Object.keys(fields).length) setError(readSubmitError(err));
-      setFocusRequest((current) => current + 1);
+    } catch (err) {
+      handleRegistrationError(err);
     } finally {
       setBusy(false);
       setCaptchaToken('');
@@ -1035,14 +1099,15 @@ export default function RegisterPage() {
           </>
         )}
 
-        {captcha.loading && <p className="field-hint" role="status">Loading security verification…</p>}
-        {captcha.error && (
+        {proofIsCurrent && <p className="field-hint" role="status">Email verified. Submit your corrected details to finish.</p>}
+        {!proofIsCurrent && captcha.loading && <p className="field-hint" role="status">Loading security verification…</p>}
+        {!proofIsCurrent && captcha.error && (
           <div className="field">
             <ErrorNote message={captcha.error} />
             <button type="button" className="btn btn-secondary" onClick={captcha.retry}>Retry security settings</button>
           </div>
         )}
-        {captcha.config?.enabled && (
+        {!proofIsCurrent && captcha.config?.enabled && (
           <CaptchaField
             siteKey={captcha.config.site_key}
             action={mode === 'teacher' ? 'register_teacher' : 'register_school'}
@@ -1056,7 +1121,7 @@ export default function RegisterPage() {
 
         {retry.seconds > 0 && <p className="field-hint" role="status">Try again in {retry.seconds} second(s).</p>}
 
-        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || retry.seconds > 0 || captcha.loading || Boolean(captcha.error)}>
+        <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={busy || retry.seconds > 0 || (!proofIsCurrent && (captcha.loading || Boolean(captcha.error)))}>
           {busy ? (
             <>
               <span className="spinner" /> Submitting…
@@ -1069,6 +1134,11 @@ export default function RegisterPage() {
           )}
         </button>
       </form>
+      {verification && <RegistrationEmailModal
+        key={verification.challenge_id} email={verification.email} expiresIn={verification.expires_in}
+        error={verificationError} busy={busy} retrySeconds={retry.seconds}
+        onVerify={verifyAndSubmit} onClose={closeVerification}
+      />}
     </AuthLayout>
   );
 }

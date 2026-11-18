@@ -21,7 +21,7 @@ from fastapi import (
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user, school_scope
+from app.api.deps import _staff_from_token, get_current_admin, get_current_user, school_scope
 from app.core.config import settings
 from app.core.security import (
     generate_temp_password,
@@ -101,13 +101,25 @@ async def change_own_password(
     current: Staff = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if not await async_verify_password(payload.current_password, current.password_hash):
+    staff_id = current.id
+    expected_email, expected_hash = current.email, current.password_hash
+    # Release the dependency's read transaction before all bcrypt work.
+    await db.commit()
+    if not await async_verify_password(payload.current_password, expected_hash):
         raise HTTPException(status_code=400, detail="Your current password is incorrect.")
-    if await async_verify_password(payload.new_password, current.password_hash):
+    if await async_verify_password(payload.new_password, expected_hash):
         raise HTTPException(
             status_code=400, detail="The new password must be different from the old one."
         )
-    current.password_hash = await async_get_password_hash(payload.new_password)
+    password_hash = await async_get_password_hash(payload.new_password)
+    current = await db.scalar(select(Staff).where(Staff.id == staff_id).with_for_update()
+                              .execution_options(populate_existing=True))
+    if current is None or current.email != expected_email or current.password_hash != expected_hash:
+        raise HTTPException(401, detail="Your account details changed. Please sign in again.")
+    token = request.headers.get("authorization", "").partition(" ")[2]
+    # An email correction may have revoked this exact session during hashing.
+    await _staff_from_token(token, db, "access")
+    current.password_hash = password_hash
     current.requires_password_change = False
     await log_event(
         db, Action.PASSWORD_CHANGED, actor_id=current.id, target_user_id=current.id,

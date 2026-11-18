@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { EmptyState, ErrorNote, Modal, PageHead, TableSkeleton } from '../../components/common/ui';
 import ApplicationHistoryModal from '../../components/common/ApplicationHistoryModal';
+import EmailCorrectionModal from '../../components/common/EmailCorrectionModal';
 import { schoolApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { formatPersonName } from '../../lib/personName';
@@ -63,6 +64,7 @@ export default function SchoolsAdminPage() {
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [history, setHistory] = useState(null);
+  const [emailCorrection, setEmailCorrection] = useState(null);
   const requests = useRef(new Map());
   const activeStatus = useRef(status);
   activeStatus.current = status;
@@ -282,6 +284,11 @@ export default function SchoolsAdminPage() {
                   </div>
 
                   <div className="acts" style={{ flexWrap: 'wrap' }}>
+                    {school.principal_email && (
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEmailCorrection(school)} disabled={busy}>
+                        <Mail size={15} /> Correct principal email
+                      </button>
+                    )}
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => openHistory(school)}>
                       <History size={15} /> History
                     </button>
@@ -409,6 +416,13 @@ export default function SchoolsAdminPage() {
         </Modal>
       )}
       {history && <ApplicationHistoryModal name={history.name} loadHistory={history.load} onClose={() => setHistory(null)} />}
+      {emailCorrection && <EmailCorrectionModal
+        targetType="principal"
+        targetId={emailCorrection.school_id}
+        targetName={`${formatPersonName(emailCorrection.principal_name) || 'Principal'} — ${emailCorrection.name}`}
+        currentEmail={emailCorrection.principal_email}
+        onClose={() => setEmailCorrection(null)}
+      />}
     </div>
   );
 }

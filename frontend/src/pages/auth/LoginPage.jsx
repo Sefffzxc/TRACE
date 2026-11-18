@@ -14,7 +14,7 @@ export default function LoginPage() {
   const location = useLocation();
   const { signIn } = useAuth();
 
-  const [email, setEmail] = useState(() => location.state?.email || '');
+  const [email, setEmail] = useState(() => location.state?.email || new URLSearchParams(location.search).get('email') || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
