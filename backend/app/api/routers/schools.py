@@ -66,6 +66,7 @@ from app.services.applications import ensure_legacy_rejection_event, record_appl
 from app.services.email import EmailDeliveryError, send_account_decision_email
 from app.services.email_identity import canonical_email, lock_email_identity
 from app.services.registration_email import check_proof, consume_proof
+from app.services.contact_numbers import ensure_contact_available
 
 router = APIRouter(prefix="/api/schools", tags=["Schools"])
 
@@ -156,6 +157,7 @@ async def register_school(
             ),
         )
 
+    await ensure_contact_available(db, payload.contact_number)
     school = School(**payload.school.model_dump(), status=SCHOOL_PENDING)
     db.add(school)
     await db.flush()  # assigns school_id for the principal below

@@ -6,7 +6,7 @@ import uuid
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ORMModel(BaseModel):
@@ -78,6 +78,13 @@ def grade_level_rank(level: str) -> int:
     return int(digits.group()) if digits else 0
 
 
+def grade_level_name(level: str) -> str:
+    """The display name follows the entered level rather than a second input."""
+    value = level.strip()
+    match = re.fullmatch(r"(?:grade\s+)?([0-9]+)", value, re.IGNORECASE)
+    return f"Grade {match[1]}" if match else value.title()
+
+
 class GradeSectionInput(BaseModel):
     section_id: Optional[int] = Field(default=None, gt=0)
     name: str = Field(min_length=1, max_length=40)
@@ -91,12 +98,17 @@ class GradeSectionInput(BaseModel):
 
 class GradeLevelBase(BaseModel):
     level: str = Field(min_length=1, max_length=10)
-    name: str = Field(min_length=1, max_length=30)
+    name: str = Field(default="", max_length=30)
 
     @field_validator("level", "name", mode="before")
     @classmethod
     def _trim_text(cls, value):
         return value.strip() if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def _display_name(self):
+        self.name = grade_level_name(self.level)
+        return self
 
 
 class GradeLevelCreate(GradeLevelBase):

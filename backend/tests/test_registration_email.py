@@ -13,7 +13,7 @@ from uuid import UUID, uuid4
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 import httpx
 from sqlalchemy import event, func, select, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -21,7 +21,7 @@ from sqlalchemy.engine import make_url
 
 import app.models
 from app.api import deps
-from app.api.routers import auth, registration_email, schools
+from app.api.routers import auth, registration_email, schools, staff
 from app.core.config import settings
 from app.db.session import Base, get_db
 from app.models.registration_email import RegistrationEmailChallenge, RegistrationEmailLimit
@@ -53,7 +53,8 @@ class RegistrationEmailTests(unittest.IsolatedAsyncioTestCase):
         async def no_throttle():
             return None
         application = FastAPI()
-        for router in (auth.router, schools.router, registration_email.router):
+        self.app = application
+        for router in (auth.router, schools.router, registration_email.router, staff.router):
             application.include_router(router)
         application.dependency_overrides[get_db] = isolated_db
         application.dependency_overrides[deps.limit_register] = no_throttle
@@ -94,7 +95,113 @@ class RegistrationEmailTests(unittest.IsolatedAsyncioTestCase):
     def school(self, email="principal@example.com", token=None):
         return {"school": {"name": "Synthetic New School", "city": "Lala", "school_type": "public"},
                 "email": email, "password": PASSWORD, "first_name": "Synthetic", "last_name": "Principal",
-                "contact_number": "09123456789", "email_verification_token": token}
+                "contact_number": "09987654321", "email_verification_token": token}
+
+    async def test_invalid_mobile_numbers_are_rejected_before_registration(self):
+        for number in ("abcdefg", "0912345678", "091234567890", "08123456789", "09123a56789",
+                       "0917 000 0000", "+639123456789", "09１２３４５６７８９"):
+            for endpoint, payload in (("/api/auth/register", self.teacher()),
+                                      ("/api/schools/register", self.school())):
+                with self.subTest(endpoint=endpoint, number=number):
+                    response = await self.client.post(endpoint, json={**payload, "contact_number": number})
+                    self.assertEqual(response.status_code, 422, response.text)
+                    self.assertEqual(response.json()["detail"][0]["loc"], ["body", "contact_number"])
+
+    async def test_school_name_is_normalized_on_save_and_legacy_directory_reads(self):
+        token, _ = await self.proof("principal@example.com", "school")
+        payload = self.school(token=token)
+        payload["school"]["name"] = "  CAMP   EVANGELISTA ES  "
+        response = await self.client.post("/api/schools/register", json=payload)
+        self.assertEqual(response.status_code, 201, response.text)
+        async with self.sessions() as db:
+            created = await db.get(School, response.json()["school_id"])
+            self.assertEqual(created.name, "Camp Evangelista Es")
+            created.status = "approved"
+            (await db.get(School, 1)).name = "GUMAGAMOT ELEMENTARY SCHOOL"
+            await db.commit()
+        response = await self.client.get("/api/schools/directory")
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual({row["name"] for row in response.json()}, {
+            "Camp Evangelista Es", "Gumagamot Elementary School",
+        })
+
+    async def test_school_name_requires_letters(self):
+        for name in ("123456", " --- "):
+            payload = self.school()
+            payload["school"]["name"] = name
+            response = await self.client.post("/api/schools/register", json=payload)
+            self.assertEqual(response.status_code, 422, response.text)
+            self.assertEqual(response.json()["detail"][0]["loc"], ["body", "school", "name"])
+
+    async def test_duplicate_contacts_across_registration_roles_preserve_email_proof(self):
+        for first_kind, second_kind, number in (("teacher", "school", "09111111111"),
+                                               ("school", "teacher", "09222222222")):
+            with self.subTest(first=first_kind):
+                first_email, second_email = f"first-{first_kind}@example.com", f"second-{first_kind}@example.com"
+                first_token, _ = await self.proof(first_email, first_kind)
+                make_first = self.teacher if first_kind == "teacher" else self.school
+                first_payload = {**make_first(first_email, first_token), "contact_number": number}
+                first_endpoint = "/api/auth/register" if first_kind == "teacher" else "/api/schools/register"
+                response = await self.client.post(first_endpoint, json=first_payload)
+                self.assertEqual(response.status_code, 201, response.text)
+                second_token, challenge = await self.proof(second_email, second_kind)
+                make_second = self.teacher if second_kind == "teacher" else self.school
+                second_payload = {**make_second(second_email, second_token), "contact_number": number}
+                second_endpoint = "/api/auth/register" if second_kind == "teacher" else "/api/schools/register"
+                if second_kind == "school":
+                    second_payload["school"]["name"] = "Another Synthetic School"
+                response = await self.client.post(second_endpoint, json=second_payload)
+                self.assertEqual(response.status_code, 409, response.text)
+                self.assertEqual(response.json()["detail"], "An account with that contact number already exists.")
+                async with self.sessions() as db:
+                    self.assertIsNone((await db.get(RegistrationEmailChallenge, UUID(challenge))).used_at)
+
+    async def test_legacy_phone_formats_cannot_bypass_duplicate_check(self):
+        async with self.sessions() as db:
+            person = Staff(school_id=1, email="legacy@example.com", password_hash="unused",
+                           first_name="Legacy", last_name="Test", contact_number="09123456789", role="teacher")
+            db.add(person)
+            await db.commit()
+            identity = person.id
+        token, _ = await self.proof()
+        for value in ("\t09123456789\n", "0912 345 6789", "+63 912 345 6789", "(0912)345-6789"):
+            with self.subTest(value=value):
+                async with self.sessions() as db:
+                    (await db.get(Staff, identity)).contact_number = value
+                    await db.commit()
+                response = await self.client.post("/api/auth/register", json=self.teacher(token=token))
+                self.assertEqual(response.status_code, 409, response.text)
+                self.assertIn("contact number", response.json()["detail"])
+
+    async def test_profile_contact_cannot_bypass_uniqueness_and_accepts_own_number(self):
+        async with self.sessions() as db:
+            people = []
+            for index in (1, 2):
+                person = Staff(school_id=1, email=f"profile{index}@example.com", password_hash="unused",
+                               first_name="Profile", last_name="Test", contact_number=f"0911111111{index}",
+                               role="teacher", account_status="approved", is_approved=True)
+                db.add(person)
+                people.append(person)
+            await db.commit()
+            identity = people[0].id
+        async def current(db=Depends(get_db)):
+            return await db.get(Staff, identity)
+        self.app.dependency_overrides[deps.get_current_user] = current
+        for number, expected in (("09111111112", 409), ("09111111111", 200), ("09111abc111", 422)):
+            response = await self.client.patch("/api/staff/me", json={"contact_number": number})
+            self.assertEqual(response.status_code, expected, response.text)
+        response = await self.client.patch("/api/staff/me", json={"first_name": "Updated"})
+        self.assertEqual(response.status_code, 200, response.text)
+
+    async def test_school_settings_normalize_names_and_reject_numbers_only(self):
+        self.app.dependency_overrides[deps.school_admin_scope] = lambda: 1
+        response = await self.client.patch("/api/schools/me", json={"name": "123456"})
+        self.assertEqual(response.status_code, 422, response.text)
+        response = await self.client.patch("/api/schools/me", json={"name": "  ST. MARY'S SCHOOL 2  "})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["name"], "St. Mary's School 2")
+        async with self.sessions() as db:
+            self.assertEqual((await db.get(School, 1)).name, "St. Mary's School 2")
 
     async def request(self, email="applicant@example.com", kind="teacher"):
         return await self.client.post("/api/auth/registration-email/request", json={

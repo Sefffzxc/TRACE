@@ -5,6 +5,7 @@ import { EmptyState, ErrorNote, PageHead } from '../../components/common/ui';
 import { schoolApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { formatSchoolName, hasSchoolNameLetters, SCHOOL_NAME_MESSAGE } from '../../lib/inputValidation';
 
 /* Same mapping the staff list uses for account status, so a pending school and
    a pending teacher look the same shade of amber wherever they appear. */
@@ -102,6 +103,10 @@ export default function SchoolSettingsPage() {
       setError('School name: at least 3 characters.');
       return;
     }
+    if (!hasSchoolNameLetters(form.name)) {
+      setError(SCHOOL_NAME_MESSAGE);
+      return;
+    }
     if (form.city.trim().length < 2) {
       setError('Please give the city or municipality.');
       return;
@@ -196,6 +201,7 @@ export default function SchoolSettingsPage() {
                   className="input"
                   value={form.name}
                   onChange={set('name')}
+                  onBlur={() => setForm((current) => ({ ...current, name: formatSchoolName(current.name) }))}
                   required
                 />
               </div>

@@ -18,6 +18,7 @@ import useCaptchaConfig from '../../hooks/useCaptchaConfig';
 import useRetryAfter from '../../hooks/useRetryAfter';
 import { ErrorNote, FieldError } from '../../components/common/ui';
 import { registrationApiErrors, validateRegistration } from './registrationValidation';
+import { formatSchoolName, MOBILE_NUMBER_MESSAGE, MOBILE_NUMBER_PATTERN } from '../../lib/inputValidation';
 
 /* One deployment now serves many schools, so the first thing this form has to
    settle is which of two completely different things is happening: somebody
@@ -295,7 +296,7 @@ export default function RegisterPage() {
          records — the school and the person who will run it — and keeping them
          apart in the payload is what makes that readable on the server. */
       school: {
-        name: school.name.trim(),
+        name: formatSchoolName(school.name),
         school_type: school.school_type,
         address: school.address.trim(),
         city: school.city.trim(),
@@ -320,7 +321,7 @@ export default function RegisterPage() {
       contact_number: admin.contact_number.trim(),
       password: admin.password,
     });
-    setDone({ kind: 'school', ...result, school_name: school.name.trim() });
+    setDone({ kind: 'school', ...result, school_name: formatSchoolName(school.name) });
   };
 
   const handleRegistrationError = (err) => {
@@ -632,9 +633,10 @@ export default function RegisterPage() {
               <input
                 id="contact"
                 {...validationProps('contact')}
-                minLength={7} maxLength={20}
+                type="tel" inputMode="numeric" autoComplete="tel-national"
+                minLength={11} maxLength={11} pattern={MOBILE_NUMBER_PATTERN} title={MOBILE_NUMBER_MESSAGE}
                 className="input"
-                placeholder="0917 000 0000"
+                placeholder="09170000000"
                 value={teacher.contact_number}
                 onChange={setTeacherField('contact_number')}
                 required
@@ -715,6 +717,7 @@ export default function RegisterPage() {
                 placeholder="Saint Mary's Academy"
                 value={school.name}
                 onChange={setSchoolField('name')}
+                onBlur={() => setSchool((current) => ({ ...current, name: formatSchoolName(current.name) }))}
                 required
               />
             </div>
@@ -1032,9 +1035,10 @@ export default function RegisterPage() {
               <input
                 id="a_contact"
                 {...validationProps('a_contact')}
-                minLength={7} maxLength={20}
+                type="tel" inputMode="numeric" autoComplete="tel-national"
+                minLength={11} maxLength={11} pattern={MOBILE_NUMBER_PATTERN} title={MOBILE_NUMBER_MESSAGE}
                 className="input"
-                placeholder="0917 000 0000"
+                placeholder="09170000000"
                 value={admin.contact_number}
                 onChange={setAdminField('contact_number')}
                 required

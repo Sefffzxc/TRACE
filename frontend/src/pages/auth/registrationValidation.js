@@ -1,3 +1,5 @@
+import { hasSchoolNameLetters, isMobileNumber, MOBILE_NUMBER_MESSAGE, SCHOOL_NAME_MESSAGE } from '../../lib/inputValidation';
+
 /** Validate the controls actually shown in the selected registration form. */
 export function validateRegistration(form, { mode, school, password, confirm, passwordScore }) {
   const errors = {};
@@ -8,6 +10,10 @@ export function validateRegistration(form, { mode, school, password, confirm, pa
     const value = input.autocomplete === 'new-password' ? input.value : input.value.trim();
     if (input.required && !value) {
       errors[input.id] = `${label} is required.`;
+    } else if (['contact', 'a_contact'].includes(input.id) && value && !isMobileNumber(value)) {
+      errors[input.id] = MOBILE_NUMBER_MESSAGE;
+    } else if (input.id === 's_name' && value && !hasSchoolNameLetters(value)) {
+      errors[input.id] = SCHOOL_NAME_MESSAGE;
     } else if (input.validity.typeMismatch) {
       errors[input.id] = 'Please enter a valid email address.';
     } else if (input.validity.badInput) {
@@ -60,6 +66,8 @@ export function registrationApiErrors(error, mode) {
     }
   } else if (error?.status === 409 && error.message === 'An account with that email address already exists.') {
     fields[account.email] = error.message;
+  } else if (error?.status === 409 && error.message === 'An account with that contact number already exists.') {
+    fields[account.contact_number] = error.message;
   } else if (mode === 'school' && error?.status === 409 && error.message?.includes('is already registered or awaiting approval.')) {
     fields.s_name = error.message;
   } else if (mode === 'teacher' && error?.status === 400 && error.message === 'Please choose a school from the list.') {

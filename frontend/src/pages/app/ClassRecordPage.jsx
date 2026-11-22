@@ -275,7 +275,7 @@ export default function ClassRecordPage() {
         >
           {sections.map((item) => (
             <option key={item.section_id} value={item.section_id}>
-              {sectionLabel(item, sections)}
+              {sectionLabel(item, sections, true)}
             </option>
           ))}
         </select>

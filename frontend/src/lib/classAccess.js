@@ -17,8 +17,8 @@ export function matchesSection(row, section) {
     : row.section_name === section.name;
 }
 
-export function sectionLabel(section, sections) {
+export function sectionLabel(section, sections, alwaysIncludeGrade = false) {
   const duplicate = sections.some((other) => other.section_id !== section.section_id && other.name === section.name);
-  return duplicate && section.grade_level_name
-    ? `${section.grade_level_name} — ${section.name}` : section.name;
+  return (alwaysIncludeGrade || duplicate) && section.grade_level_name
+    ? `${section.grade_level_name} - ${section.name}` : section.name;
 }

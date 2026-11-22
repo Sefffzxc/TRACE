@@ -6,6 +6,7 @@ import { staffApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatPersonName } from '../../lib/personName';
+import { isMobileNumber, MOBILE_NUMBER_MESSAGE, MOBILE_NUMBER_PATTERN } from '../../lib/inputValidation';
 
 function scorePassword(value) {
   if (!value) return { score: 0, label: 'Enter a password' };
@@ -65,6 +66,10 @@ export default function AccountPage() {
   const saveProfile = async (event) => {
     event.preventDefault();
     setProfileError('');
+    if (!isMobileNumber(profile.contact_number)) {
+      setProfileError(MOBILE_NUMBER_MESSAGE);
+      return;
+    }
     setProfileBusy(true);
     try {
       await staffApi.updateMe({
@@ -250,6 +255,9 @@ export default function AccountPage() {
                   <input
                     id="p_contact"
                     className="input"
+                    type="tel" inputMode="numeric" autoComplete="tel-national"
+                    minLength={11} maxLength={11} pattern={MOBILE_NUMBER_PATTERN} title={MOBILE_NUMBER_MESSAGE}
+                    placeholder="09170000000" required
                     value={profile.contact_number}
                     onChange={(event) => setProfile((c) => ({ ...c, contact_number: event.target.value }))}
                   />

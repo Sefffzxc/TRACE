@@ -31,6 +31,7 @@ from app.schemas.academic import (
     GradeLevelCreate,
     GradeSectionInput,
     grade_level_rank,
+    grade_level_name,
     school_year_dates,
     GradeLevelResponse,
     GradeLevelUpdate,
@@ -390,6 +391,7 @@ async def update_grade_level(
     for field, value in data.items():
         setattr(row, field, value)
     row.sort_order = grade_level_rank(row.level)
+    row.name = grade_level_name(row.level)
     try:
         if payload.sections is not None:
             await _sync_grade_sections(db, row, payload.sections, scope)
@@ -449,7 +451,7 @@ async def _decorate_sections(
 ) -> List[SectionResponse]:
     year_id = await resolve_school_year_id(db, scope)
     levels = {
-        lvl.grade_level_id: lvl.name
+        lvl.grade_level_id: grade_level_name(lvl.level)
         for lvl in (
             await db.execute(scoped(select(GradeLevel), GradeLevel, scope))
         ).scalars().all()
@@ -599,7 +601,7 @@ async def list_subjects(
     rows = (await db.execute(stmt)).scalars().all()
 
     levels = {
-        lvl.grade_level_id: lvl.name
+        lvl.grade_level_id: grade_level_name(lvl.level)
         for lvl in (
             await db.execute(scoped(select(GradeLevel), GradeLevel, scope))
         ).scalars().all()
@@ -724,7 +726,7 @@ async def _adviser_response(db: AsyncSession, row: SectionAdviser, scope: int) -
     grade = await get_scoped_optional(db, GradeLevel, section.grade_level_id, scope) if section else None
     item.teacher_name = teacher.full_name if teacher else None
     item.section_name = section.name if section else None
-    item.grade_level_name = grade.name if grade else None
+    item.grade_level_name = grade_level_name(grade.level) if grade else None
     return item
 
 

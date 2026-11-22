@@ -8,12 +8,13 @@ import OtpInput from '../../components/common/OtpInput';
 import { ErrorNote, FieldError } from '../../components/common/ui';
 import useCaptchaConfig from '../../hooks/useCaptchaConfig';
 import useRetryAfter from '../../hooks/useRetryAfter';
+import { formatSchoolName, hasSchoolNameLetters, isMobileNumber, MOBILE_NUMBER_MESSAGE, MOBILE_NUMBER_PATTERN, SCHOOL_NAME_MESSAGE } from '../../lib/inputValidation';
 
 const ACCOUNT_FIELDS = [
   ['first_name', 'First name', 100, true],
   ['last_name', 'Last name', 100, true],
   ['middle_name', 'Middle name', 100],
-  ['contact_number', 'Contact number', 20, true],
+  ['contact_number', 'Contact number', 11, true],
 ];
 const SCHOOL_FIELDS = [
   ['name', 'School name', 200, true], ['short_name', 'Short name', 40],
@@ -34,6 +35,8 @@ function validateForm(form) {
     const value = input.value.trim();
     const label = input.labels?.[0]?.textContent.replace(/\*/g, '').trim() || 'This field';
     if (input.required && !value) errors[input.id] = `${label} is required.`;
+    else if (input.id === 'contact_number' && value && !isMobileNumber(value)) errors[input.id] = MOBILE_NUMBER_MESSAGE;
+    else if (input.id === 'school_name' && value && !hasSchoolNameLetters(value)) errors[input.id] = SCHOOL_NAME_MESSAGE;
     else if (input.validity.typeMismatch) errors[input.id] = 'Enter a valid email address.';
     else if (input.validity.badInput || input.validity.rangeUnderflow || input.validity.rangeOverflow || input.validity.stepMismatch) {
       errors[input.id] = `Enter a whole number between ${input.min} and ${input.max}.`;
@@ -139,6 +142,7 @@ export default function ResubmitPage() {
   const handleError = (err, stage) => {
     retry.start(err.retryAfter);
     const fields = {};
+    if (err.status === 409 && err.message === 'An account with that contact number already exists.') fields.contact_number = err.message;
     if (err.payload?.detail?.code?.startsWith('captcha_')) fields.captcha = err.message;
     if (err.status === 422 && Array.isArray(err.payload?.detail)) {
       for (const issue of err.payload.detail) {
@@ -250,8 +254,10 @@ export default function ResubmitPage() {
       <label className="field-label" htmlFor={id}>{label}{required && <> <span className="req">*</span></>}</label>
       <FieldError id={id} message={fieldErrors[id]} />
       <input {...controlProps(id)} className="input" maxLength={maxLength} required={required}
-        minLength={key === 'contact_number' && !isSchool ? 7 : key === 'name' ? 3 : key === 'city' ? 2 : undefined}
-        type={key === 'contact_email' || key === 'email' ? 'email' : 'text'}
+        minLength={key === 'contact_number' && !isSchool ? 11 : key === 'name' ? 3 : key === 'city' ? 2 : undefined}
+        type={key === 'contact_number' && !isSchool ? 'tel' : key === 'contact_email' || key === 'email' ? 'email' : 'text'}
+        {...(key === 'contact_number' && !isSchool ? { inputMode: 'numeric', pattern: MOBILE_NUMBER_PATTERN, title: MOBILE_NUMBER_MESSAGE, placeholder: '09170000000' } : {})}
+        onBlur={isSchool && key === 'name' ? () => setSchool((current) => ({ ...current, name: formatSchoolName(current.name) })) : undefined}
         value={(isSchool ? school : account)[key] ?? ''} disabled={busy}
         onChange={(event) => {
           (isSchool ? setSchool : setAccount)((current) => ({ ...current, [key]: event.target.value }));

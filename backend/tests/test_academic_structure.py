@@ -98,6 +98,31 @@ class AcademicStructureTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({row["name"] for row in rows}, {"Faith", "Hope"})
         self.assertTrue(all("section_code" not in row for row in rows))
 
+    async def test_grade_display_name_is_derived_for_create_and_update(self):
+        response = await self.client.post("/api/grade-levels/with-sections", json={
+            "level": " 2 ", "sections": [{"name": "Charity"}],
+        })
+        self.assertEqual(response.status_code, 201, response.text)
+        self.assertEqual(response.json()["name"], "Grade 2")
+        identity = response.json()["grade_level_id"]
+        response = await self.client.patch(f"/api/grade-levels/{identity}", json={"level": "3", "name": "Custom"})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["name"], "Grade 3")
+        response = await self.client.patch(f"/api/grade-levels/{identity}", json={"name": "Custom again"})
+        self.assertEqual(response.json()["name"], "Grade 3")
+        rows = await self._sections(identity)
+        self.assertEqual(rows[0]["grade_level_name"], "Grade 3")
+        async with self.sessions() as db:
+            self.assertEqual((await db.get(GradeLevel, identity)).name, "Grade 3")
+
+    async def test_legacy_grade_name_is_derived_in_grade_and_section_responses(self):
+        async with self.sessions() as db:
+            (await db.get(GradeLevel, 1)).name = "Custom legacy name"
+            await db.commit()
+        response = await self.client.get("/api/grade-levels")
+        self.assertEqual(next(row["name"] for row in response.json() if row["grade_level_id"] == 1), "Grade 7")
+        self.assertTrue(all(row["grade_level_name"] == "Grade 7" for row in await self._sections()))
+
     async def test_duplicate_section_names_roll_back_new_grade(self):
         response = await self.client.post("/api/grade-levels", json={
             "level": "9", "name": "Grade 9", "sections": [{"name": " Faith "}, {"name": "FAITH"}],

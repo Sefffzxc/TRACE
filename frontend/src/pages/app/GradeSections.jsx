@@ -73,7 +73,6 @@ function sectionRow(section = {}) {
 export function GradeSectionsModal({ record, data, busy, onSave, onClose }) {
   const [form, setForm] = useState(() => ({
     level: record?.level || '',
-    name: record?.name || '',
     sections: record
       ? data.sections.filter((section) => section.grade_level_id === record.grade_level_id).map(sectionRow)
       : [sectionRow()],
@@ -88,7 +87,7 @@ export function GradeSectionsModal({ record, data, busy, onSave, onClose }) {
   const submit = (event) => {
     event.preventDefault();
     onSave({
-      level: form.level.trim(), name: form.name.trim(),
+      level: form.level.trim(),
       sections: form.sections.map((section) => ({
         ...(section.section_id ? { section_id: section.section_id } : {}),
         name: section.name.trim(), capacity: Number(section.capacity),
@@ -115,12 +114,8 @@ export function GradeSectionsModal({ record, data, busy, onSave, onClose }) {
           <div className="grade-form-heading"><h3>Grade level</h3></div>
           <div className="form-grid">
             <div className="field">
-              <label className="field-label" htmlFor="grade-level">Level <span className="req">*</span></label>
+              <label className="field-label" htmlFor="grade-level">Grade level <span className="req">*</span></label>
               <input id="grade-level" className="input" placeholder="7" value={form.level} onChange={setGrade('level')} maxLength={10} required />
-            </div>
-            <div className="field">
-              <label className="field-label" htmlFor="grade-name">Display name <span className="req">*</span></label>
-              <input id="grade-name" className="input" placeholder="Grade 7" value={form.name} onChange={setGrade('name')} maxLength={30} required />
             </div>
           </div>
           <div className="grade-form-heading grade-form-sections-heading">

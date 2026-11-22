@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.schemas.schools import SchoolProfile
+from app.schemas.validation import MobileNumber
 
 
 class ResubmissionRequest(BaseModel):
@@ -27,7 +28,7 @@ class ResubmissionSubmit(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     middle_name: Optional[str] = Field(default=None, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
-    contact_number: str = Field(min_length=7, max_length=20)
+    contact_number: MobileNumber
     employee_no: Optional[str] = Field(default=None, max_length=30)
     department: Optional[str] = Field(default=None, max_length=100)
     school_id: Optional[int] = Field(default=None, gt=0)

@@ -67,6 +67,8 @@ from app.services.captcha import verify_captcha
 from app.services.login_captcha import login_risk
 from app.services.email_identity import canonical_email, lock_email_identity
 from app.services.registration_email import check_proof, consume_proof
+from app.services.contact_numbers import ensure_contact_available
+from app.schemas.validation import format_school_name
 
 router = APIRouter(tags=["Authentication"])
 
@@ -232,6 +234,8 @@ async def register(
     if await db.scalar(select(Staff.id).where(func.lower(Staff.email) == email).limit(1)) is not None:
         raise HTTPException(409, detail="An account with that email address already exists.")
 
+    await ensure_contact_available(db, payload.contact_number)
+
     staff = Staff(
         school_id=school.school_id,
         email=email,
@@ -271,7 +275,7 @@ async def register(
         ),
         "user_id": str(staff.id),
         "school_id": school.school_id,
-        "school_name": school.name,
+        "school_name": format_school_name(school.name),
         "account_status": staff.account_status,
         "is_approved": staff.is_approved,
     }

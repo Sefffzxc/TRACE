@@ -91,7 +91,7 @@ New student enrollment uses the current school year. Confirm it before teachers 
 
 1. Open **Grades & sections**.
 2. Select **Add grade & sections**.
-3. Enter the level and display name, for example `7` and `Grade 7`.
+3. Enter the grade level, for example `7`. Its display name is set to `Grade 7` automatically.
 4. In the **Sections** area below, enter a section name and capacity. Select **Add section** for additional rows, or remove an unused row.
 5. Select **Create grade & sections**. The grade and its sections save together.
 6. Repeat for every grade level the school will use.

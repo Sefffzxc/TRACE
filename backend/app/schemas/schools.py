@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from app.schemas.validation import MobileNumber, format_school_name, validate_school_name
 
 
 class ORMModel(BaseModel):
@@ -40,7 +41,12 @@ class SchoolProfile(BaseModel):
     grading_periods: int = Field(default=4, ge=1, le=6)
     grading_period_label: str = Field(default="Quarter", max_length=30)
 
-    @field_validator("name", "city", mode="before")
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, value):
+        return validate_school_name(value)
+
+    @field_validator("city", mode="before")
     @classmethod
     def _strip(cls, value: str) -> str:
         return value.strip() if isinstance(value, str) else value
@@ -63,7 +69,7 @@ class SchoolRegisterRequest(BaseModel):
     middle_name: Optional[str] = Field(default=None, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     email: EmailStr
-    contact_number: str = Field(min_length=7, max_length=20)
+    contact_number: MobileNumber
     password: str = Field(min_length=8, max_length=128)
     employee_no: Optional[str] = Field(default=None, max_length=30)
 
@@ -88,6 +94,11 @@ class SchoolUpdate(BaseModel):
     passing_mark: Optional[float] = Field(default=None, ge=1, le=100)
     grading_periods: Optional[int] = Field(default=None, ge=1, le=6)
     grading_period_label: Optional[str] = Field(default=None, max_length=30)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, value):
+        return validate_school_name(value)
 
     # Deliberately absent: school_type and status. The first is what the school
     # was registered as and changing it should go through the operator; the
@@ -120,6 +131,11 @@ class SchoolResponse(ORMModel):
     created_at: Optional[datetime] = None
     approved_at: Optional[datetime] = None
 
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        return format_school_name(value)
+
 
 class SchoolAdminView(SchoolResponse):
     """What the system operator sees in the approvals list.
@@ -146,6 +162,11 @@ class SchoolDirectoryEntry(BaseModel):
     name: str
     city: str = ""
     school_type: str = "private"
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        return format_school_name(value)
 
 
 class SchoolDecision(BaseModel):

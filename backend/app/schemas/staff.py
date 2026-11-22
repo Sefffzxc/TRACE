@@ -8,6 +8,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.core.security import validate_password_strength
+from app.schemas.validation import MobileNumber
 
 
 class ORMModel(BaseModel):
@@ -33,7 +34,7 @@ class StaffRegisterRequest(BaseModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     middle_name: Optional[str] = Field(default=None, max_length=100)
-    contact_number: str = Field(min_length=7, max_length=20)
+    contact_number: MobileNumber
     role: Literal["teacher"] = "teacher"
     employee_no: Optional[str] = Field(default=None, max_length=30)
     department: Optional[str] = Field(default=None, max_length=100)
@@ -74,7 +75,7 @@ class StaffUpdateProfile(BaseModel):
     first_name: Optional[str] = Field(default=None, max_length=100)
     middle_name: Optional[str] = Field(default=None, max_length=100)
     last_name: Optional[str] = Field(default=None, max_length=100)
-    contact_number: Optional[str] = Field(default=None, max_length=20)
+    contact_number: Optional[MobileNumber] = None
     department: Optional[str] = Field(default=None, max_length=100)
 
 

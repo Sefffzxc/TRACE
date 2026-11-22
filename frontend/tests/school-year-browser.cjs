@@ -37,7 +37,7 @@ const server = http.createServer((req, res) => {
 
 const years = [{ school_year_id: 1, year: '2026-2027' }, { school_year_id: 2, year: '2027-2028' }];
 const grade = { grade_level_id: 1, name: 'Grade 1' };
-const section = { section_id: 1, grade_level_id: 1, name: 'Lily', capacity: 40, enrolled_count: 1 };
+const section = { section_id: 1, grade_level_id: 1, grade_level_name: 'Grade 1', name: 'Lily', capacity: 40, enrolled_count: 1 };
 const subject = { subject_id: 1, grade_level_id: 1, subject_name: 'Mathematics', is_active: true };
 const learner = { student_id: 101, login_id: 'STUDENT-101', first_name: 'Alice', last_name: 'Learner', full_name: 'Alice Learner', section_id: 1, grade_level_id: 1, risk_level: 'low', profile_missing: [] };
 const setup = { template: 'core', ww_highest: [10, null, null, null, null], pt_highest: [10, null, null], exam_highest: [10, null, null], ww_weight: 20, pt_weight: 50, ex_weight: 30, exam_subweights: [30, 30, 40] };
@@ -130,6 +130,7 @@ async function run() {
       await page.goto(`${origin}/class-record`);
       const cell = page.getByLabel('Alice Learner written work 1', { exact: true });
       await cell.waitFor(); assert.equal(await cell.inputValue(), '8');
+      assert.equal(await page.getByLabel('Section', { exact: true }).locator('option:checked').innerText(), 'Grade 1 - Lily');
       await cell.fill('9');
       state.current = 2;
       await page.evaluate(() => window.dispatchEvent(new Event('focus')));

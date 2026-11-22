@@ -94,7 +94,7 @@ The school's address is picked from the PSA's official list (PSGC): province, th
 The Admin sets these up in **Class Management**, in this order:
 
 1. **School years.** Only the label is entered, e.g. `2026-2027`. It must be two consecutive years; spaces such as `2026 - 2027` are tidied automatically. The dates are derived from it (June 1 to May 31) and are used only to keep years in order. One year is marked *current*.
-2. **Grades & sections.** Enter the level (e.g. `7`) and display name (e.g. `Grade 7`) at the top of one modal, then section names and capacities below. A grade and its sections save together. Lists are ordered by the number in the level, so Grade 10 comes after Grade 7. A level with no number, such as Kinder, comes first. Existing section IDs and linked records are preserved when names change; sections in use cannot be removed.
+2. **Grades & sections.** Enter the level (e.g. `7`) at the top of one modal; the display name (e.g. `Grade 7`) is generated automatically. Enter section names and capacities below. A grade and its sections save together. Lists are ordered by the number in the level, so Grade 10 comes after Grade 7. A level with no number, such as Kinder, comes first. Existing section IDs and linked records are preserved when names change; sections in use cannot be removed.
 3. **Subjects.** Name and grade level; PACE schools also enter the number of booklets per year. Section and subject codes are no longer used. Names are unique within a school's grade. When a subject is edited, it can be marked **not in use**. That hides it from the class record and dashboards without deleting its grades.
 4. **Teacher assignments.** A teacher is assigned to a section, either for one subject or as the section's **adviser**.
 

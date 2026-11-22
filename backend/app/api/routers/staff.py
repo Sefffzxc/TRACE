@@ -56,6 +56,7 @@ from app.services.audit import Action, log_event
 from app.services.applications import ensure_legacy_rejection_event, record_application_event
 from app.services.email import EmailDeliveryError, send_account_decision_email
 from app.services.school_years import resolve_school_year_id
+from app.services.contact_numbers import ensure_contact_available
 
 router = APIRouter(tags=["Staff"])
 
@@ -86,6 +87,10 @@ async def update_me(
     current: Staff = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    current = await db.scalar(select(Staff).where(Staff.id == current.id)
+                              .with_for_update().execution_options(populate_existing=True))
+    if payload.contact_number is not None:
+        await ensure_contact_available(db, payload.contact_number, exclude_staff_id=current.id)
     for field, value in payload.model_dump(exclude_unset=True).items():
         if value is not None:
             setattr(current, field, value)

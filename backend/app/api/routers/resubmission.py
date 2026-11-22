@@ -24,6 +24,8 @@ from app.models.schools import SCHOOL_APPROVED, SCHOOL_PENDING, School
 from app.models.staff import OTPCode, ROLE_ADMIN, ROLE_TEACHER, STATUS_PENDING, STATUS_REJECTED, Staff, StaffDevice, StaffSession
 from app.schemas.applications import ResubmissionRequest, ResubmissionSubmit, ResubmissionVerify
 from app.schemas.schools import SchoolProfile
+from app.schemas.validation import format_school_name
+from app.services.contact_numbers import ensure_contact_available
 from app.services.applications import (
     application_eligible, application_state_digest, aware, can_change_application_school,
     correction_token_digest, ensure_legacy_rejection_event, now_utc,
@@ -82,7 +84,7 @@ async def _application_view(db, person, school):
         "last_name": person.last_name, "contact_number": person.contact_number,
         "employee_no": person.employee_no, "department": person.department,
         "rejection_reason": person.rejection_reason,
-        "school_id": person.school_id, "school_name": school.name if school else None,
+        "school_id": person.school_id, "school_name": format_school_name(school.name) if school else None,
         # Legacy rows can contain incomplete details. Let the verified owner
         # open the form and correct them; validate new details on submission.
         "school": {field: getattr(school, field) for field in SchoolProfile.model_fields}
@@ -191,6 +193,7 @@ async def submit_correction(
     ):
         raise _invalid_token()
 
+    await ensure_contact_available(db, payload.contact_number, exclude_staff_id=person.id)
     destination = school
     changing_school = payload.school_id is not None and payload.school_id != person.school_id
     if person.role == ROLE_TEACHER:

@@ -456,7 +456,7 @@ class ResubmissionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self._submit(token)).status_code, 200)
 
     async def test_prior_approval_history_or_database_records_prevent_school_change(self):
-        for marker in ("approved_at", "last_login_at", "approval_history", "legacy_approved_from", "device", "assignment", "advisory"):
+        for marker_index, marker in enumerate(("approved_at", "last_login_at", "approval_history", "legacy_approved_from", "device", "assignment", "advisory")):
             with self.subTest(marker=marker):
                 async with self.sessions() as db:
                     source = self.people["Teacher"]
@@ -492,9 +492,18 @@ class ResubmissionTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(application["can_change_school"])
                 response = await self._submit(token, school_id=2, confirm_school_change=True)
                 self.assertEqual(response.status_code, 409, response.text)
-                response = await self._submit(token, employee_no=f"EMP-{marker}")
+                response = await self._submit(token, employee_no=f"EMP-{marker}", contact_number=f"0998765432{marker_index}")
                 self.assertEqual(response.status_code, 200, response.text)
                 self.people["Teacher"] = source
+
+    async def test_duplicate_or_invalid_contact_does_not_consume_correction_token(self):
+        token, _ = await self._proof()
+        response = await self._submit(token, contact_number="09123456789")
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertIn("contact number", response.json()["detail"])
+        response = await self._submit(token, contact_number="abcdefg")
+        self.assertEqual(response.status_code, 422, response.text)
+        self.assertEqual((await self._submit(token)).status_code, 200)
 
     async def test_duplicate_employee_number_does_not_consume_correction_token(self):
         async with self.sessions() as db:
@@ -522,7 +531,7 @@ class ResubmissionTests(unittest.IsolatedAsyncioTestCase):
         async def submit_without_metadata(token, **extra):
             return await self.client.post("/api/auth/resubmission/submit", json={
                 "token": token, "first_name": "Corrected", "last_name": "Applicant",
-                "contact_number": "09987654321", **extra,
+                "contact_number": f"0998765432{len(self.sent)}", **extra,
             })
 
         token, _ = await self._proof()
