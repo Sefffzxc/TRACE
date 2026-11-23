@@ -427,7 +427,7 @@ function SetupTable({ tab, data, assignmentRows, onEdit, onDelete, onReview }) {
     if (!data.advisers.length) return <EmptyState icon={UserCheck} title="No section advisers yet" description="Choose an adviser to give them viewing access to all subjects in their section." />;
     return wrap(['Section', 'Adviser', 'Access', 'Actions'], data.advisers.map((row) => (
       <tr key={row.section_id}>
-        <td className="cell-strong">{row.section_name}{row.grade_level_name ? ` — ${row.grade_level_name}` : ''}</td>
+        <td className="cell-strong">{row.grade_level_name ? `${row.grade_level_name} - ` : ''}{row.section_name}</td>
         <td>{formatPersonName(row.teacher_name)}</td>
         <td><span className="badge badge-neutral">View all subjects</span></td>
         {actions(row)}
@@ -570,7 +570,7 @@ function SetupModal({ tab, record, data, busy, onSave, onClose }) {
                 {data.sections.map((section) => {
                   const current = data.advisers.find((item) => String(item.section_id) === String(section.section_id));
                   return <option key={section.section_id} value={section.section_id} disabled={Boolean(current) && !record}>
-                    {section.name}{section.grade_level_name ? ` — ${section.grade_level_name}` : ''}{current ? ` — ${formatPersonName(current.teacher_name)}` : ''}
+                    {section.grade_level_name ? `${section.grade_level_name} - ` : ''}{section.name}{current ? ` — ${formatPersonName(current.teacher_name)}` : ''}
                   </option>;
                 })}
               </select>

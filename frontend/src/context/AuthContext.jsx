@@ -80,20 +80,24 @@ export function AuthProvider({ children }) {
      point — they manage schools and accounts and never see a student record,
      so there is nothing here for them to load. */
   const [school, setSchool] = useState(null);
+  const [schoolReady, setSchoolReady] = useState(false);
   const isSuperAdmin = user?.role === 'super_admin';
 
   const loadSchool = useCallback(async () => {
     const fresh = await schoolApi.mine();
     setSchool(fresh);
+    setSchoolReady(true);
     return fresh;
   }, []);
 
   useEffect(() => {
     if (!user || isSuperAdmin) {
       setSchool(null);
+      setSchoolReady(true);
       return;
     }
     let cancelled = false;
+    setSchoolReady(false);
     schoolApi
       .mine()
       .then((result) => {
@@ -103,7 +107,8 @@ export function AuthProvider({ children }) {
         /* The shell still works without it; screens fall back to neutral
            wording rather than blocking on a settings lookup. */
         if (!cancelled) setSchool(null);
-      });
+      })
+      .finally(() => { if (!cancelled) setSchoolReady(true); });
     return () => {
       cancelled = true;
     };
@@ -118,6 +123,7 @@ export function AuthProvider({ children }) {
       isTeacher: user?.role === 'teacher',
 
       school,
+      schoolReady,
       loadSchool,
       /* Does this school track lesson units at all? Drives whether the PACE
          screens appear. Defaults to false, so a school whose settings have not
@@ -138,7 +144,7 @@ export function AuthProvider({ children }) {
       signOut,
       refreshProfile,
     }),
-    [user, booting, isSuperAdmin, school, loadSchool, signIn, signOut, refreshProfile],
+    [user, booting, isSuperAdmin, school, schoolReady, loadSchool, signIn, signOut, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

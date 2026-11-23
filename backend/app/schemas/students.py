@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Literal, Optional
 
 from pydantic import (BaseModel, ConfigDict, EmailStr, Field, field_validator,
@@ -12,6 +12,20 @@ from pydantic import (BaseModel, ConfigDict, EmailStr, Field, field_validator,
 
 class ORMModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
+
+def student_today() -> date:
+    """Use the school's Philippine date even when the API server runs in UTC."""
+    return datetime.now(timezone(timedelta(hours=8))).date()
+
+
+def validate_birth_date(value: Optional[date]) -> Optional[date]:
+    if value is not None:
+        if value < date(1900, 1, 1):
+            raise ValueError("Date of birth must be on or after January 1, 1900.")
+        if value > student_today():
+            raise ValueError("Date of birth cannot be in the future.")
+    return value
 
 
 # ── Student ───────────────────────────────────────────────────────────────────
@@ -38,6 +52,11 @@ class StudentCreate(StudentBase):
     section_id: Optional[int] = None
     school_year_id: Optional[int] = None
 
+    @field_validator("birth_date")
+    @classmethod
+    def _birth_date(cls, value: Optional[date]) -> Optional[date]:
+        return validate_birth_date(value)
+
 
 class StudentUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -54,6 +73,11 @@ class StudentUpdate(BaseModel):
     guardian_relationship: Optional[str] = None
     guardian_email: Optional[EmailStr] = None
     is_active: Optional[bool] = None
+
+    @field_validator("birth_date")
+    @classmethod
+    def _birth_date(cls, value: Optional[date]) -> Optional[date]:
+        return validate_birth_date(value)
 
 
 class StudentResponse(ORMModel, StudentBase):

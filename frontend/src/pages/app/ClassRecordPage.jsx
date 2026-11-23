@@ -29,6 +29,7 @@ import {
 } from '../../lib/grading';
 import { assignedSections, sectionLabel } from '../../lib/classAccess';
 import { formatPersonName } from '../../lib/personName';
+import { classRecordSelectionKey, readClassRecordSelection, saveClassRecordSelection, subjectsForSection } from '../../lib/classRecordSelection';
 
 /**
  * The MATATAG three-term E-Class Record.
@@ -74,7 +75,12 @@ export default function ClassRecordPage() {
   // How many periods a year has and what one is called come from the
   // school's settings, so this sheet says "Quarter" or "Term" as the school
   // does.
-  const { gradingPeriodCount, periodLabel } = useAuth();
+  const { user, schoolReady, gradingPeriodCount, periodLabel } = useAuth();
+  const selectionKey = classRecordSelectionKey(user, yearId);
+  const [initializedSelection, setInitializedSelection] = useState(null);
+  const initializedKey = useRef(null);
+  const periodCount = useRef(gradingPeriodCount);
+  periodCount.current = gradingPeriodCount;
   const periods = gradingPeriods(gradingPeriodCount);
   const [search, setSearch] = useState('');
   const [importing, setImporting] = useState(false);
@@ -93,6 +99,13 @@ export default function ClassRecordPage() {
   const [myClasses, setMyClasses] = useState({ unrestricted: false, grade: {}, advisory: [] });
 
   useEffect(() => {
+    // Period settings must be known before validating the saved selection.
+    if (!schoolReady || initializedKey.current === selectionKey) return undefined;
+    let cancelled = false;
+    initializedKey.current = null;
+    setLoading(true);
+    setInitializedSelection(null);
+    setError('');
     (async () => {
       try {
         const [sectionRows, subjectRows, mine] = await Promise.all([
@@ -100,18 +113,30 @@ export default function ClassRecordPage() {
           subjectApi.list({ is_active: true }),
           assignmentApi.mine(),
         ]);
+        if (cancelled) return;
         const own = assignedSections(sectionRows, mine);
-        setMyClasses(mine || { unrestricted: false, grade: {}, advisory: [] });
+        const access = mine || { unrestricted: false, grade: {}, advisory: [] };
+        const saved = readClassRecordSelection(selectionKey);
+        const nextSection = own.find((row) => String(row.section_id) === String(saved.sectionId)) || own[0];
+        const options = subjectsForSection(nextSection, subjectRows || [], access);
+        const nextSubject = options.find((row) => String(row.subject_id) === String(saved.subjectId)) || options[0];
+        const savedPeriod = Number(saved.term);
+        setMyClasses(access);
         setSections(own);
         setSubjects(subjectRows || []);
-        if (own.length) setSectionId(String(own[0].section_id));
+        setSectionId(nextSection ? String(nextSection.section_id) : '');
+        setSubjectId(nextSubject ? String(nextSubject.subject_id) : '');
+        setTerm(Number.isInteger(savedPeriod) && savedPeriod >= 1 && savedPeriod <= periodCount.current ? savedPeriod : 1);
+        initializedKey.current = selectionKey;
+        setInitializedSelection(selectionKey);
       } catch (err) {
-        setError(err.message);
+        if (!cancelled) setError(err.message);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, []);
+    return () => { cancelled = true; };
+  }, [schoolReady, selectionKey]);
 
   // Wake the model while the teacher is still choosing a section, so the
   // first save is scored by the model rather than by the fallback rule.
@@ -135,13 +160,14 @@ export default function ClassRecordPage() {
     [sections, sectionId],
   );
 
-  const subjectOptions = useMemo(() => {
-    if (!section) return [];
-    const forLevel = subjects.filter((s) => s.grade_level_id === section.grade_level_id);
-    if (myClasses.unrestricted || myClasses.advisory?.some((id) => String(id) === String(section.section_id))) return forLevel;
-    const taught = myClasses.grade?.[String(section.section_id)] || [];
-    return taught.includes('*') ? forLevel : forLevel.filter((s) => taught.includes(s.subject_name));
-  }, [subjects, section, myClasses]);
+  const subjectOptions = useMemo(() => subjectsForSection(section, subjects, myClasses), [subjects, section, myClasses]);
+
+  useEffect(() => {
+    if (loading || initializedSelection !== selectionKey
+      || !section || !subjectOptions.some((row) => String(row.subject_id) === subjectId)
+      || term < 1 || term > gradingPeriodCount) return;
+    saveClassRecordSelection(selectionKey, { sectionId, subjectId, term });
+  }, [gradingPeriodCount, initializedSelection, loading, section, sectionId, selectionKey, subjectId, subjectOptions, term]);
 
   useEffect(() => {
     if (!subjectOptions.length) {

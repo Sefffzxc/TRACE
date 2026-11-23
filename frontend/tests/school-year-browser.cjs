@@ -46,7 +46,8 @@ async function fixture(browser, origin, role) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const profile = { id: 'teacher-1', role, first_name: 'Test', last_name: role, school_id: 1 };
   await context.addInitScript((user) => { localStorage.setItem('trace.user', JSON.stringify(user)); localStorage.setItem('trace.access_token', 'synthetic-token'); }, profile);
-  const state = { current: 1, assigned: new Set([1]), enrolled: new Set([1]), requests: [], errors: [] };
+  const state = { current: 1, assigned: new Set([1]), enrolled: new Set([1]), requests: [], errors: [],
+    profile, sections: [section], subjects: [subject], gradingPeriods: 3, schoolDelay: 0 };
   await context.route('**/api/**', async (route) => {
     const request = route.request(), url = new URL(request.url()), pathname = url.pathname;
     const headers = { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-School-Year-Id', 'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS' };
@@ -55,7 +56,10 @@ async function fixture(browser, origin, role) {
     const receivedYear = Number(request.headers()['x-school-year-id']);
     let body = null, status = 200;
     if (pathname === '/api/auth/me') body = profile;
-    else if (pathname === '/api/schools/me') body = { school_id: 1, name: 'Synthetic School', tracks_units: false, grading_periods: 3, grading_period_label: 'Term' };
+    else if (pathname === '/api/schools/me') {
+      if (state.schoolDelay) await new Promise((resolve) => setTimeout(resolve, state.schoolDelay));
+      body = { school_id: 1, name: 'Synthetic School', tracks_units: false, grading_periods: state.gradingPeriods, grading_period_label: 'Term' };
+    }
     else if (pathname === '/api/school-years/current') body = { ...years.find((row) => row.school_year_id === state.current), is_current: true };
     else if (pathname === '/api/school-years') body = years.map((row) => ({ ...row, is_current: row.school_year_id === state.current }));
     else if (pathname.startsWith('/api/school-years/') && request.method() === 'PATCH') {
@@ -65,11 +69,13 @@ async function fixture(browser, origin, role) {
     } else if (pathname === '/api/staff/pending') body = [];
     else if (pathname === '/api/staff') body = [{ ...profile, role: 'teacher', account_status: 'approved', is_active: true }];
     else if (pathname === '/api/grade-levels') body = [grade];
-    else if (pathname === '/api/sections') body = [{ ...section, enrolled_count: state.enrolled.has(state.current) ? 1 : 0 }];
-    else if (pathname === '/api/subjects') body = [subject];
+    else if (pathname === '/api/sections') body = state.sections.map((row) => ({ ...row, enrolled_count: state.enrolled.has(state.current) ? 1 : 0 }));
+    else if (pathname === '/api/subjects') body = state.subjects;
     else if (pathname === '/api/teacher-assignments') body = state.assigned.has(state.current) ? [{ assignment_id: 1, teacher_id: profile.id, section_id: 1, subject_id: 1, teacher_name: 'Test teacher', subject_name: 'Mathematics', section_name: 'Lily', school_year_id: state.current }] : [];
-    else if (pathname === '/api/section-advisers') body = state.assigned.has(state.current) ? [{ adviser_id: 1, section_id: 1, teacher_id: profile.id, teacher_name: 'Test teacher', section_name: 'Lily', school_year_id: state.current }] : [];
-    else if (pathname === '/api/my-classes') body = { school_year_id: state.current, grade: state.assigned.has(state.current) ? { '1': ['Mathematics'] } : {}, advisory: state.assigned.has(state.current) ? [1] : [], unrestricted: false };
+    else if (pathname === '/api/section-advisers') body = state.assigned.has(state.current) ? [{ adviser_id: 1, section_id: 1, grade_level_name: 'Grade 1', teacher_id: profile.id, teacher_name: 'Test teacher', section_name: 'Lily', school_year_id: state.current }] : [];
+    else if (pathname === '/api/my-classes') body = { school_year_id: state.current,
+      grade: state.assigned.has(state.current) ? Object.fromEntries(state.sections.map((row) => [row.section_id, state.subjects.map((item) => item.subject_name)])) : {},
+      advisory: state.assigned.has(state.current) ? state.sections.map((row) => row.section_id) : [], unrestricted: false };
     else if (pathname === '/api/early-warnings') body = [];
     else if (pathname === '/api/ai/status') body = { reachable: false, model_loaded: false };
     else if (pathname === '/api/class-record/setup') body = setup;
@@ -78,6 +84,7 @@ async function fixture(browser, origin, role) {
     else if (pathname === '/api/paces/bulk') body = { saved: 0, skipped: [] };
     else if (pathname === '/api/paces') body = state.current === 1 ? [{ enrollment_id: 201, student_id: 101, subject: 'Mathematics', grading_period: 1, ww_scores: [8], pt_scores: [7], exam_scores: [6] }] : [];
     else if (pathname === '/api/students/returning') body = state.enrolled.has(state.current) ? [] : [learner];
+    else if (pathname === '/api/students' && request.method() === 'POST') body = { student_id: 102, ...request.postDataJSON() };
     else if (pathname === '/api/students') body = state.enrolled.has(state.current) ? [learner] : [];
     else if (pathname === '/api/class-record/import') body = { counts: { matched: 1, new: 0, enrol: 0, elsewhere: 0 }, learners: [{ name: 'Alice Learner', gender: 'Female', status: 'matched' }], warnings: [], terms: [{ term: 1, learners: 1, graded: 1, written_works: 5, performance_tasks: 3, exams: 3 }] };
     else throw new Error(`Unexpected synthetic API call: ${request.method()} ${pathname}`);
@@ -122,7 +129,89 @@ async function run() {
       assert.equal(await page.locator('.setup-nav button').filter({ hasText: 'Subjects' }).locator('.count').innerText(), '1');
       await activate('2026-2027');
       assert.equal(await page.locator('.setup-nav button').filter({ hasText: 'Subject teachers' }).locator('.count').innerText(), '1');
+      await page.locator('.setup-nav button').filter({ hasText: 'Section advisers' }).click();
+      await page.getByRole('cell', { name: 'Grade 1 - Lily', exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Add section adviser', exact: true }).click();
+      assert.match(await page.locator('#adviser_section option[value="1"]').innerText(), /^Grade 1 - Lily/);
+      await page.getByRole('button', { name: 'Cancel', exact: true }).click();
       assert.deepEqual(state.errors, []); passed.push('Principal switches year immediately; annual assignments empty, master setup persists, old assignments restore.');
+      await context.close();
+    }
+    {
+      const { page, context, state } = await fixture(browser, origin, 'teacher');
+      state.sections.push({ ...section, section_id: 2, name: 'Rose' });
+      state.subjects.push({ ...subject, subject_id: 2, subject_name: 'English' });
+      const key = 'trace.class-record.v1:teacher-1:1:1';
+      const expectSelection = async (sectionId, subjectId, period) => {
+        await page.waitForFunction(([expectedSection, expectedSubject, expectedPeriod]) =>
+          document.querySelector('select[aria-label="Section"]')?.value === expectedSection
+          && document.querySelector('select[aria-label="Subject"]')?.value === expectedSubject
+          && document.querySelector('select[aria-label="Term"]')?.value === expectedPeriod,
+        [String(sectionId), String(subjectId), String(period)]);
+        if (state.enrolled.has(state.current)) await page.getByLabel('Alice Learner written work 1', { exact: true }).waitFor();
+        else await page.getByText('No learners here yet', { exact: true }).waitFor();
+      };
+      await page.goto(`${origin}/class-record`);
+      await expectSelection(1, 1, 1);
+      await page.getByLabel('Section', { exact: true }).selectOption('2');
+      await page.getByLabel('Subject', { exact: true }).selectOption('2');
+      await page.getByLabel('Term', { exact: true }).selectOption('3');
+      await expectSelection(2, 2, 3);
+      await page.locator('a[href="/students"]').first().click();
+      await page.getByRole('heading', { name: 'Students', exact: true }).waitFor();
+      await page.locator('a[href="/class-record"]').first().click();
+      await expectSelection(2, 2, 3);
+      await page.reload();
+      await expectSelection(2, 2, 3);
+      state.current = 2; state.assigned.add(2);
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await page.locator('.header').getByText('S.Y. 2027-2028').waitFor();
+      await expectSelection(1, 1, 1);
+      state.current = 1;
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await page.locator('.header').getByText('S.Y. 2026-2027').waitFor();
+      await expectSelection(2, 2, 3);
+      state.sections = [section]; state.subjects = [subject];
+      await page.reload();
+      await expectSelection(1, 1, 3);
+      await page.evaluate((storageKey) => localStorage.setItem(storageKey, '{invalid-json'), key);
+      await page.reload();
+      await expectSelection(1, 1, 1);
+      // Settings may resolve after the year: the fourth period must survive.
+      state.gradingPeriods = 4; state.schoolDelay = 250;
+      await page.evaluate((storageKey) => localStorage.setItem(storageKey,
+        JSON.stringify({ sectionId: '1', subjectId: '1', term: 4 })), key);
+      await page.reload();
+      await expectSelection(1, 1, 4);
+      state.profile.id = 'teacher-2';
+      await page.reload();
+      await expectSelection(1, 1, 1);
+      assert.deepEqual(state.errors, []);
+      passed.push('Class Record restores section, subject and period after navigation/reload; isolates teachers and years; safely handles removed choices, corrupt storage and late settings.');
+      await context.close();
+    }
+    {
+      const { page, context, state } = await fixture(browser, origin, 'teacher');
+      await page.goto(`${origin}/students`);
+      await page.getByRole('button', { name: 'Add student', exact: true }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByLabel('First name', { exact: false }).first().fill('Test');
+      await dialog.locator('#s_last').fill('Learner');
+      const birth = dialog.getByLabel('Date of birth', { exact: true });
+      await birth.fill('2028-01-01');
+      await dialog.getByRole('button', { name: 'Add student', exact: true }).click();
+      await dialog.getByText('Date of birth cannot be in the future.', { exact: true }).waitFor();
+      await birth.fill('1800-01-01');
+      await dialog.getByRole('button', { name: 'Add student', exact: true }).click();
+      await dialog.getByText('Date of birth must be on or after January 1, 1900.', { exact: true }).waitFor();
+      assert.equal(state.requests.filter((request) => request.pathname === '/api/students' && request.method === 'POST').length, 0);
+      await birth.fill('2016-02-29');
+      await dialog.getByRole('button', { name: 'Add student', exact: true }).click();
+      await dialog.waitFor({ state: 'detached' });
+      const created = state.requests.find((request) => request.pathname === '/api/students' && request.method === 'POST');
+      assert.equal(JSON.parse(created.body).birth_date, '2016-02-29');
+      assert.deepEqual(state.errors, []);
+      passed.push('Manual enrollment blocks future/implausible birth dates before sending a request and accepts a valid leap-day birth date.');
       await context.close();
     }
     {

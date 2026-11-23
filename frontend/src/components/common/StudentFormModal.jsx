@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSchoolYear } from '../../context/SchoolYearContext';
 import { rosterGrades, rosterSections } from '../../lib/rosterAccess';
 import { formatPersonName } from '../../lib/personName';
+import { birthDateError, MIN_STUDENT_BIRTH_DATE, studentToday } from '../../lib/studentBirthDate';
 
 const BLANK = {
   first_name: '',
@@ -125,6 +126,12 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
       setError("The student's first and last name are required.");
       return;
     }
+    const birthError = event.currentTarget.querySelector('#s_birth').validity.badInput
+      ? 'Enter a valid date of birth.' : birthDateError(form.birth_date);
+    if (birthError) {
+      setError(birthError);
+      return;
+    }
     if (!isEdit && (!form.grade_level_id || !form.section_id)) {
       setError('Choose a grade level and section so the student can be enrolled.');
       return;
@@ -233,6 +240,8 @@ export default function StudentFormModal({ student, gradeLevels, sections, onClo
               id="s_birth"
               className="input"
               type="date"
+              min={MIN_STUDENT_BIRTH_DATE}
+              max={studentToday()}
               value={form.birth_date}
               onChange={set('birth_date')}
             />

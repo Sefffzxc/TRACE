@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 from uuid import uuid4
 
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
@@ -158,6 +159,42 @@ class StudentCreationAccessTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(student.created_by, self.actor)
             enrollment = await db.get(StudentEnrollment, row["enrollment_id"])
             self.assertEqual(enrollment.enrolled_by, self.actor)
+
+    async def test_invalid_birth_dates_are_rejected_before_enrollment(self):
+        with patch("app.schemas.students.student_today", return_value=date(2026, 11, 23)):
+            for value in ("2028-01-01", "2026-11-24", "1899-12-31", "0001-01-01", "2026-02-30", "not-a-date"):
+                with self.subTest(birth_date=value):
+                    response = await self._reject_without_writes(
+                        "/api/students", self._student_payload(birth_date=value), 422,
+                    )
+                    self.assertEqual(response.json()["detail"][0]["loc"], ["body", "birth_date"])
+
+    async def test_valid_birth_dates_and_unknown_birth_date_remain_supported(self):
+        with patch("app.schemas.students.student_today", return_value=date(2026, 11, 23)):
+            for value in ("1900-01-01", "2015-02-28", "2016-02-29", "2026-11-23", None):
+                with self.subTest(birth_date=value):
+                    response = await self.client.post("/api/students", json=self._student_payload(birth_date=value))
+                    self.assertEqual(response.status_code, 201, response.text)
+                    self.assertEqual(response.json()["birth_date"], value)
+
+    async def test_student_update_validates_birth_date_without_changing_existing_details(self):
+        response = await self.client.post("/api/students", json=self._student_payload(birth_date="2015-01-01"))
+        self.assertEqual(response.status_code, 201, response.text)
+        identity = response.json()["student_id"]
+        with patch("app.schemas.students.student_today", return_value=date(2026, 11, 23)):
+            for value in ("2028-01-01", "1899-12-31", "2026-02-30"):
+                response = await self.client.patch(f"/api/students/{identity}", json={"birth_date": value, "first_name": "Changed"})
+                self.assertEqual(response.status_code, 422, response.text)
+                async with self.sessions() as db:
+                    row = await db.get(Student, identity)
+                    self.assertEqual(row.birth_date, date(2015, 1, 1))
+                    self.assertEqual(row.first_name, "Ada")
+            response = await self.client.patch(f"/api/students/{identity}", json={"birth_date": "2016-02-29"})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()["birth_date"], "2016-02-29")
+            response = await self.client.patch(f"/api/students/{identity}", json={"birth_date": None})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertIsNone(response.json()["birth_date"])
 
     async def test_adviser_without_subject_assignment_can_create_roster_only(self):
         self.actor = self.people["Adviser"]
