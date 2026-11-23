@@ -5,7 +5,6 @@ import {
   ArrowUp,
   ChevronsUpDown,
   Download,
-  Upload,
   Pencil,
   Search,
   Trash2,
@@ -24,7 +23,6 @@ import {
   TableSkeleton,
 } from '../../components/common/ui';
 import StudentFormModal from '../../components/common/StudentFormModal';
-import ImportStudentsModal from '../../components/common/ImportStudentsModal';
 import EnrollReturningStudentModal from '../../components/common/EnrollReturningStudentModal';
 import { assignmentApi, gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
@@ -92,7 +90,6 @@ export default function StudentsPage() {
   const [page, setPage] = useState(1);
 
   const [editing, setEditing] = useState(null);
-  const [importing, setImporting] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -320,9 +317,6 @@ export default function StudentsPage() {
               <button type="button" className="btn btn-secondary" onClick={() => setEnrolling(true)} disabled={!canAdd}>
                 <UserCheck size={16} /> Enroll returning student
               </button>
-              <button type="button" className="btn btn-secondary" onClick={() => setImporting(true)} disabled={!canAdd}>
-                <Upload size={16} /> Import students
-              </button>
               <button type="button" className="btn btn-primary" onClick={() => setEditing({})} disabled={!canAdd}>
                 <UserPlus size={16} /> Add student
               </button>
@@ -334,7 +328,7 @@ export default function StudentsPage() {
       <ErrorNote message={error} />
       {error && <button type="button" className="btn btn-secondary" onClick={load}>Retry loading students</button>}
       {isTeacher && !loading && !error && !visibleSections.length && (
-        <p className="alert alert-info">You need a teaching or adviser assignment for {year?.year || 'the current school year'} before adding or importing students. Ask your principal to assign your section.</p>
+        <p className="alert alert-info">You need a teaching or adviser assignment for {year?.year || 'the current school year'} before adding or enrolling students. Ask your principal to assign your section.</p>
       )}
 
       <div className="toolbar">
@@ -410,7 +404,7 @@ export default function StudentsPage() {
             <EmptyState
               icon={Users}
               title={students.length ? 'No students match these filters' : 'No students enrolled this school year'}
-              description={students.length ? 'Try a different search or section.' : `There are no students in your assigned sections for ${year?.year || 'the current school year'} yet. Add students, enroll returning students, or import a class roster.`}
+              description={students.length ? 'Try a different search or section.' : `There are no students in your assigned sections for ${year?.year || 'the current school year'} yet. Add students or enroll returning students.`}
               action={
                 students.length > 0 &&
                 <button
@@ -711,19 +705,6 @@ export default function StudentsPage() {
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
-            load();
-          }}
-        />
-      )}
-
-      {importing && (
-        <ImportStudentsModal
-          gradeLevels={gradeLevels}
-          sections={sections}
-          onClose={() => setImporting(false)}
-          onDone={(saved) => {
-            setImporting(false);
-            toast.success(`Students imported: ${saved?.added || 0} added, ${saved?.enrolled || 0} enrolled.`);
             load();
           }}
         />
