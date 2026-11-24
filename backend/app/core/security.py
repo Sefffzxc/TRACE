@@ -1,6 +1,8 @@
 """Password hashing, JWT issuing/decoding, OTP generation, password policy."""
 from __future__ import annotations
 
+import hashlib
+import hmac
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -65,6 +67,12 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
 
 
 # ── Tokens ────────────────────────────────────────────────────────────────────
+def required_password_proof(staff_id: object, password_hash: str) -> str:
+    """Bind a temporary-password sign-in to the password it verified."""
+    message = f"required-password:{staff_id}:{password_hash}".encode("utf-8")
+    return hmac.new(settings.SECRET_KEY.encode("utf-8"), message, hashlib.sha256).hexdigest()
+
+
 def _create_token(data: dict[str, Any], expires_delta: timedelta, token_type: str) -> str:
     payload = data.copy()
     now = datetime.now(timezone.utc)

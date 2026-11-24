@@ -26,7 +26,7 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, school_scope
@@ -51,7 +51,9 @@ from app.schemas.students import BulkPaceEntry, BulkPaceRequest
 from app.services import eclass_import, grading
 from app.services.access import class_access
 from app.services.audit import Action, log_event
-from app.services.roster_access import lock_roster_section, require_roster_section
+from app.services.roster_access import (
+    lock_roster_section, require_roster_capacity, require_roster_section,
+)
 from app.services.school_years import resolve_school_year_id
 
 router = APIRouter(tags=["Class record import"])
@@ -163,6 +165,14 @@ async def import_class_record(
                 raise HTTPException(status_code=400,
                                     detail="That subject is not taught in this section's grade level.")
             (await class_access(db, current, scope)).require_grade(section_id, subject.subject_name)
+        # A concurrent transfer may hold the enrollment row while leaving
+        # this section. Wait before matching so reactivation cannot use its
+        # stale destination. Keep the same section -> enrollment lock order.
+        (await db.scalars(select(StudentEnrollment).where(
+            StudentEnrollment.school_id == scope,
+            StudentEnrollment.school_year_id == year.school_year_id,
+            StudentEnrollment.section_id == section_id,
+        ).with_for_update().execution_options(populate_existing=True))).all()
 
     # ── Who is who.
     enrolled = (
@@ -173,7 +183,7 @@ async def import_class_record(
                 .where(StudentEnrollment.school_year_id == year.school_year_id),
                 StudentEnrollment,
                 scope,
-            ).where(Student.school_id == scope)
+            ).where(Student.school_id == scope).execution_options(populate_existing=True)
         )
     ).all()
     in_section = {}
@@ -226,20 +236,16 @@ async def import_class_record(
         "Principals cannot add or enroll students. An assigned teacher or "
         "section adviser must add these learners before scores can be imported."
     )
+    capacity_error = None
     if joining:
-        taken = (
-            await db.execute(
-                select(func.count()).select_from(StudentEnrollment).where(
-                    StudentEnrollment.school_id == scope,
-                    StudentEnrollment.section_id == section_id,
-                    StudentEnrollment.school_year_id == year.school_year_id,
-                    StudentEnrollment.is_active.is_(True),
-                )
-            )
-        ).scalar_one()
-        if taken + joining > section.capacity:
-            notes.append(f"{section.name} will have {taken + joining} learners, above its "
-                         f"capacity of {section.capacity}.")
+        try:
+            await require_roster_capacity(db, section, year.school_year_id, joining=joining)
+        except HTTPException as exc:
+            capacity_error = exc.detail
+            notes.append(capacity_error)
+            if can_import:
+                can_import = False
+                blocking_reason = capacity_error
 
     def term_summary(term):
         complete = 0
@@ -292,8 +298,10 @@ async def import_class_record(
         preview["warnings"].append("The file has names but no scores yet.")
     if not save:
         return preview
-    if not can_import:
+    if joining and not can_add_students:
         raise HTTPException(status_code=403, detail=blocking_reason)
+    if capacity_error:
+        raise HTTPException(status_code=409, detail=capacity_error)
 
     # ── Save. Learners first, so every row below has an enrolment.
     enrolment_of: dict[int, tuple[int, int]] = {}   # learner index -> (student, enrolment)

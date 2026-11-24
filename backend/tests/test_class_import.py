@@ -417,6 +417,101 @@ class ClassImportTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 await self.engine.dispose()
 
+    async def test_over_capacity_import_is_blocked_in_preview_and_before_any_writes(self):
+        async with self.sessions() as db:
+            (await db.get(Section, 1)).capacity = 2
+            await db.commit()
+        book, _ = make_record()
+        content = workbook_bytes(book)
+        preview = await self._import(content, roster_only=True, subject_id=None)
+        self.assertFalse(preview["can_import"])
+        self.assertIn("available seats", preview["blocking_reason"])
+        self.assertEqual(await self._counts(), (0,) * len(IMPORTED_MODELS))
+        with self.assertRaises(HTTPException) as caught:
+            await self._import(content, save=True, roster_only=True, subject_id=None)
+        self.assertEqual(caught.exception.status_code, 409)
+        self.assertEqual(await self._counts(), (0,) * len(IMPORTED_MODELS))
+
+    async def test_import_rechecks_capacity_when_saving_after_a_successful_preview(self):
+        book, _ = make_record()
+        content = workbook_bytes(book)
+        preview = await self._import(content, roster_only=True, subject_id=None)
+        self.assertTrue(preview["can_import"])
+        async with self.sessions() as db:
+            (await db.get(Section, 1)).capacity = 2
+            await db.commit()
+        with self.assertRaises(HTTPException) as caught:
+            await self._import(content, save=True, roster_only=True, subject_id=None)
+        self.assertEqual(caught.exception.status_code, 409)
+        self.assertEqual(await self._counts(), (0,) * len(IMPORTED_MODELS))
+
+    async def test_full_section_import_reuses_seats_and_reactivation_needs_a_free_seat(self):
+        async with self.sessions() as db:
+            (await db.get(Section, 1)).capacity = 3
+            await db.commit()
+        book, _ = make_record()
+        content = workbook_bytes(book)
+        await self._import(content, save=True, roster_only=True, subject_id=None)
+        repeated = await self._import(content, save=True, roster_only=True, subject_id=None)
+        self.assertEqual(repeated["saved"]["added"], 0)
+        self.assertEqual(repeated["counts"]["matched"], 3)
+        async with self.sessions() as db:
+            enrollment = await db.scalar(select(StudentEnrollment))
+            enrollment.is_active = False
+            enrollment_id = enrollment.enrollment_id
+            (await db.get(Section, 1)).capacity = 2
+            await db.commit()
+        with self.assertRaises(HTTPException) as caught:
+            await self._import(content, save=True, roster_only=True, subject_id=None)
+        self.assertEqual(caught.exception.status_code, 409)
+        async with self.sessions() as db:
+            self.assertFalse((await db.get(StudentEnrollment, enrollment_id)).is_active)
+            (await db.get(Section, 1)).capacity = 3
+            await db.commit()
+        saved = await self._import(content, save=True, roster_only=True, subject_id=None)
+        self.assertEqual(saved["saved"]["enrolled"], 1)
+        self.assertEqual((await self._counts())[:2], (3, 3))
+
+    async def test_import_refreshes_a_cached_enrollment_transferred_before_matching(self):
+        book, _ = make_record()
+        content = workbook_bytes(book)
+        await self._import(content, save=True, roster_only=True, subject_id=None)
+        async with self.sessions() as db:
+            (await db.get(Section, 1)).capacity = 3
+            db.add(Section(section_id=3, school_id=1, grade_level_id=1,
+                           name="OTHER", capacity=1))
+            occupant = Student(school_id=1, first_name="Other", last_name="Occupant")
+            db.add(occupant)
+            enrollment = await db.scalar(select(StudentEnrollment))
+            enrollment.is_active = False
+            enrollment_id = enrollment.enrollment_id
+            await db.flush()
+            db.add(StudentEnrollment(school_id=1, student_id=occupant.student_id,
+                section_id=3, grade_level_id=1, school_year_id=1, is_active=True))
+            await db.commit()
+        async with self.sessions() as request_db:
+            cached = await request_db.get(StudentEnrollment, enrollment_id)
+            self.assertEqual(cached.section_id, 1)
+            async with self.sessions() as concurrent:
+                (await concurrent.get(StudentEnrollment, enrollment_id)).section_id = 3
+                await concurrent.commit()
+            actor = await request_db.get(Staff, self.teacher_id)
+            upload = UploadFile(filename="invented.xlsx", file=io.BytesIO(content))
+            try:
+                result = await class_import.import_class_record(
+                    request=Request({"type": "http", "headers": []}),
+                    file=upload, section_id=1, subject_id=None, save=True,
+                    roster_only=True, current=actor, scope=1, db=request_db,
+                )
+            finally:
+                await upload.close()
+            self.assertEqual(result["saved"]["skipped"], 1)
+            self.assertEqual(result["saved"]["enrolled"], 0)
+        async with self.sessions() as db:
+            enrollment = await db.get(StudentEnrollment, enrollment_id)
+            self.assertEqual(enrollment.section_id, 3)
+            self.assertFalse(enrollment.is_active)
+
     async def test_multipart_roster_request_without_subject_and_principal_bypass(self):
         from fastapi import FastAPI
         from httpx import ASGITransport, AsyncClient

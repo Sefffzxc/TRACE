@@ -8,13 +8,14 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.scoping import get_scoped_optional
 from app.models.academic import GradeLevel, Section
 from app.models.schools import School
 from app.models.staff import ROLE_TEACHER, Staff
+from app.models.students import StudentEnrollment
 from app.services.access import class_access
 from app.services.school_years import require_current_year_record, resolve_school_year_id
 
@@ -80,3 +81,36 @@ async def lock_roster_section(db: AsyncSession, scope: int, section_id: int) -> 
     if section is None:
         raise HTTPException(status_code=400, detail="That section does not exist.")
     return section
+
+
+async def require_roster_capacity(
+    db: AsyncSession,
+    section: Section,
+    school_year_id: int,
+    *,
+    joining: int = 1,
+    exclude_enrollment_id: Optional[int] = None,
+) -> None:
+    """Check active seats for this year before adding or reactivating learners.
+
+    Writers must hold lock_roster_section until their enrollment transaction
+    commits. Import previews may call this without a lock, but saving must
+    repeat matching and this check after acquiring the section lock.
+    """
+    if joining <= 0:
+        return
+    stmt = select(func.count()).select_from(StudentEnrollment).where(
+        StudentEnrollment.school_id == section.school_id,
+        StudentEnrollment.section_id == section.section_id,
+        StudentEnrollment.school_year_id == school_year_id,
+        StudentEnrollment.is_active.is_(True),
+    )
+    if exclude_enrollment_id is not None:
+        stmt = stmt.where(StudentEnrollment.enrollment_id != exclude_enrollment_id)
+    taken = await db.scalar(stmt)
+    if taken + joining > section.capacity:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{section.name} does not have enough available seats "
+                   f"({taken}/{section.capacity} enrolled; {joining} requested).",
+        )

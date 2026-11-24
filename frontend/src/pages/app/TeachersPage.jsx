@@ -15,6 +15,7 @@ import {
   ConfirmDialog,
   EmptyState,
   ErrorNote,
+  Modal,
   PageHead,
   TableSkeleton,
 } from '../../components/common/ui';
@@ -50,6 +51,8 @@ export default function TeachersPage() {
   }, [urlQuery]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [confirm, setConfirm] = useState(null);
+  const [issuedPassword, setIssuedPassword] = useState(null);
+  const [copyStatus, setCopyStatus] = useState('');
   const [emailCorrection, setEmailCorrection] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -94,9 +97,12 @@ export default function TeachersPage() {
     try {
       const result = await staffApi.adminAction(person.id, action);
       if (result.temporary_password) {
-        toast.warning(
-          `Temporary password for ${formatPersonName(person.first_name)}: ${result.temporary_password} — share it securely.`,
-        );
+        setCopyStatus('');
+        setIssuedPassword({
+          name: formatPersonName(`${person.first_name} ${person.last_name}`),
+          email: person.email,
+          password: result.temporary_password,
+        });
       } else {
         const fullName = result.user?.full_name || person.full_name || `${person.first_name}${person.middle_name ? ` ${person.middle_name}` : ''} ${person.last_name}`;
         toast.success(result.message.replace(fullName, () => formatPersonName(fullName)));
@@ -107,6 +113,20 @@ export default function TeachersPage() {
       toast.error(err.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const closeIssuedPassword = () => {
+    setIssuedPassword(null);
+    setCopyStatus('');
+  };
+
+  const copyIssuedPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(issuedPassword.password);
+      setCopyStatus('Password copied.');
+    } catch {
+      setCopyStatus('Select the password above and copy it manually.');
     }
   };
 
@@ -292,6 +312,46 @@ export default function TeachersPage() {
           currentEmail={emailCorrection.email}
           onClose={() => setEmailCorrection(null)}
         />
+      )}
+      {issuedPassword && (
+        <Modal
+          title="Temporary password issued"
+          onClose={closeIssuedPassword}
+          size="sm"
+          footer={
+            <button type="button" className="btn btn-primary" onClick={closeIssuedPassword}>
+              Close
+            </button>
+          }
+        >
+          <div className="stack" style={{ gap: '1rem' }}>
+            <div style={{ overflowWrap: 'anywhere' }}>
+              <strong>{issuedPassword.name}</strong>
+              <div className="field-hint">{issuedPassword.email}</div>
+            </div>
+            <div className="field">
+              <label className="field-label" htmlFor="issued-temporary-password">Temporary password</label>
+              <input
+                id="issued-temporary-password"
+                className="input"
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                readOnly
+                value={issuedPassword.password}
+                onFocus={(event) => event.target.select()}
+              />
+            </div>
+            <button type="button" className="btn btn-secondary" onClick={copyIssuedPassword}>
+              Copy password
+            </button>
+            {copyStatus && <p className="field-hint" role="status">{copyStatus}</p>}
+            <p className="field-hint">
+              Share this password securely with the teacher before closing. It cannot be viewed again.
+              The teacher must change it after signing in.
+            </p>
+          </div>
+        </Modal>
       )}
     </div>
   );

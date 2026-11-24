@@ -48,6 +48,21 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('trace:session-expired', onExpired);
   }, []);
 
+  /* A reset can be issued while this tab is already signed in. The API's
+     restriction must move that tab to the mandatory password screen too. */
+  useEffect(() => {
+    const onPasswordChangeRequired = () => {
+      setUser((current) => {
+        if (!current || current.requires_password_change) return current;
+        const updated = { ...current, requires_password_change: true };
+        storedUser.set(updated);
+        return updated;
+      });
+    };
+    window.addEventListener('trace:password-change-required', onPasswordChangeRequired);
+    return () => window.removeEventListener('trace:password-change-required', onPasswordChangeRequired);
+  }, []);
+
   const signIn = useCallback((tokenResponse) => {
     tokens.save(tokenResponse.access_token, tokenResponse.refresh_token);
     const profile = tokenResponse.user;
@@ -66,12 +81,16 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback((profile) => {
+    setUser(profile);
+    storedUser.set(profile);
+    return profile;
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     const fresh = await staffApi.me();
-    setUser(fresh);
-    storedUser.set(fresh);
-    return fresh;
-  }, []);
+    return updateProfile(fresh);
+  }, [updateProfile]);
 
   /* ── The signed-in user's school ───────────────────────────────────────────
      Loaded once after sign-in and kept here, because almost every screen needs
@@ -91,7 +110,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!user || isSuperAdmin) {
+    if (!user || booting || isSuperAdmin || user.requires_password_change) {
       setSchool(null);
       setSchoolReady(true);
       return;
@@ -112,7 +131,7 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [user, isSuperAdmin]);
+  }, [user, booting, isSuperAdmin]);
 
   const value = useMemo(
     () => ({
@@ -142,9 +161,10 @@ export function AuthProvider({ children }) {
 
       signIn,
       signOut,
+      updateProfile,
       refreshProfile,
     }),
-    [user, booting, isSuperAdmin, school, schoolReady, loadSchool, signIn, signOut, refreshProfile],
+    [user, booting, isSuperAdmin, school, schoolReady, loadSchool, signIn, signOut, updateProfile, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

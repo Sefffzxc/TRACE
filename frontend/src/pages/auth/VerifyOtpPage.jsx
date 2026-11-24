@@ -42,7 +42,7 @@ export default function VerifyOtpPage() {
     try {
       const result = await authApi.verifyOtp(state.userId, value);
       const profile = signIn(result);
-      navigate(profile?.requires_password_change ? '/account?change=1' : '/dashboard', {
+      navigate(profile?.requires_password_change ? '/change-temporary-password' : '/dashboard', {
         replace: true,
       });
     } catch (err) {

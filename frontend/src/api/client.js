@@ -211,6 +211,9 @@ async function request(path, { method = 'GET', body, params, auth = true, raw = 
   }
 
   if (!response.ok) {
+    if (auth && response.status === 403 && data?.detail?.code === 'password_change_required') {
+      window.dispatchEvent(new CustomEvent('trace:password-change-required'));
+    }
     if (response.status === 409 && data?.detail?.code === 'school_year_changed') {
       window.dispatchEvent(new CustomEvent('trace:school-year-conflict'));
     }

@@ -18,10 +18,13 @@ from fastapi import (
     UploadFile,
     status,
 )
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import _staff_from_token, get_current_admin, get_current_user, school_scope
+from app.api.deps import (
+    _staff_from_token, get_current_admin, get_current_user,
+    require_temporary_password_session, school_scope,
+)
 from app.core.config import settings
 from app.core.security import (
     generate_temp_password,
@@ -42,12 +45,14 @@ from app.models.staff import (
     STATUS_PENDING,
     STATUS_REJECTED,
     AuditLog,
+    OTPCode,
     Staff,
 )
 from app.schemas.staff import (
     ApplicationHistoryResponse,
     AuditLogResponse,
     ChangePasswordRequest,
+    RequiredPasswordChangeRequest,
     StaffAdminUpdate,
     StaffResponse,
     StaffUpdateProfile,
@@ -132,6 +137,40 @@ async def change_own_password(
     )
     await db.commit()
     return {"message": "Password updated."}
+
+
+@router.post("/api/staff/me/required-password")
+async def complete_required_password_change(
+    payload: RequiredPasswordChangeRequest,
+    request: Request,
+    current: Staff = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not current.requires_password_change:
+        raise HTTPException(status_code=409, detail="A temporary-password change is not required.")
+    token = request.headers.get("authorization", "").partition(" ")[2]
+    require_temporary_password_session(current, token)
+    staff_id, expected_email, expected_hash = current.id, current.email, current.password_hash
+    await db.commit()
+    if await async_verify_password(payload.new_password, expected_hash):
+        raise HTTPException(status_code=400, detail="The new password must be different from the temporary password.")
+    password_hash = await async_get_password_hash(payload.new_password)
+    current = await db.scalar(select(Staff).where(Staff.id == staff_id).with_for_update()
+                              .execution_options(populate_existing=True))
+    if (current is None or current.email != expected_email or current.password_hash != expected_hash
+            or not current.requires_password_change):
+        raise HTTPException(status_code=401, detail="Your account details changed. Please sign in again.")
+    await _staff_from_token(token, db, "access")
+    require_temporary_password_session(current, token)
+    current.password_hash = password_hash
+    current.requires_password_change = False
+    await log_event(
+        db, Action.PASSWORD_CHANGED, actor_id=current.id, target_user_id=current.id,
+        request=request,
+    )
+    await db.commit()
+    await db.refresh(current)
+    return {"message": "Password updated.", "user": StaffResponse.model_validate(current)}
 
 
 @router.post("/api/staff/me/photo", response_model=StaffResponse)
@@ -576,6 +615,11 @@ async def admin_update_staff(
         temp_password = generate_temp_password()
         staff.password_hash = await async_get_password_hash(temp_password)
         staff.requires_password_change = True
+        # A code issued before this password replacement cannot complete a
+        # fresh temporary-password sign-in.
+        await db.execute(update(OTPCode).where(
+            OTPCode.staff_id == staff.id, OTPCode.purpose == "login", OTPCode.is_used.is_(False),
+        ).values(is_used=True))
         staff.login_attempts = 0
         staff.locked_until = None
         staff.lockout_count = 0

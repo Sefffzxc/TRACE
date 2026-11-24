@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Route, RouterProvider, Routes, useLocation } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -14,6 +14,7 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import ResubmitPage from './pages/auth/ResubmitPage';
 import CorrectEmailPage from './pages/auth/CorrectEmailPage';
+import ChangeTemporaryPasswordPage from './pages/auth/ChangeTemporaryPasswordPage';
 
 import DashboardPage from './pages/app/DashboardPage';
 import StudentsPage from './pages/app/StudentsPage';
@@ -54,6 +55,16 @@ function RequireAuth({ children }) {
   const { user, booting } = useAuth();
   if (booting) return <Splash message="Restoring your session…" />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.requires_password_change) return <Navigate to="/change-temporary-password" replace />;
+  return children;
+}
+
+/** The password must be replaced before the normal application can mount. */
+function RequirePasswordChange({ children }) {
+  const { user, booting } = useAuth();
+  if (booting) return <Splash />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.requires_password_change) return <Navigate to="/dashboard" replace />;
   return children;
 }
 
@@ -61,7 +72,7 @@ function RequireAuth({ children }) {
 function RequireGuest({ children }) {
   const { user, booting } = useAuth();
   if (booting) return <Splash />;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={user.requires_password_change ? '/change-temporary-password' : '/dashboard'} replace />;
   return children;
 }
 
@@ -132,8 +143,24 @@ function RequireGradeRecord({ children }) {
 }
 
 function Router() {
+  const { user, booting } = useAuth();
+  const { pathname } = useLocation();
+  if (booting) return <Splash />;
+  // Also covers public paths, Back and manually entered URLs after sign-in.
+  if (user?.requires_password_change && pathname !== '/change-temporary-password') {
+    return <Navigate to="/change-temporary-password" replace />;
+  }
+
   return (
     <Routes>
+      <Route
+        path="/change-temporary-password"
+        element={
+          <RequirePasswordChange>
+            <ChangeTemporaryPasswordPage />
+          </RequirePasswordChange>
+        }
+      />
       {/* Signed out */}
       <Route path="/correct-email" element={<CorrectEmailPage />} />
       <Route

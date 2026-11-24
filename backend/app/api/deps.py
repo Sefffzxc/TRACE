@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import secrets
 import threading
 import time
 import uuid
@@ -15,7 +16,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_token
+from app.core.security import decode_token, required_password_proof
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.schools import SCHOOL_APPROVED, SCHOOL_PENDING, School
@@ -111,7 +112,22 @@ async def _staff_from_token(
     return staff
 
 
+def require_temporary_password_session(staff: Staff, token: str) -> None:
+    """A pre-reset session cannot replace proof of the temporary password."""
+    if not staff.requires_password_change:
+        return
+    payload = decode_token(token) or {}
+    proof = payload.get("password_change_proof")
+    expected = required_password_proof(staff.id, staff.password_hash)
+    if not isinstance(proof, str) or not secrets.compare_digest(proof, expected):
+        raise HTTPException(
+            status_code=401,
+            detail="Please sign in again using the temporary password issued by your administrator.",
+        )
+
+
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> Staff:
@@ -121,7 +137,23 @@ async def get_current_user(
             detail="Not authenticated.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return await _staff_from_token(credentials.credentials, db, "access")
+    staff = await _staff_from_token(credentials.credentials, db, "access")
+    password_change_routes = {
+        ("GET", "/api/auth/me"),
+        ("GET", "/api/staff/me"),
+        ("POST", "/api/staff/me/password"),
+        ("POST", "/api/staff/me/required-password"),
+        ("POST", "/api/auth/logout"),
+    }
+    if staff.requires_password_change and (request.method, request.url.path) not in password_change_routes:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "password_change_required",
+                "message": "Change your temporary password before accessing TRACE.",
+            },
+        )
+    return staff
 
 
 async def get_current_admin(current: Staff = Depends(get_current_user)) -> Staff:

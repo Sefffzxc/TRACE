@@ -27,7 +27,9 @@ from app.services import risk
 from app.services.access import class_access
 from app.services.audit import Action, log_event
 from app.services.school_years import resolve_school_year_id, require_current_year_record
-from app.services.roster_access import lock_roster_section, require_roster_section
+from app.services.roster_access import (
+    lock_roster_section, require_roster_capacity, require_roster_section,
+)
 from app.services.enrichment import (
     school_passing_mark,
     Lookups,
@@ -332,6 +334,7 @@ async def create_student(
     resolved_year = await _resolve_school_year(db, school_year_id, scope)
     await lock_roster_section(db, scope, section.section_id)
     section = await require_roster_section(db, current, scope, section_id, grade_level_id)
+    await require_roster_capacity(db, section, resolved_year)
 
     student = Student(**data, school_id=scope, created_by=current.id)
     db.add(student)
@@ -510,7 +513,7 @@ async def create_enrollment(
                 StudentEnrollment.school_id == scope,
                 StudentEnrollment.student_id == payload.student_id,
                 StudentEnrollment.school_year_id == payload.school_year_id,
-            )
+            ).with_for_update().execution_options(populate_existing=True)
         )
     ).scalar_one_or_none()
     if duplicate and (duplicate.is_active or duplicate.section_id != payload.section_id):
@@ -519,23 +522,8 @@ async def create_enrollment(
             detail="That student is already enrolled for this school year.",
         )
 
-    taken = (
-        await db.execute(
-            select(func.count())
-            .select_from(StudentEnrollment)
-            .where(
-                StudentEnrollment.school_id == scope,
-                StudentEnrollment.section_id == payload.section_id,
-                StudentEnrollment.school_year_id == payload.school_year_id,
-                StudentEnrollment.is_active.is_(True),
-            )
-        )
-    ).scalar_one()
-    if taken >= section.capacity:
-        raise HTTPException(
-            status_code=409,
-            detail=f"{section.name} is full ({taken}/{section.capacity}).",
-        )
+    if duplicate is not None or payload.is_active:
+        await require_roster_capacity(db, section, payload.school_year_id)
 
     if duplicate is not None:
         duplicate.is_active = True
@@ -591,6 +579,27 @@ async def update_enrollment(
         await get_scoped_optional(db, SchoolYear, data["school_year_id"], scope) is None
     ):
         raise HTTPException(status_code=400, detail="That school year does not exist.")
+
+    # Moving or reactivating a learner consumes a seat just like creating an
+    # enrollment. Keep this check and the write under the shared roster lock.
+    destination_id = data.get("section_id", row.section_id)
+    if "section_id" in data or "is_active" in data:
+        section = await lock_roster_section(db, scope, destination_id)
+        await db.refresh(row, with_for_update=True)
+        await require_current_year_record(db, scope, row.school_year_id)
+        access.require_section(row.section_id)
+        if "section_id" not in data and row.section_id != destination_id:
+            raise HTTPException(
+                status_code=409,
+                detail="This enrollment changed sections. Refresh the roster and try again.",
+            )
+        if data.get("is_active", row.is_active) and (
+            not row.is_active or destination_id != row.section_id
+        ):
+            await require_roster_capacity(
+                db, section, row.school_year_id,
+                exclude_enrollment_id=row.enrollment_id,
+            )
 
     for field, value in data.items():
         setattr(row, field, value)

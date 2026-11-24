@@ -99,6 +99,11 @@ export const staffApi = {
       current_password: currentPassword,
       new_password: newPassword,
     }),
+  completeRequiredPasswordChange: (newPassword, confirmPassword) =>
+    api.post('/api/staff/me/required-password', {
+      new_password: newPassword,
+      confirm_password: confirmPassword,
+    }),
   uploadPhoto: (file) => {
     const form = new FormData();
     form.append('file', file);

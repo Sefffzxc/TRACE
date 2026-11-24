@@ -159,6 +159,23 @@ async def _lock_school_year_changes(db: AsyncSession, scope: int) -> None:
         await db.execute(select(School.school_id).where(School.school_id == scope).with_for_update())
 
 
+async def _commit_school_year(db: AsyncSession) -> None:
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        # Keep the database constraint as the final guard for concurrent
+        # requests, without disguising unrelated integrity errors.
+        message = str(exc.orig).lower()
+        if "uq_year_per_school" in message or (
+            "unique constraint failed" in message
+            and "school_years.school_id" in message
+            and "school_years.year" in message
+        ):
+            raise HTTPException(status_code=409, detail="This school year already exists.") from None
+        raise
+
+
 @router.get("/api/school-years", response_model=List[SchoolYearResponse])
 async def list_school_years(
     _: Staff = Depends(get_current_user),
@@ -210,7 +227,7 @@ async def create_school_year(
         )
     ).scalar_one_or_none()
     if exists:
-        raise HTTPException(status_code=409, detail="That school year already exists.")
+        raise HTTPException(status_code=409, detail="This school year already exists.")
 
     start, end = school_year_dates(payload.year)
     row = SchoolYear(**payload.model_dump(), start_date=start, end_date=end, school_id=scope)
@@ -220,7 +237,7 @@ async def create_school_year(
         ).scalars().all():
             other.is_current = False
     db.add(row)
-    await db.commit()
+    await _commit_school_year(db)
     await db.refresh(row)
     return SchoolYearResponse.model_validate(row)
 
@@ -237,6 +254,13 @@ async def update_school_year(
     row = await get_scoped(db, SchoolYear, school_year_id, scope, "School year")
     data = payload.model_dump(exclude_unset=True)
     if data.get("year"):
+        exists = await db.scalar(select(SchoolYear.school_year_id).where(
+            SchoolYear.school_id == scope,
+            SchoolYear.year == data["year"],
+            SchoolYear.school_year_id != school_year_id,
+        ))
+        if exists is not None:
+            raise HTTPException(status_code=409, detail="This school year already exists.")
         data["start_date"], data["end_date"] = school_year_dates(data["year"])
     if data.get("is_current"):
         for other in (
@@ -245,7 +269,7 @@ async def update_school_year(
             other.is_current = False
     for field, value in data.items():
         setattr(row, field, value)
-    await db.commit()
+    await _commit_school_year(db)
     await db.refresh(row)
     return SchoolYearResponse.model_validate(row)
 

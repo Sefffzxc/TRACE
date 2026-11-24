@@ -59,7 +59,7 @@ export default function LoginPage() {
       }
 
       const profile = signIn(result);
-      navigate(profile?.requires_password_change ? '/account?change=1' : '/dashboard', {
+      navigate(profile?.requires_password_change ? '/change-temporary-password' : '/dashboard', {
         replace: true,
       });
     } catch (err) {

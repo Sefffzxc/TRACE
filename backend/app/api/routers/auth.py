@@ -26,6 +26,7 @@ from app.api.deps import (
     limit_password_reset,
     limit_register,
     require_account_access,
+    require_temporary_password_session,
 )
 from app.core.config import settings
 from app.core.security import (
@@ -33,6 +34,7 @@ from app.core.security import (
     create_refresh_token,
     generate_otp,
     generate_reset_token,
+    required_password_proof,
     async_get_password_hash,
     async_verify_password,
 )
@@ -153,8 +155,11 @@ def _check_login_lock(staff: Staff) -> None:
 
 
 def _token_bundle(staff: Staff) -> tuple[str, str, datetime]:
-    access = create_access_token({"sub": str(staff.id), "role": staff.role})
-    refresh = create_refresh_token({"sub": str(staff.id)})
+    claims = {"sub": str(staff.id)}
+    if staff.requires_password_change:
+        claims["password_change_proof"] = required_password_proof(staff.id, staff.password_hash)
+    access = create_access_token({**claims, "role": staff.role})
+    refresh = create_refresh_token(claims)
     expires = _now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return access, refresh, expires
 
@@ -565,6 +570,7 @@ async def refresh_session(
     token = request.headers.get("authorization", "").partition(" ")[2]
     await _staff_from_token(token, db, "refresh")
     await _fresh_account_access(staff, db)
+    require_temporary_password_session(staff, token)
     session = (
         await db.execute(
             select(StaffSession)

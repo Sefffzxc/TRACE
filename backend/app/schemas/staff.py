@@ -124,6 +124,25 @@ class ChangePasswordRequest(BaseModel):
 
 
 # ── Login / 2FA ───────────────────────────────────────────────────────────────
+class RequiredPasswordChangeRequest(BaseModel):
+    new_password: str = Field(min_length=8, max_length=128, repr=False)
+    confirm_password: str = Field(min_length=8, max_length=128, repr=False)
+
+    @field_validator("new_password")
+    @classmethod
+    def _strong(cls, value: str) -> str:
+        ok, message = validate_password_strength(value)
+        if not ok:
+            raise ValueError(message)
+        return value
+
+    @model_validator(mode="after")
+    def _matching(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("The two passwords do not match.")
+        return self
+
+
 class StaffLoginRequest(BaseModel):
     captcha_token: Optional[str] = Field(default=None, max_length=2048, repr=False)
     email: EmailStr
