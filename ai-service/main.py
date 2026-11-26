@@ -11,17 +11,16 @@ three-tier architecture.
 
 What it will and will not say
 -----------------------------
-From a learner's FIRST-TERM class record in a subject, the model predicts
-their FINAL grade in it: an expected grade, an 80% range, and the chance that
-the final grade falls below the passing mark of 75. It is a regression model
-(Extra Trees) that predicts the change from the first-term grade, so the
-answer stays anchored on the school's own first-term grade.
+From one or two completed periods, a checkpoint model forecasts the same
+three-period final grade: an expected grade, an 80% range and the chance of
+finishing below 75. The first checkpoint uses Random Forest; the second uses
+Extra Trees. Each predicts a change from the mean of the known grades.
 
 The range and the chance of failing come from the model's own errors on
 learners it was not trained on, not from an assumed distribution. On the
-training data it is only marginally more accurate than the rule "first-term
-grade plus the average rise for the grade level", and it is only valid for
-the schools and grade levels it was trained on; `/model-card` reports both.
+training data the improvement over the learned grade-level rule is small.
+Complete training records cover two elementary schools; high-school and live
+MATATAG accuracy remain unvalidated. `/model-card` reports both checkpoints.
 Every response carries `model_version` so a stored prediction can always be
 traced back to the model that made it.
 
@@ -52,24 +51,38 @@ import numpy as np
 import pandas as pd
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 MODEL_DIR = pathlib.Path(os.getenv("MODEL_DIR", "model"))
-MODEL_PATH = MODEL_DIR / "final_grade_model_v4.joblib"
-CARD_PATH = MODEL_DIR / "model_card_v4.json"
-MODEL_VERSION = os.getenv("MODEL_VERSION", "v4.0.0-final-grade")
+MODEL_PATH = MODEL_DIR / "final_grade_model_v5_first_term.joblib"
+CARD_PATH = MODEL_DIR / "model_card_v5_first_term.json"
+SECOND_MODEL_PATH = MODEL_DIR / "final_grade_model_v5_second_term.joblib"
+SECOND_CARD_PATH = MODEL_DIR / "model_card_v5_second_term.json"
+MODEL_VERSION = os.getenv("MODEL_VERSION", "v5-final-grade-checkpoints")
 SERVICE_TOKEN = os.getenv("AI_SERVICE_TOKEN", "").strip()
 MAX_BATCH = 500
 
-STATE: dict = {"bundle": None, "card": None, "loaded_at": None, "error": None}
+STATE: dict = {"bundle": None, "card": None, "loaded_at": None, "error": None,
+               "second_bundle": None, "second_card": None, "second_error": None}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Model loading
 # ══════════════════════════════════════════════════════════════════════════════
 def load_model() -> None:
+    """Load each checkpoint separately; never serve a first-period model as an update."""
+    for model_path, card_path, prefix in (
+        (MODEL_PATH, CARD_PATH, ""), (SECOND_MODEL_PATH, SECOND_CARD_PATH, "second_")
+    ):
+        _load_checkpoint(model_path, card_path, prefix)
+    STATE["loaded_at"] = time.time()
+
+
+def _load_checkpoint(model_path, card_path, prefix):
+    STATE[prefix + "bundle"] = None
+    STATE[prefix + "card"] = None
     try:
-        bundle_ = joblib.load(MODEL_PATH)
+        bundle_ = joblib.load(model_path)
         # The training script stores the importances with the model, because
         # the deployed estimator may be a linear model with no
         # `feature_importances_`. On a forest that attribute is also a
@@ -78,20 +91,18 @@ def load_model() -> None:
         if bundle_.get("importances") is None:
             bundle_["importances"] = bundle_["model"].feature_importances_
         bundle_["importances"] = np.asarray(bundle_["importances"])
-        STATE["bundle"] = bundle_
-        STATE["loaded_at"] = time.time()
-        STATE["error"] = None
-        print(f"[ai] loaded {MODEL_PATH} — {len(STATE['bundle']['features'])} features, "
-              f"threshold {STATE['bundle']['threshold']}", flush=True)
+        STATE[prefix + "bundle"] = bundle_
+        STATE[prefix + "error"] = None
+        print(f"[ai] loaded {model_path} — {len(bundle_['features'])} features", flush=True)
     except Exception as exc:  # noqa: BLE001 - surfaced through /health
-        STATE["error"] = f"{type(exc).__name__}: {exc}"
-        print(f"[ai] FAILED to load model: {STATE['error']}", flush=True)
+        STATE[prefix + "error"] = f"{type(exc).__name__}: {exc}"
+        print(f"[ai] FAILED to load {model_path}: {STATE[prefix + 'error']}", flush=True)
 
-    if CARD_PATH.is_file():
+    if card_path.is_file():
         try:
-            STATE["card"] = json.loads(CARD_PATH.read_text())
+            STATE[prefix + "card"] = json.loads(card_path.read_text(encoding="utf-8"))
         except Exception:  # noqa: BLE001
-            STATE["card"] = None
+            STATE[prefix + "card"] = None
 
 
 @asynccontextmanager
@@ -128,33 +139,29 @@ async def require_token(x_service_token: Optional[str] = Header(default=None)) -
         )
 
 
-def bundle() -> dict:
-    if STATE["bundle"] is None:
+def bundle(second_term: bool = False) -> dict:
+    prefix = "second_" if second_term else ""
+    if STATE[prefix + "bundle"] is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Model not loaded. {STATE['error'] or 'Unknown error.'}",
+            detail=f"{'Second-period' if second_term else 'First-period'} model not loaded. "
+                   f"{STATE[prefix + 'error'] or 'Unknown error.'}",
         )
-    return STATE["bundle"]
+    return STATE[prefix + "bundle"]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Schemas — field names mirror the dataset columns exactly
 # ══════════════════════════════════════════════════════════════════════════════
 class StudentRecord(BaseModel):
-    """One learner, one subject, read off their FIRST-TERM class record.
+    """One learner and subject at either completed-period checkpoint.
 
-    The first-term grade and initial grade, and all three components as
-    percentage scores. The prediction is the CHANGE from the first-term grade,
-    added back onto it, so the answer stays on the school's own scale.
-
-    Any field may be omitted; the service substitutes the training median and
-    says so in the response. An UNKNOWN field is refused rather than ignored:
-    a caller still sending an earlier model's inputs would otherwise get every
-    input replaced by a median and a confident-looking score back. Refused,
-    it falls back to its own rule and says so.
+    A first-period call retains the legacy ability to impute declared blanks.
+    An update requires all grades/components from both periods. Unknown fields
+    are rejected so incompatible callers cannot silently receive a forecast.
     """
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
     # Not capped at 100: a teacher can award a bonus above the highest
     # possible score, and capping here would reject a figure the class record
@@ -172,6 +179,23 @@ class StudentRecord(BaseModel):
     q1_component_gap: Optional[float] = Field(default=None, ge=0, le=200,
         description="Highest minus lowest of the three percentages")
     grade_level: Optional[float] = Field(default=None, ge=1, le=12)
+
+    q2_term_grade: Optional[float] = Field(default=None, ge=0, le=100)
+    q2_initial_grade: Optional[float] = Field(default=None, ge=0, le=200)
+    q2_ww_pct: Optional[float] = Field(default=None, ge=0, le=200)
+    q2_pt_pct: Optional[float] = Field(default=None, ge=0, le=200)
+    q2_exam_pct: Optional[float] = Field(default=None, ge=0, le=200)
+    q2_component_gap: Optional[float] = Field(default=None, ge=0, le=200)
+
+    @model_validator(mode="after")
+    def completed_update(self):
+        """An update must carry two real completed periods, never imputed ones."""
+        if any(key.startswith("q2_") for key in self.model_fields_set):
+            required = [f"q{n}_{suffix}" for n in (1, 2) for suffix in (
+                "term_grade", "initial_grade", "ww_pct", "pt_pct", "exam_pct", "component_gap")]
+            if any(getattr(self, key) is None for key in required):
+                raise ValueError("Updated forecasts require both completed periods.")
+        return self
 
     # Echoed back untouched so the caller can match responses to its own rows.
     reference: Optional[str] = Field(default=None, max_length=120)
@@ -249,8 +273,8 @@ def predict_many(records: List[StudentRecord], b: dict) -> List[Prediction]:
     enough that the platform killed the container mid-request, which is how
     this was found.
 
-    The model predicts the change from the first-term grade. The expected
-    final grade is that grade plus the change; the range and the chance of
+    The model predicts the change from its checkpoint's known-grade mean.
+    The expected final grade is that mean plus the change; the range and the chance of
     failing are read off the model's own out-of-fold errors, exactly as the
     training script measured them.
     """
@@ -268,7 +292,8 @@ def predict_many(records: List[StudentRecord], b: dict) -> List[Prediction]:
 
     out = []
     for rec, (row, imputed), change in zip(records, prepared, changes):
-        final = row["q1_term_grade"] + float(change)
+        anchors = b.get("anchor_features", ["q1_term_grade"])
+        final = sum(row[key] for key in anchors) / len(anchors) + float(change)
         # Share of past errors that would carry this prediction below 75.
         fail = float(np.searchsorted(residuals, passing - final, side="left")
                      / len(residuals))
@@ -286,7 +311,7 @@ def predict_many(records: List[StudentRecord], b: dict) -> List[Prediction]:
                 used_threshold=threshold,
                 used_baseline_defaults=bool(imputed),
                 imputed_fields=imputed,
-                model_version=MODEL_VERSION,
+                model_version=b.get("version", MODEL_VERSION),
                 reference=rec.reference,
             )
         )
@@ -314,7 +339,7 @@ async def root():
     return {
         "service": "TRACE Final-Grade Forecast",
         "model_version": MODEL_VERSION,
-        "model_loaded": STATE["bundle"] is not None,
+        "model_loaded": STATE["bundle"] is not None and STATE["second_bundle"] is not None,
         "docs": "/docs",
     }
 
@@ -324,10 +349,12 @@ async def health():
     """Render polls this. 200 even when the model failed, so the platform can
     start the service and the error is visible rather than a restart loop."""
     return {
-        "status": "ok" if STATE["bundle"] is not None else "degraded",
-        "model_loaded": STATE["bundle"] is not None,
+        "status": "ok" if STATE["bundle"] is not None and STATE["second_bundle"] is not None else "degraded",
+        "model_loaded": STATE["bundle"] is not None and STATE["second_bundle"] is not None,
         "model_version": MODEL_VERSION,
-        "error": STATE["error"],
+        "error": STATE["error"] or STATE["second_error"],
+        "checkpoints": {"first_period": STATE["bundle"] is not None,
+                        "second_period": STATE["second_bundle"] is not None},
     }
 
 
@@ -335,16 +362,21 @@ async def health():
 async def model_card():
     b = bundle()
     card = STATE["card"] or {}
+    response = _card_response(b, card)
+    response["second_term_model"] = (_card_response(STATE["second_bundle"], STATE["second_card"] or {})
+                                     if STATE["second_bundle"] is not None else None)
+    return response
+
+
+def _card_response(b, card):
     return {
-        "model_version": MODEL_VERSION,
+        "model_version": b.get("version", MODEL_VERSION),
         # The deployed model may be a pipeline (scaler + estimator); name the
         # estimator, which is what the card describes.
         "algorithm": type(getattr(b["model"], "steps", [[None, b["model"]]])[-1][1]).__name__,
         "features": b["features"],
         "threshold": b["threshold"],
-        "target": "Expected final grade, its likely range, and the chance it "
-                  "falls below 75; HIGH when that chance is at least "
-                  f"{round(b['threshold'] * 100)}%",
+        "target": card.get("target") or "Expected final grade and chance of failing",
         "task": card.get("task"),
         # Written by the training script from the numbers it measured, so the
         # limitations can never describe a different model from the one loaded.
@@ -354,7 +386,7 @@ async def model_card():
         # is measured against, which is the shape the app's card renders.
         "reported_metrics": _metrics_for(card, card.get("model")),
         "baseline_for_comparison": _metrics_for(
-            card, "Baseline: Term 1 + average rise for the grade level"),
+            card, (card.get("protocol") or {}).get("baseline")),
         "all_results": card.get("results"),
         "leave_one_school_out": card.get("leave_one_school_out"),
         "protocol": card.get("protocol"),
@@ -382,7 +414,7 @@ def _metrics_for(card: dict, name: Optional[str]) -> dict:
 @app.post("/predict", response_model=Prediction, tags=["Inference"],
           dependencies=[Depends(require_token)])
 async def predict(record: StudentRecord):
-    return predict_one(record, bundle())
+    return predict_one(record, bundle(record.q2_term_grade is not None))
 
 
 @app.post("/predict/batch", response_model=BatchResponse, tags=["Inference"],
@@ -395,7 +427,16 @@ async def predict_batch(payload: BatchRequest):
             status_code=413,
             detail=f"Batch too large: {len(payload.records)} records, maximum {MAX_BATCH}.",
         )
-    preds = predict_many(payload.records, bundle())
+    # Teachers may update a class where only some second periods are complete.
+    # Keep input order even though the checkpoints are inferred separately.
+    indexed = list(enumerate(payload.records))
+    preds = [None] * len(indexed)
+    for second_term in (False, True):
+        group = [(i, rec) for i, rec in indexed if (rec.q2_term_grade is not None) == second_term]
+        if group:
+            results = predict_many([rec for _, rec in group], bundle(second_term))
+            for (index, _), result in zip(group, results):
+                preds[index] = result
     return BatchResponse(predictions=preds, count=len(preds))
 
 
@@ -403,6 +444,6 @@ async def predict_batch(payload: BatchRequest):
 async def reload_model():
     """Re-read the model file without a redeploy — used after a retrain."""
     load_model()
-    if STATE["bundle"] is None:
-        raise HTTPException(status_code=500, detail=STATE["error"])
+    if STATE["bundle"] is None or STATE["second_bundle"] is None:
+        raise HTTPException(status_code=500, detail=STATE["error"] or STATE["second_error"])
     return {"reloaded": True, "model_version": MODEL_VERSION}

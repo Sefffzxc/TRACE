@@ -8,9 +8,23 @@
  * render a bare probability.
  */
 import { AlertTriangle, Brain, ChevronDown, CircleSlash, Info, ServerOff, Sparkles } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export const AI_HELP =
-  'Predicts the final grade from the first graded period. A second opinion, not a decision.';
+  'Predicts the final grade from completed periods. Update after the second period is graded.';
+
+export function predictionBasis(prediction, periodLabel = 'Period') {
+  if (!prediction || prediction.predicted_final == null) return null;
+  const updated = prediction.features?.q2_term_grade != null ||
+    prediction.model_version?.includes('second-term');
+  return `Based on ${updated ? 'First and Second' : 'First'} ${periodLabel} results`;
+}
+
+export function AiPredictionBasis({ prediction }) {
+  const { periodLabel } = useAuth();
+  const basis = predictionBasis(prediction, periodLabel);
+  return basis ? <span className="faint" style={{ fontSize: 'var(--text-xs)' }}>{basis}</span> : null;
+}
 
 /** "74 (72–76)", or null when the prediction carries no final grade. */
 export function finalGradeText(prediction) {
@@ -180,7 +194,7 @@ export function AiServiceNote({ status, onRetry, busy }) {
  * plainly as the metrics. A screen that shows the accuracy without them would
  * be the exact overclaim this project set out to avoid.
  */
-export function ModelCard({ card }) {
+export function ModelCard({ card, title = 'About the model' }) {
   if (!card) return null;
   const metrics = card.reported_metrics || {};
   const baseline = card.baseline_for_comparison || {};
@@ -188,7 +202,7 @@ export function ModelCard({ card }) {
   return (
     <details className="card ai-model-card">
       <summary className="card-header ai-model-toggle">
-        <h2>About the model</h2>
+        <h2>{title}</h2>
         <ChevronDown size={20} className="ai-model-chevron" aria-hidden="true" />
       </summary>
       <div className="card-body">
@@ -221,7 +235,7 @@ export function ModelCard({ card }) {
         {Object.keys(baseline).length > 0 && (
           <>
             <h3 className="ai-h3">
-              Compared with the school rule (first-term grade + usual rise for the grade level)
+              Compared with the school rule
             </h3>
             <div className="ai-metrics">
               {Object.entries(baseline).map(([name, value]) => (
@@ -266,6 +280,7 @@ export function ModelCard({ card }) {
 
 /* ── The exact input behind one prediction ───────────────────────────────── */
 export function AiInputTable({ prediction }) {
+  const { periodLabel } = useAuth();
   if (!prediction?.features) return null;
   const imputed = new Set(prediction.imputed_fields || []);
   // Keyed to the model's own feature names — see FEATURES in
@@ -275,13 +290,19 @@ export function AiInputTable({ prediction }) {
   // The second group belongs to the earlier per-term model, kept so its
   // stored predictions still read properly in the history.
   const LABELS = {
-    q1_term_grade: 'First term: grade',
-    q1_initial_grade: 'First term: initial grade (before transmutation)',
-    q1_ww_pct: 'First term: written works (%)',
-    q1_pt_pct: 'First term: performance tasks (%)',
-    q1_exam_pct: 'First term: examinations (%)',
-    q1_composite: 'First term: overall (30/50/20 weights)',
-    q1_component_gap: 'First term: gap between components',
+    q1_term_grade: `First ${periodLabel}: grade`,
+    q1_initial_grade: `First ${periodLabel}: initial grade (before transmutation)`,
+    q1_ww_pct: `First ${periodLabel}: written works (%)`,
+    q1_pt_pct: `First ${periodLabel}: performance tasks (%)`,
+    q1_exam_pct: `First ${periodLabel}: examinations (%)`,
+    q1_composite: `First ${periodLabel}: overall (30/50/20 weights)`,
+    q1_component_gap: `First ${periodLabel}: gap between components`,
+    q2_term_grade: `Second ${periodLabel}: grade`,
+    q2_initial_grade: `Second ${periodLabel}: initial grade (before transmutation)`,
+    q2_ww_pct: `Second ${periodLabel}: written works (%)`,
+    q2_pt_pct: `Second ${periodLabel}: performance tasks (%)`,
+    q2_exam_pct: `Second ${periodLabel}: examinations (%)`,
+    q2_component_gap: `Second ${periodLabel}: gap between components`,
     ww_total: 'Written works (raw total)',
     ww_pct: 'Written works (%)',
     ww_weighted: 'Written works (weighted)',
@@ -291,7 +312,7 @@ export function AiInputTable({ prediction }) {
     pre_exam_weighted: 'Coursework banked before the examinations',
     component_gap: 'Gap between the two components',
     grade_level: 'Grade level',
-    quarter: 'Term',
+    quarter: periodLabel,
   };
 
   return (

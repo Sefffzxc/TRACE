@@ -1,0 +1,255 @@
+{
+  "model": "ExtraTreesRegressor",
+  "version": "5.0.0-second-term",
+  "task": "Predict final subject grade from 2 completed period(s); report an 80% range and chance of failing.",
+  "target": "Three-period final grade: mean of grades in periods 1, 2 and 3",
+  "dataset": {
+    "source": "Class_Record_Dataset_v6; observed periods 1, 2 and 3 in the same learner-subject-year",
+    "rows_used": 975,
+    "learners": 281,
+    "failed": 7,
+    "schools": {
+      "Deogracias U. Tenazas Memorial Elementary School": 676,
+      "Gumagamot Elementary School": 299
+    },
+    "grade_levels": {
+      "1": 85,
+      "3": 148,
+      "4": 211,
+      "5": 297,
+      "6": 234
+    }
+  },
+  "features_used": [
+    "q1_term_grade",
+    "q1_initial_grade",
+    "q1_ww_pct",
+    "q1_pt_pct",
+    "q1_exam_pct",
+    "q1_component_gap",
+    "q2_term_grade",
+    "q2_initial_grade",
+    "q2_ww_pct",
+    "q2_pt_pct",
+    "q2_exam_pct",
+    "q2_component_gap",
+    "grade_level"
+  ],
+  "features_excluded": {
+    "Later periods and final grade": "labels only; unavailable at prediction time",
+    "Names, sex and identifiers": "not model inputs"
+  },
+  "protocol": {
+    "splits": "5-fold GroupKFold by learner; all subjects and years of each learner stay together",
+    "range_and_fail_chance": "inner 4-fold learner-group out-of-fold residuals within each training fold",
+    "transfer": "leave one school out; learner-group calibration on remaining schools",
+    "baseline": "Baseline: mean of first two periods + average rise for the grade level"
+  },
+  "interval": 0.8,
+  "interval_offsets": [
+    -0.6952575498575524,
+    0.7163484367484406
+  ],
+  "results": [
+    {
+      "model": "Extra Trees",
+      "mae": 0.46642735042735,
+      "rmse": 0.7283290487255787,
+      "within_1": 0.8943589743589744,
+      "within_2": 0.9764102564102564,
+      "range_coverage": 0.803076923076923,
+      "fail_tp": 7,
+      "fail_fn": 0,
+      "fail_fp": 0
+    },
+    {
+      "model": "Random Forest",
+      "mae": 0.4733675213675212,
+      "rmse": 0.7363261793862498,
+      "within_1": 0.882051282051282,
+      "within_2": 0.9743589743589743,
+      "range_coverage": 0.8153846153846154,
+      "fail_tp": 7,
+      "fail_fn": 0,
+      "fail_fp": 0
+    },
+    {
+      "model": "Ridge Regression",
+      "mae": 0.5170256410256407,
+      "rmse": 0.7954628105096101,
+      "within_1": 0.877948717948718,
+      "within_2": 0.963076923076923,
+      "range_coverage": 0.8071794871794872,
+      "fail_tp": 7,
+      "fail_fn": 0,
+      "fail_fp": 0
+    },
+    {
+      "model": "Baseline: mean of first two periods + average rise for the grade level",
+      "mae": 0.526666666666667,
+      "rmse": 0.8120779645419132,
+      "within_1": 0.8666666666666667,
+      "within_2": 0.9620512820512821,
+      "range_coverage": 0.8041025641025641,
+      "fail_tp": 7,
+      "fail_fn": 0,
+      "fail_fp": 0
+    },
+    {
+      "model": "Baseline: carry second-period grade into third",
+      "mae": 0.5551452991452983,
+      "rmse": 0.8334585122790321,
+      "within_1": 0.8789743589743589,
+      "within_2": 0.963076923076923,
+      "range_coverage": 0.7866666666666666,
+      "fail_tp": 7,
+      "fail_fn": 0,
+      "fail_fp": 0
+    },
+    {
+      "model": "Baseline: mean of first two periods",
+      "mae": 0.6483760683760686,
+      "rmse": 0.870644313120753,
+      "within_1": 0.8635897435897436,
+      "within_2": 0.9641025641025641,
+      "range_coverage": 0.8051282051282052,
+      "fail_tp": 7,
+      "fail_fn": 0,
+      "fail_fp": 0
+    }
+  ],
+  "leave_one_school_out": {
+    "Deogracias U. Tenazas Memorial Elementary School": {
+      "Ridge Regression": {
+        "mae": 0.6244082840236682,
+        "rmse": 0.9726697570495157,
+        "within_1": 0.8402366863905325,
+        "within_2": 0.9467455621301775,
+        "range_coverage": 0.5,
+        "fail_tp": 7,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Extra Trees": {
+        "mae": 0.608974358974359,
+        "rmse": 0.9295428807359513,
+        "within_1": 0.8298816568047337,
+        "within_2": 0.9467455621301775,
+        "range_coverage": 0.5591715976331361,
+        "fail_tp": 7,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Random Forest": {
+        "mae": 0.617702169625246,
+        "rmse": 0.9346505568282486,
+        "within_1": 0.8357988165680473,
+        "within_2": 0.9452662721893491,
+        "range_coverage": 0.5428994082840237,
+        "fail_tp": 7,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Baseline: mean of first two periods": {
+        "mae": 0.7433431952662726,
+        "rmse": 0.9802244171388983,
+        "within_1": 0.8210059171597633,
+        "within_2": 0.9482248520710059,
+        "range_coverage": 0.6849112426035503,
+        "fail_tp": 7,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Baseline: carry second-period grade into third": {
+        "mae": 0.664743589743589,
+        "rmse": 0.9657812376928603,
+        "within_1": 0.8313609467455622,
+        "within_2": 0.9467455621301775,
+        "range_coverage": 0.628698224852071,
+        "fail_tp": 7,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Baseline: mean of first two periods + average rise for the grade level": {
+        "mae": 0.6107495069033541,
+        "rmse": 0.9339248618600233,
+        "within_1": 0.8254437869822485,
+        "within_2": 0.9437869822485208,
+        "range_coverage": 0.6257396449704142,
+        "fail_tp": 7,
+        "fail_fn": 0,
+        "fail_fp": 0
+      }
+    },
+    "Gumagamot Elementary School": {
+      "Ridge Regression": {
+        "mae": 0.3345596432552952,
+        "rmse": 0.43212248287736793,
+        "within_1": 0.9698996655518395,
+        "within_2": 1.0,
+        "range_coverage": 0.9565217391304348,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Extra Trees": {
+        "mae": 0.3496098104793765,
+        "rmse": 0.43575773221957753,
+        "within_1": 0.9665551839464883,
+        "within_2": 1.0,
+        "range_coverage": 0.9431438127090301,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Random Forest": {
+        "mae": 0.3674470457079155,
+        "rmse": 0.4638151453300467,
+        "within_1": 0.9632107023411371,
+        "within_2": 1.0,
+        "range_coverage": 0.939799331103679,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Baseline: mean of first two periods": {
+        "mae": 0.4336677814938689,
+        "rmse": 0.5538621534498946,
+        "within_1": 0.959866220735786,
+        "within_2": 1.0,
+        "range_coverage": 0.9698996655518395,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Baseline: carry second-period grade into third": {
+        "mae": 0.30735785953177164,
+        "rmse": 0.415846461389319,
+        "within_1": 0.9866220735785953,
+        "within_2": 1.0,
+        "range_coverage": 0.9866220735785953,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Baseline: mean of first two periods + average rise for the grade level": {
+        "mae": 0.34370122630992167,
+        "rmse": 0.4365373360690206,
+        "within_1": 0.9565217391304348,
+        "within_2": 1.0,
+        "range_coverage": 0.9698996655518395,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      }
+    }
+  },
+  "limitations": [
+    "The target averages historical periods 1, 2 and 3 only; fourth-quarter results and workbook final grades are excluded.",
+    "Historical periods include quarters and older transmutation tables; performance in the live MATATAG setting has not been validated.",
+    "Only a small number of final grades failed; failure probabilities are less certain than grade errors.",
+    "Complete three-period records were available only from two elementary schools. Neither checkpoint is validated for Grade 8 or other high-school grades.",
+    "This checkpoint requires 2 completed period(s) in the same subject and school-year enrollment.",
+    "A second checkpoint has separate validation results; its interval is not a guarantee."
+  ]
+}

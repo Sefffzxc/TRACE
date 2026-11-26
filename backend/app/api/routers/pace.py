@@ -44,6 +44,7 @@ from app.schemas.students import (
 from app.services import grading, ml_client, risk
 from app.services.access import class_access
 from app.services.audit import Action, log_event
+from app.services.forecasting import forecast_records
 from app.services.school_years import resolve_school_year_id, require_current_year_record
 from app.services.enrichment import (Lookups, latest_predictions,
                                      term_grades_by_subject,
@@ -332,51 +333,6 @@ async def _grade_label(
     return level.name if level is not None else None
 
 
-async def _first_term_records(
-    db: AsyncSession, rows: list[StudentPace], school_id: int
-) -> list[StudentPace]:
-    """The graded first-term record behind each saved record, one per subject.
-
-    The model reads a learner's FIRST term in a subject and answers for the
-    rest of that year, so whichever term was just saved, the record it is
-    asked about is the first one. It is only asked once that term has all
-    three components in; before that the rule's reading stands alone.
-
-    Records already in hand are used as they are, so a first term saved in
-    this same request is read with the values just written.
-    """
-    in_hand = {
-        (r.enrollment_id, r.subject): r
-        for r in rows
-        if (r.grading_period or 1) == ml_client.FIRST_TERM
-    }
-    wanted = {(r.enrollment_id, r.subject) for r in rows if r.enrollment_id}
-    missing = wanted - set(in_hand)
-    if missing:
-        stored = (
-            await db.execute(
-                scoped(
-                    select(StudentPace).where(
-                        StudentPace.grading_period == ml_client.FIRST_TERM,
-                        StudentPace.enrollment_id.in_(
-                            {enrollment for enrollment, _ in missing}
-                        ),
-                    ),
-                    StudentPace,
-                    school_id,
-                )
-            )
-        ).scalars().all()
-        for r in stored:
-            in_hand.setdefault((r.enrollment_id, r.subject), r)
-
-    return [
-        in_hand[key]
-        for key in sorted(wanted, key=lambda k: (k[0], k[1]))
-        if key in in_hand and ml_client.first_term_ready(in_hand[key])
-    ]
-
-
 async def _record_prediction(
     db: AsyncSession,
     row: StudentPace,
@@ -385,9 +341,8 @@ async def _record_prediction(
 ) -> Optional[AIRiskPrediction]:
     """Ask the classifier about this learner's year and log the answer.
 
-    The model reads the learner's graded first-term record in this subject,
-    whichever term was saved. Returns None while that term is not yet graded:
-    there is nothing yet for the model to read.
+    Uses both completed periods when available, otherwise the first one.
+    Returns None while the first period is still incomplete.
 
     Appends — never updates. The history of what the model said, and on what
     input, is part of the evidence trail for the study, so a re-score adds a
@@ -396,16 +351,16 @@ async def _record_prediction(
     This cannot fail the save: ``ml_client.predict`` catches everything and
     returns a rule-based result marked ``source="fallback"`` instead.
     """
-    first_terms = await _first_term_records(db, [row], school_id)
-    if not first_terms:
+    checkpoints = await forecast_records(db, [row], school_id)
+    if not checkpoints:
         return None
-    first = first_terms[0]
-    result = await ml_client.predict(first, grade_label)
+    first, second = checkpoints[0]
+    result = await ml_client.predict(first, grade_label, second_term=second)
     prediction = AIRiskPrediction(
         school_id=school_id,
         student_id=first.student_id,
         enrollment_id=first.enrollment_id,
-        pace_id=first.pace_id,
+        pace_id=(second or first).pace_id,
         subject=first.subject,
         **result.as_columns(),
     )
@@ -785,20 +740,16 @@ async def _score_batch(
 ) -> dict:
     """Score the learners behind a list of saved records and log every answer.
 
-    The model reads each learner's graded FIRST-TERM record in the subject and
-    answers for the rest of the year, so the records sent are first terms,
-    one per learner and subject, whichever terms were saved. A learner whose
-    first term is not yet fully graded is held back: until written works,
-    performance tasks and the examinations are all in, there is nothing for
-    the model to read, and the rule's reading stands alone.
+    Uses the same completed-period selection as single saves and explicit
+    updates. An incomplete second period retains the first-period checkpoint.
     """
     if not rows:
         return {"scored": 0, "fallback": 0, "source": "none"}
 
     subjects = {(r.enrollment_id, r.subject) for r in rows if r.enrollment_id}
-    first_terms = await _first_term_records(db, rows, school_id)
-    held_back = len(subjects) - len(first_terms)
-    if not first_terms:
+    checkpoints = await forecast_records(db, rows, school_id)
+    held_back = len(subjects) - len(checkpoints)
+    if not checkpoints:
         return {
             "scored": 0,
             "fallback": 0,
@@ -810,7 +761,7 @@ async def _score_batch(
                 "rest of their year."
             ),
         }
-    rows = first_terms
+    rows = [first for first, _ in checkpoints]
 
     labels: dict[int, Optional[str]] = {}
     for row in rows:
@@ -820,12 +771,12 @@ async def _score_batch(
             )
 
     results = await ml_client.predict_many(
-        [(row, labels.get(row.enrollment_id)) for row in rows]
+        [(first, labels.get(first.enrollment_id), second) for first, second in checkpoints]
     )
 
     fallbacks = 0
     versions: set[str] = set()
-    for row, result in zip(rows, results):
+    for (row, second), result in zip(checkpoints, results):
         if result.source == "fallback":
             fallbacks += 1
         else:
@@ -835,7 +786,7 @@ async def _score_batch(
                 school_id=school_id,
                 student_id=row.student_id,
                 enrollment_id=row.enrollment_id,
-                pace_id=row.pace_id,
+                pace_id=(second or row).pace_id,
                 subject=row.subject,
                 **result.as_columns(),
             )

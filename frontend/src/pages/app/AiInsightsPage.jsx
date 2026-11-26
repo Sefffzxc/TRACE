@@ -13,10 +13,12 @@ import {
 import {
   AI_HELP,
   AiInputTable,
+  AiPredictionBasis,
   AiRiskBadge,
   AiServiceNote,
   ModelCard,
   finalGradeText,
+  predictionBasis,
 } from '../../components/common/ai';
 import {
   Avatar,
@@ -29,6 +31,7 @@ import {
 import { aiApi, assignmentApi, sectionApi } from '../../api/endpoints';
 import { useToast } from '../../context/ToastContext';
 import { useSchoolYear } from '../../context/SchoolYearContext';
+import { useAuth } from '../../context/AuthContext';
 import { assignedSections, matchesSection, sectionLabel } from '../../lib/classAccess';
 import { formatPersonName } from '../../lib/personName';
 
@@ -50,6 +53,7 @@ export default function AiInsightsPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { year } = useSchoolYear();
+  const { periodLabel } = useAuth();
 
   const [status, setStatus] = useState(null);
   const [card, setCard] = useState(null);
@@ -138,11 +142,11 @@ export default function AiInsightsPage() {
         toast.info('Nothing to score yet.');
       } else if (result.source === 'model') {
         toast.success(
-          `Re-scored ${result.scored} record${result.scored === 1 ? '' : 's'}.`,
+          `Updated ${result.scored} prediction${result.scored === 1 ? '' : 's'}.`,
         );
       } else if (result.source === 'fallback') {
         toast.warning(
-          'The AI service is asleep, so the school rule was used. Try again in a minute.',
+          'The AI service could not provide these forecasts, so the school rule was used.',
         );
       } else {
         toast.warning(
@@ -172,7 +176,7 @@ export default function AiInsightsPage() {
     const header = [
       'Student', 'Section', 'Subject', 'Expected final grade', 'Range low', 'Range high',
       'Chance of failing', 'Level', 'Threshold',
-      'Primary factor', 'Source', 'Model version', 'Inputs imputed', 'Scored at',
+      'Primary factor', 'Source', 'Model version', 'Inputs imputed', 'Scored at', 'Prediction basis',
     ];
     const lines = filtered.map((row) =>
       [
@@ -180,6 +184,7 @@ export default function AiInsightsPage() {
         row.predicted_final ?? '', row.range_low ?? '', row.range_high ?? '', row.risk_score,
         row.risk_level, row.used_threshold, row.primary_factor || '', row.source,
         row.model_version, (row.imputed_fields || []).join('; '), row.created_at || '',
+        predictionBasis(row, periodLabel) || '',
       ]
         .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
         .join(','),
@@ -217,7 +222,7 @@ export default function AiInsightsPage() {
               onClick={rescore}
               disabled={rescoring || loading || Boolean(error) || !sections.length}
             >
-              <RefreshCw size={16} /> {rescoring ? 'Re-scoring…' : 'Re-score records'}
+              <RefreshCw size={16} /> {rescoring ? 'Updating…' : 'Update predictions'}
             </button>
           </>
         }
@@ -408,6 +413,7 @@ export default function AiInsightsPage() {
                       <td>{row.subject}</td>
                       <td>
                         <AiRiskBadge prediction={row} compact />
+                        <div><AiPredictionBasis prediction={row} /></div>
                       </td>
                       <td className="faint">{row.primary_factor || '—'}</td>
                       <td>
@@ -436,7 +442,10 @@ export default function AiInsightsPage() {
         </div>
       </div>
 
-      <ModelCard card={card} />
+      <ModelCard card={card} title={`After the First ${periodLabel}`} />
+      {card?.second_term_model && (
+        <ModelCard card={card.second_term_model} title={`After the Second ${periodLabel}`} />
+      )}
 
       {!card && status?.reachable === false && (
         <div className="card">
@@ -468,7 +477,7 @@ export default function AiInsightsPage() {
             <div className="alert alert-warning">
               <ServerOff size={17} />
               <span>
-                From the school rule; the AI service was asleep.
+                From the school rule; the AI service could not provide this forecast.
               </span>
             </div>
           )}
@@ -480,6 +489,7 @@ export default function AiInsightsPage() {
               </span>
             </div>
           )}
+          <p><AiPredictionBasis prediction={detail} /></p>
           <AiInputTable prediction={detail} />
           {detail.suggested_action && (
             <p style={{ marginTop: '0.9rem' }}>

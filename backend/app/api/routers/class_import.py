@@ -423,8 +423,8 @@ async def import_class_record(
                             "skipped": result["skipped"]})
         touched.extend(result["rows"])
 
-    # The forecast reads each learner's first term, whichever terms came in,
-    # so it is asked for once for the whole file.
+    # Score once after every period is saved, so a completed second period
+    # from the same file is included in the updated forecast.
     ai = await _score_batch(db, touched, scope) if touched else None
 
     await log_event(

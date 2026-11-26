@@ -16,7 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Avatar, EmptyState, ErrorNote, ProgressBar, RiskBadge } from '../../components/common/ui';
-import { AiReason, AiRiskBadge } from '../../components/common/ai';
+import { AiPredictionBasis, AiReason, AiRiskBadge } from '../../components/common/ai';
 import { gradingPeriods, periodName } from '../../lib/grading';
 import { BASIS_LABEL } from '../../lib/standing';
 import { gradeLevelApi, sectionApi, studentApi } from '../../api/endpoints';
@@ -454,6 +454,7 @@ export default function StudentProfilePage() {
                     <AiRiskBadge prediction={subject.ai} />
                   </div>
                   <AiReason prediction={subject.ai} />
+                  <AiPredictionBasis prediction={subject.ai} />
                 </article>
               ))}
             </div>

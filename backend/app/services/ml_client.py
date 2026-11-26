@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -43,7 +44,7 @@ from app.services import risk
 
 # The model's inputs, named exactly as the training columns and the fields of
 # StudentRecord in ai-service/main.py; the three must be changed together.
-# See ml/train_final_grade_model.py for why each is there.
+# See ml/train_second_term_model.py; second-period inputs use the q2_ prefix.
 MODEL_FIELDS = (
     "q1_term_grade",
     "q1_initial_grade",
@@ -54,16 +55,19 @@ MODEL_FIELDS = (
     "grade_level",
 )
 
-# The final-grade model reads the FIRST term and nothing else.
 FIRST_TERM = 1
+SECOND_TERM = 2
+SECOND_TERM_FIELDS = tuple(field.replace("q1_", "q2_")
+                           for field in MODEL_FIELDS if field.startswith("q1_"))
 
-# The fallback rule: "final grade = first-term grade + the average rise for
-# the grade level", with its range and chance of failing read off the rule's
-# own errors. Written by ml/train_final_grade_model.py from the same rows the
-# model was fitted on, so the two answer the same question on the same
-# footing. Loaded once; it is a few kilobytes.
-_RULE_PATH = Path(__file__).with_name("final_grade_rule.json")
+# Each fallback adds a learned grade-level rise to its checkpoint's known
+# grade mean. Calibration errors and fitted parameters are packaged by the
+# same script as the models, so both checkpoints answer the same question.
+_RULE_PATH = Path(__file__).with_name("final_grade_rule_first_term.json")
 RULE = json.loads(_RULE_PATH.read_text(encoding="utf-8"))
+SECOND_TERM_RULE = json.loads(
+    _RULE_PATH.with_name("final_grade_rule_second_term.json").read_text(encoding="utf-8")
+)
 PASSING = float(RULE["passing"])
 
 # How the rule engine's four levels collapse onto the model's two, for the
@@ -137,8 +141,15 @@ def first_term_ready(record) -> bool:
     the examinations still blank is a term in progress, and the model was
     trained on finished terms.
     """
+    return term_ready(record, FIRST_TERM)
+
+
+def term_ready(record, period: int) -> bool:
+    """A checkpoint needs a completed record, including every examination."""
     return (
-        (getattr(record, "grading_period", None) or FIRST_TERM) == FIRST_TERM
+        record is not None
+        and getattr(record, "grading_period", None) == period
+        and bool(getattr(record, "record_complete", False))
         and _num(getattr(record, "ww_percent", None)) is not None
         and _num(getattr(record, "pt_percent", None)) is not None
         and _num(getattr(record, "exam_percent", None)) is not None
@@ -147,11 +158,12 @@ def first_term_ready(record) -> bool:
     )
 
 
-def features_from_record(record, grade_level_label: Optional[str] = None
+def features_from_record(record, grade_level_label: Optional[str] = None,
+                         second_term=None
                          ) -> Dict[str, Any]:
-    """Read the model's seven inputs off a learner's FIRST-TERM record.
+    """Read seven first-period inputs, adding six for a completed second one.
 
-    The first-term grade is the anchor: the model predicts the change from it
+    The mean of the known grades is the anchor: the model predicts a change
     and the service adds that change back, so the answer is on the scale the
     school itself reports. The examinations percentage is the combined
     component (ST1, ST2 and the term examination), the figure the class
@@ -165,7 +177,7 @@ def features_from_record(record, grade_level_label: Optional[str] = None
     pt = _num(getattr(record, "pt_percent", None))
     ex = _num(getattr(record, "exam_percent", None))
     parts = [v for v in (ww, pt, ex) if v is not None]
-    return {
+    features = {
         "q1_term_grade": _num(getattr(record, "transmuted_grade", None)),
         "q1_initial_grade": _num(getattr(record, "initial_grade", None)),
         "q1_ww_pct": ww,
@@ -176,6 +188,16 @@ def features_from_record(record, grade_level_label: Optional[str] = None
         "q1_component_gap": round(max(parts) - min(parts), 2) if len(parts) == 3 else None,
         "grade_level": grade_level_number(grade_level_label),
     }
+    if second_term is not None:
+        if not first_term_ready(record) or not term_ready(second_term, SECOND_TERM):
+            raise ValueError("Both periods must be complete for an updated forecast.")
+        if any(getattr(record, key, None) != getattr(second_term, key, None)
+               for key in ("school_id", "student_id", "enrollment_id", "subject")):
+            raise ValueError("Forecast periods must belong to the same learner, subject and enrollment.")
+        second = features_from_record(second_term, grade_level_label)
+        features.update({key.replace("q1_", "q2_"): value
+                         for key, value in second.items() if key.startswith("q1_")})
+    return features
 
 
 # The previous name, kept so existing callers keep working.
@@ -186,33 +208,38 @@ def _num(value) -> Optional[float]:
     if value is None:
         return None
     try:
-        return float(value)
+        number = float(value)
+        return number if math.isfinite(number) else None
     except (TypeError, ValueError):
         return None
 
 
 def coverage(features: Dict[str, Any]) -> float:
     """Fraction of the model's inputs that were actually encoded (0–1)."""
-    present = sum(1 for key in MODEL_FIELDS if features.get(key) is not None)
-    return round(present / len(MODEL_FIELDS), 3)
+    fields = MODEL_FIELDS + SECOND_TERM_FIELDS if "q2_term_grade" in features else MODEL_FIELDS
+    present = sum(1 for key in fields if features.get(key) is not None)
+    return round(present / len(fields), 3)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # The rule-based fallback
 # ══════════════════════════════════════════════════════════════════════════════
-def rule_projection(first_grade: float, grade_level: Optional[float]) -> dict:
+def rule_projection(first_grade: float, grade_level: Optional[float],
+                    second_grade: Optional[float] = None) -> dict:
     """The fallback rule's answer, in the same shape as the model's.
 
-    Final grade = first-term grade + the average rise for the grade level
+    Final grade = known-grade mean + the average rise for the grade level
     (the overall average rise for a grade level the training data did not
     have). The range and the chance of failing are read off the rule's own
     errors, measured on the same rows the model was trained on.
     """
+    rule = SECOND_TERM_RULE if second_grade is not None else RULE
+    anchor = (first_grade + second_grade) / 2 if second_grade is not None else first_grade
     level_key = str(int(grade_level)) if grade_level is not None else None
-    rise = RULE["rise_by_grade_level"].get(level_key, RULE["overall_rise"])
-    final = first_grade + rise
-    low_off, high_off = RULE["interval_offsets"]
-    quantiles = RULE["residual_quantiles"]          # 0th..100th percentile
+    rise = rule["rise_by_grade_level"].get(level_key, rule["overall_rise"])
+    final = anchor + rise
+    low_off, high_off = rule["interval_offsets"]
+    quantiles = rule["residual_quantiles"]          # 0th..100th percentile
     # Share of the rule's past errors that would carry it below 75.
     below = sum(1 for q in quantiles if q < PASSING - final)
 
@@ -234,7 +261,7 @@ def fallback_prediction(pace, reason: str, features: Dict[str, Any]) -> Predicti
     unreachable or switched off.
 
     For a class-record school the stand-in is the rule the model is measured
-    against: first-term grade plus the average rise for the grade level. It
+    against: known-grade mean plus the average rise for the grade level. It
     gives the same kind of answer — an expected final grade, a range and a
     chance of failing — and on the training data it is nearly as accurate.
     A school tracking PACE booklets has no first-term grade and falls back to
@@ -247,7 +274,9 @@ def fallback_prediction(pace, reason: str, features: Dict[str, Any]) -> Predicti
     if first_grade is None:
         first_grade = _num(getattr(pace, "transmuted_grade", None))
     if first_grade is not None:
-        p = rule_projection(first_grade, features.get("grade_level"))
+        second_grade = features.get("q2_term_grade")
+        rule = SECOND_TERM_RULE if second_grade is not None else RULE
+        p = rule_projection(first_grade, features.get("grade_level"), second_grade)
         at_risk = p["fail_chance"] >= 0.5
         return PredictionResult(
             risk_score=p["fail_chance"],
@@ -256,15 +285,15 @@ def fallback_prediction(pace, reason: str, features: Dict[str, Any]) -> Predicti
             range_low=p["range_low"],
             range_high=p["range_high"],
             used_threshold=0.5,
-            primary_factor=("first-term grade (rule-based)" if at_risk else None),
+            primary_factor=(("first two periods (rule-based)" if second_grade is not None
+                             else "first-period grade (rule-based)") if at_risk else None),
             suggested_action=(
-                "The first term points to a final grade below 75, and final "
-                "grades rarely move far from the first term. Meet the learner "
-                "now and plan for the next term's written works and "
-                "performance tasks."
+                "The completed periods point to a final grade below 75. "
+                "Review the results with the learner and plan support for "
+                "the next written works and performance tasks."
                 if at_risk else None),
             source="fallback",
-            model_version=f"rule-based ({RULE['version']})",
+            model_version=f"rule-based ({rule['version']})",
             used_baseline_defaults=False,
             imputed_fields=[],
             features=features,
@@ -380,9 +409,9 @@ def _from_payload(payload: dict, features: Dict[str, Any], latency_ms: int) -> P
 
 
 async def predict(pace, grade_level_label: Optional[str] = None,
-                  timeout: Optional[float] = None) -> PredictionResult:
+                  timeout: Optional[float] = None, *, second_term=None) -> PredictionResult:
     """Score one PACE row. Never raises."""
-    features = features_from_pace(pace, grade_level_label)
+    features = features_from_pace(pace, grade_level_label, second_term)
 
     if not settings.AI_ENABLED:
         return fallback_prediction(pace, "AI_ENABLED is off.", features)
@@ -410,12 +439,13 @@ async def predict_many(
 ) -> List[PredictionResult]:
     """Score many PACE rows in one request.
 
-    ``rows`` is a sequence of ``(pace_row, grade_level_label)`` pairs. The order
+    ``rows`` contains ``(first_row, grade_level_label[, second_row])`` tuples. The order
     of the results matches the order of the input. If the batch call fails,
     *every* row comes back as a fallback — a partial mix would be harder to
     interpret than a clean "the model was unavailable for this run".
     """
-    prepared = [(pace, features_from_pace(pace, label)) for pace, label in rows]
+    prepared = [(item[0], features_from_pace(item[0], item[1],
+                  item[2] if len(item) > 2 else None)) for item in rows]
     if not prepared:
         return []
 

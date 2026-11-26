@@ -1,0 +1,218 @@
+{
+  "model": "RandomForestRegressor",
+  "version": "5.0.0-first-term",
+  "task": "Predict final subject grade from 1 completed period(s); report an 80% range and chance of failing.",
+  "target": "Three-period final grade: mean of grades in periods 1, 2 and 3",
+  "dataset": {
+    "source": "Class_Record_Dataset_v6; observed periods 1, 2 and 3 in the same learner-subject-year",
+    "rows_used": 975,
+    "learners": 281,
+    "failed": 7,
+    "schools": {
+      "Deogracias U. Tenazas Memorial Elementary School": 676,
+      "Gumagamot Elementary School": 299
+    },
+    "grade_levels": {
+      "1": 85,
+      "3": 148,
+      "4": 211,
+      "5": 297,
+      "6": 234
+    }
+  },
+  "features_used": [
+    "q1_term_grade",
+    "q1_initial_grade",
+    "q1_ww_pct",
+    "q1_pt_pct",
+    "q1_exam_pct",
+    "q1_component_gap",
+    "grade_level"
+  ],
+  "features_excluded": {
+    "Later periods and final grade": "labels only; unavailable at prediction time",
+    "Names, sex and identifiers": "not model inputs"
+  },
+  "protocol": {
+    "splits": "5-fold GroupKFold by learner; all subjects and years of each learner stay together",
+    "range_and_fail_chance": "inner 4-fold learner-group out-of-fold residuals within each training fold",
+    "transfer": "leave one school out; learner-group calibration on remaining schools",
+    "baseline": "Baseline: first-period grade + average rise for the grade level"
+  },
+  "interval": 0.8,
+  "interval_offsets": [
+    -1.3616512578466138,
+    1.550033780376548
+  ],
+  "results": [
+    {
+      "model": "Random Forest",
+      "mae": 0.9019145299145299,
+      "rmse": 1.2519233692765854,
+      "within_1": 0.676923076923077,
+      "within_2": 0.8994871794871795,
+      "range_coverage": 0.8112820512820513,
+      "fail_tp": 6,
+      "fail_fn": 1,
+      "fail_fp": 0
+    },
+    {
+      "model": "Extra Trees",
+      "mae": 0.9172649572649575,
+      "rmse": 1.27061086007264,
+      "within_1": 0.6779487179487179,
+      "within_2": 0.8912820512820513,
+      "range_coverage": 0.7948717948717948,
+      "fail_tp": 6,
+      "fail_fn": 1,
+      "fail_fp": 0
+    },
+    {
+      "model": "Baseline: first-period grade + average rise for the grade level",
+      "mae": 0.9261196581196571,
+      "rmse": 1.3279819825365415,
+      "within_1": 0.6523076923076923,
+      "within_2": 0.8748717948717949,
+      "range_coverage": 0.7979487179487179,
+      "fail_tp": 6,
+      "fail_fn": 1,
+      "fail_fp": 0
+    },
+    {
+      "model": "Ridge Regression",
+      "mae": 0.9312136752136753,
+      "rmse": 1.2979920784675052,
+      "within_1": 0.6779487179487179,
+      "within_2": 0.8810256410256411,
+      "range_coverage": 0.8071794871794872,
+      "fail_tp": 6,
+      "fail_fn": 1,
+      "fail_fp": 0
+    },
+    {
+      "model": "Baseline: first-period grade",
+      "mae": 1.2892307692307694,
+      "rmse": 1.5783782679641856,
+      "within_1": 0.56,
+      "within_2": 0.8533333333333334,
+      "range_coverage": 0.7917948717948718,
+      "fail_tp": 6,
+      "fail_fn": 1,
+      "fail_fp": 0
+    }
+  ],
+  "leave_one_school_out": {
+    "Deogracias U. Tenazas Memorial Elementary School": {
+      "Ridge Regression": {
+        "mae": 1.049112426035503,
+        "rmse": 1.445566119888364,
+        "within_1": 0.6346153846153846,
+        "within_2": 0.8609467455621301,
+        "range_coverage": 0.6449704142011834,
+        "fail_tp": 6,
+        "fail_fn": 1,
+        "fail_fp": 0
+      },
+      "Extra Trees": {
+        "mae": 1.0728796844181463,
+        "rmse": 1.472769488795477,
+        "within_1": 0.5946745562130178,
+        "within_2": 0.863905325443787,
+        "range_coverage": 0.5931952662721893,
+        "fail_tp": 6,
+        "fail_fn": 1,
+        "fail_fp": 0
+      },
+      "Random Forest": {
+        "mae": 1.08698224852071,
+        "rmse": 1.4955577438382324,
+        "within_1": 0.584319526627219,
+        "within_2": 0.8579881656804734,
+        "range_coverage": 0.5961538461538461,
+        "fail_tp": 6,
+        "fail_fn": 1,
+        "fail_fp": 0
+      },
+      "Baseline: first-period grade": {
+        "mae": 1.3653846153846154,
+        "rmse": 1.6501648553908568,
+        "within_1": 0.5310650887573964,
+        "within_2": 0.8387573964497042,
+        "range_coverage": 0.6997041420118343,
+        "fail_tp": 6,
+        "fail_fn": 1,
+        "fail_fp": 0
+      },
+      "Baseline: first-period grade + average rise for the grade level": {
+        "mae": 0.9684418145956601,
+        "rmse": 1.435969549471209,
+        "within_1": 0.6686390532544378,
+        "within_2": 0.8594674556213018,
+        "range_coverage": 0.7026627218934911,
+        "fail_tp": 6,
+        "fail_fn": 1,
+        "fail_fp": 0
+      }
+    },
+    "Gumagamot Elementary School": {
+      "Ridge Regression": {
+        "mae": 0.7752508361204016,
+        "rmse": 1.0385902173327095,
+        "within_1": 0.7357859531772575,
+        "within_2": 0.9464882943143813,
+        "range_coverage": 0.8896321070234113,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Extra Trees": {
+        "mae": 0.8199554069119285,
+        "rmse": 1.1020183503211027,
+        "within_1": 0.6989966555183946,
+        "within_2": 0.9297658862876255,
+        "range_coverage": 0.862876254180602,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Random Forest": {
+        "mae": 0.8795986622073583,
+        "rmse": 1.1761219016796491,
+        "within_1": 0.6555183946488294,
+        "within_2": 0.9163879598662207,
+        "range_coverage": 0.8528428093645485,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Baseline: first-period grade": {
+        "mae": 1.1170568561872911,
+        "rmse": 1.427031074851421,
+        "within_1": 0.6254180602006689,
+        "within_2": 0.8862876254180602,
+        "range_coverage": 0.8795986622073578,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      },
+      "Baseline: first-period grade + average rise for the grade level": {
+        "mae": 0.761538461538461,
+        "rmse": 1.0121539372627377,
+        "within_1": 0.7692307692307693,
+        "within_2": 0.9498327759197325,
+        "range_coverage": 0.8963210702341137,
+        "fail_tp": 0,
+        "fail_fn": 0,
+        "fail_fp": 0
+      }
+    }
+  },
+  "limitations": [
+    "The target averages historical periods 1, 2 and 3 only; fourth-quarter results and workbook final grades are excluded.",
+    "Historical periods include quarters and older transmutation tables; performance in the live MATATAG setting has not been validated.",
+    "Only a small number of final grades failed; failure probabilities are less certain than grade errors.",
+    "Complete three-period records were available only from two elementary schools. Neither checkpoint is validated for Grade 8 or other high-school grades.",
+    "This checkpoint requires 1 completed period(s) in the same subject and school-year enrollment.",
+    "A second checkpoint has separate validation results; its interval is not a guarantee."
+  ]
+}

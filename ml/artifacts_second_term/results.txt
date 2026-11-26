@@ -1,0 +1,9 @@
+975 paired rows; 281 learners
+Selected: Extra Trees
+                                                                 model    mae   rmse  within_1  within_2  range_coverage  fail_tp  fail_fn  fail_fp
+                                                           Extra Trees 0.4664 0.7283    0.8944    0.9764          0.8031        7        0        0
+                                                         Random Forest 0.4734 0.7363    0.8821    0.9744          0.8154        7        0        0
+                                                      Ridge Regression 0.5170 0.7955    0.8779    0.9631          0.8072        7        0        0
+Baseline: mean of first two periods + average rise for the grade level 0.5267 0.8121    0.8667    0.9621          0.8041        7        0        0
+                        Baseline: carry second-period grade into third 0.5551 0.8335    0.8790    0.9631          0.7867        7        0        0
+                                   Baseline: mean of first two periods 0.6484 0.8706    0.8636    0.9641          0.8051        7        0        0

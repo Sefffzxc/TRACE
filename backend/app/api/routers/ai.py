@@ -40,6 +40,7 @@ from app.schemas.students import (
 )
 from app.services import ml_client
 from app.services.access import class_access
+from app.services.forecasting import forecast_records
 from app.services.school_years import resolve_school_year_id
 from app.services.enrichment import (Lookups, is_year_prediction,
                                      newest_year_predictions,
@@ -288,8 +289,8 @@ async def rescore(
     is always answerable.
     """
     school_year_id = await resolve_school_year_id(db, scope, required=True)
-    # The model reads a learner's graded first term and answers for the rest
-    # of the year, so those are the only records it is asked about.
+    # First periods identify eligible learner-subjects. The shared selector
+    # then adds their completed second period when one is available.
     stmt = scoped(
         select(StudentPace)
         .where(
@@ -354,6 +355,11 @@ async def rescore(
                                "starts once a first term has written works, "
                                "performance tasks and examinations.")
 
+    seconds = {first.pace_id: second for first, second in await forecast_records(
+        db, [row for row, _ in selected], scope
+    )}
+    selected = [(row, label, seconds.get(row.pace_id)) for row, label in selected]
+
     # The AI service caps a batch, so send it in chunks of that size.
     chunk = max(1, settings.AI_BATCH_SIZE)
     fallbacks, versions, first_error = 0, set(), None
@@ -361,7 +367,7 @@ async def rescore(
     for start in range(0, len(selected), chunk):
         part = selected[start:start + chunk]
         results = await ml_client.predict_many(part)
-        for (row, _label), result in zip(part, results):
+        for (row, _label, second), result in zip(part, results):
             if result.source == "fallback":
                 fallbacks += 1
                 first_error = first_error or result.error
@@ -372,7 +378,7 @@ async def rescore(
                     school_id=scope,
                     student_id=row.student_id,
                     enrollment_id=row.enrollment_id,
-                    pace_id=row.pace_id,
+                    pace_id=(second or row).pace_id,
                     subject=row.subject,
                     **result.as_columns(),
                 )
