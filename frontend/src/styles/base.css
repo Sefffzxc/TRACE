@@ -339,6 +339,15 @@ button { font: inherit; }
 }
 .badge-plain::before { display: none; }
 
+.risk-text-low { color: var(--ok-700); }
+.risk-text-moderate { color: var(--warn-700); }
+.risk-text-high { color: var(--risk-700); }
+.risk-text-critical { color: var(--crit-700); }
+:root[data-theme="dark"] .risk-text-low { color: var(--ok-500); }
+:root[data-theme="dark"] .risk-text-moderate { color: var(--warn-500); }
+:root[data-theme="dark"] .risk-text-high { color: var(--risk-500); }
+:root[data-theme="dark"] .risk-text-critical { color: var(--crit-500); }
+
 .badge-low      { background: var(--ok-50);   color: var(--ok-700);   border-color: var(--ok-200); }
 .badge-moderate { background: var(--warn-50); color: var(--warn-700); border-color: var(--warn-200); }
 .badge-high     { background: var(--risk-50); color: var(--risk-700); border-color: var(--risk-200); }

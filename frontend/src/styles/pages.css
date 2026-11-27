@@ -966,6 +966,26 @@
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
+.cr-risk-name { font-weight: 650; }
+.cr-risk-label { margin: .25rem 0 0 1.4rem; font-size: var(--text-2xs); }
+.cr-risk-label .badge { font-size: var(--text-2xs); }
+
+.gs-note { margin: 0 0 1rem; font-size: var(--text-sm); }
+.gs-scroll { max-height: 70vh; }
+.gs-caption { padding: .85rem 1rem; text-align: left; color: var(--text-muted); font-size: var(--text-sm); }
+.gs-table th, .gs-table td { vertical-align: top; }
+.gs-table thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-sunken); }
+.gs-table .gs-student { min-width: 12rem; font-weight: 500; text-align: left; }
+.gs-table tbody th { padding: .7rem 1rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.gs-table tbody tr:last-child th { border-bottom: 0; }
+.gs-student > a { display: inline-block; color: var(--text-strong); font-weight: 650; margin-bottom: .2rem; }
+.gs-student > .badge { margin-top: .35rem; }
+.gs-forecast { min-width: 16rem; }
+.gs-forecast-value { margin-bottom: .3rem; font-size: var(--text-md); font-weight: 650; font-variant-numeric: tabular-nums; }
+.gs-small { font-size: var(--text-2xs); font-weight: 400; }
+.gs-final { min-width: 7rem; }
+.gs-final.is-complete { background: var(--brand-50); }
+.gs-final strong { font-size: var(--text-lg); color: var(--text-strong); }
 
 .cr-cell { padding: 3px; }
 

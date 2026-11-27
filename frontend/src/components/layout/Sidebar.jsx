@@ -70,7 +70,10 @@ export default function Sidebar({ collapsed, open, onNavigate, pendingCount, cri
               group: 'Monitoring',
             },
           ]
-        : [{ to: '/class-record', label: 'Class Record', icon: ClipboardList, group: 'Monitoring' }]),
+        : [
+            { to: '/class-record', label: 'Class Record', icon: ClipboardList, group: 'Monitoring' },
+            { to: '/grade-summary', label: 'Grade Summary', icon: GraduationCap, group: 'Monitoring' },
+          ]),
       {
         to: '/early-warning',
         label: 'Early Warning',

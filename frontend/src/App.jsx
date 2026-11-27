@@ -21,6 +21,7 @@ import StudentsPage from './pages/app/StudentsPage';
 import StudentProfilePage from './pages/app/StudentProfilePage';
 import RosterPage from './pages/app/RosterPage';
 import ClassRecordPage from './pages/app/ClassRecordPage';
+import GradeSummaryPage from './pages/app/GradeSummaryPage';
 import EarlyWarningPage from './pages/app/EarlyWarningPage';
 import AiInsightsPage from './pages/app/AiInsightsPage';
 import TeachersPage from './pages/app/TeachersPage';
@@ -254,6 +255,16 @@ function Router() {
             <RequireTeacher>
               <RequireGradeRecord>
                 <ClassRecordPage />
+              </RequireGradeRecord>
+            </RequireTeacher>
+          }
+        />
+        <Route
+          path="/grade-summary"
+          element={
+            <RequireTeacher>
+              <RequireGradeRecord>
+                <GradeSummaryPage />
               </RequireGradeRecord>
             </RequireTeacher>
           }

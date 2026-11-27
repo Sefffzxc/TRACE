@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useBlocker } from 'react-router-dom';
-import { Check, FileUp, Save, Search, Settings2 } from 'lucide-react';
+import { useBlocker, useNavigate, useSearchParams } from 'react-router-dom';
+import { Check, FileUp, GraduationCap, Save, Search, Settings2 } from 'lucide-react';
 import {
   EmptyState,
   ErrorNote,
   PageHead,
+  RiskBadge,
   TableSkeleton,
 } from '../../components/common/ui';
 import { AiServiceNote } from '../../components/common/ai';
@@ -12,6 +13,7 @@ import ImportClassRecord from '../../components/common/ImportClassRecord';
 import {
   aiApi,
   assignmentApi,
+  classRecordApi,
   sectionApi,
   subjectApi,
 } from '../../api/endpoints';
@@ -63,6 +65,10 @@ import { classRecordSelectionKey, readClassRecordSelection, saveClassRecordSelec
  */
 
 export default function ClassRecordPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedSection = searchParams.get('section_id');
+  const requestedSubject = searchParams.get('subject_id');
   const toast = useToast();
   const { year, yearId } = useSchoolYear();
 
@@ -94,6 +100,8 @@ export default function ClassRecordPage() {
   const [waking, setWaking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [riskSnapshot, setRiskSnapshot] = useState(null);
+  const [riskError, setRiskError] = useState('');
   // Advisory access permits viewing every subject; grading access remains
   // separate and permits editing only the teacher's teaching assignments.
   const [myClasses, setMyClasses] = useState({ unrestricted: false, grade: {}, advisory: [] });
@@ -116,7 +124,9 @@ export default function ClassRecordPage() {
         if (cancelled) return;
         const own = assignedSections(sectionRows, mine);
         const access = mine || { unrestricted: false, grade: {}, advisory: [] };
-        const saved = readClassRecordSelection(selectionKey);
+        const saved = { ...readClassRecordSelection(selectionKey) };
+        if (requestedSection) saved.sectionId = requestedSection;
+        if (requestedSubject) saved.subjectId = requestedSubject;
         const nextSection = own.find((row) => String(row.section_id) === String(saved.sectionId)) || own[0];
         const options = subjectsForSection(nextSection, subjectRows || [], access);
         const nextSubject = options.find((row) => String(row.subject_id) === String(saved.subjectId)) || options[0];
@@ -136,7 +146,7 @@ export default function ClassRecordPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [schoolReady, selectionKey]);
+  }, [schoolReady, selectionKey, requestedSection, requestedSubject]);
 
   // Wake the model while the teacher is still choosing a section, so the
   // first save is scored by the model rather than by the fallback rule.
@@ -195,6 +205,18 @@ export default function ClassRecordPage() {
   const { setup, setupDraft, setSetupDraft, setCell, saving, dirtyCount } = record;
   const loadingRoster = record.loading;
   const save = record.save;
+  const riskKey = `${yearId}:${sectionId}:${subjectId}`;
+  useEffect(() => {
+    if (!record.ready || record.saving || !sectionId || !subjectId) return undefined;
+    let live = true;
+    setRiskError('');
+    classRecordApi.summary({ section_id: sectionId, subject_id: subjectId, school_year_id: yearId })
+      .then((data) => { if (live) setRiskSnapshot({ key: riskKey, rows: data.rows }); })
+      .catch(() => { if (live) { setRiskSnapshot(null); setRiskError('Risk labels could not be loaded. Saved grades are available in Grade Summary.'); } });
+    return () => { live = false; };
+  }, [record.ready, record.saving, record.savedAt, sectionId, subjectId, yearId, riskKey]);
+  const riskLevels = useMemo(() => new Map((riskSnapshot?.key === riskKey ? riskSnapshot.rows : [])
+    .map((row) => [row.enrollment_id, row.risk_level])), [riskSnapshot, riskKey]);
   const rows = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return record.allRows.filter((row) => !needle || (row.enrollment.student_name || '').toLowerCase().includes(needle));
@@ -284,10 +306,16 @@ export default function ClassRecordPage() {
         subtitle={
           canEdit ? `Enter scores by ${periodLabel.toLowerCase()}. Grades compute as you type.` : 'View your advisory class records. Edit scores only for subjects assigned to you.'
         }
+        actions={<button type="button" className="btn btn-secondary"
+          disabled={!sectionId || !subjectId || changingContext || importing || loadingRoster}
+          onClick={() => changeContext(() => navigate(`/grade-summary?section_id=${sectionId}&subject_id=${subjectId}`))}>
+          <GraduationCap size={16} /> View grade summary
+        </button>}
       />
 
       <ErrorNote message={error} />
       <ErrorNote message={record.error} />
+      <ErrorNote message={riskError} />
       {!record.ready && !loadingRoster && sectionId && subjectId && <button type="button" className="btn btn-secondary" onClick={() => setSetupVersion((value) => value + 1)}>Retry loading record</button>}
       <AiServiceNote status={aiStatus} onRetry={wakeAi} busy={waking} />
 
@@ -552,7 +580,14 @@ export default function ClassRecordPage() {
                   <tr key={row.enrollment.enrollment_id} className={row.dirty ? 'cr-dirty' : ''}>
                     <th className="cr-sticky cr-name" scope="row">
                       <span className="cr-no">{index + 1}</span>
-                      {formatPersonName(row.enrollment.student_name)}
+                      <span className={`cr-risk-name${riskLevels.get(row.enrollment.enrollment_id) ? ` risk-text-${riskLevels.get(row.enrollment.enrollment_id)}` : ''}`}>
+                        {formatPersonName(row.enrollment.student_name)}
+                      </span>
+                      <div className="cr-risk-label">
+                        {riskLevels.get(row.enrollment.enrollment_id)
+                          ? <RiskBadge level={riskLevels.get(row.enrollment.enrollment_id)} />
+                          : <span className="faint">{riskSnapshot?.key === riskKey ? 'No standing yet' : 'Risk not loaded'}</span>}
+                      </div>
                     </th>
 
                     <ScoreCells

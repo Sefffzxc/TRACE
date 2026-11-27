@@ -24,6 +24,7 @@ const TITLES = {
   '/dashboard': 'Dashboard',
   '/students': 'Students',
   '/class-record': 'Class Record',
+  '/grade-summary': 'Grade Summary',
   '/early-warning': 'Early Warning',
   '/teachers': 'Teachers',
   '/approvals': 'Account Approvals',

@@ -201,6 +201,7 @@ export const paceApi = {
 
 /** The class record's header: the HIGHEST POSSIBLE SCORE row and the weights. */
 export const classRecordApi = {
+  summary: (params) => api.get('/api/grade-summary', params),
   getSetup: (params) => api.get('/api/class-record/setup', params),
   saveSetup: (params, payload) =>
     api.put(

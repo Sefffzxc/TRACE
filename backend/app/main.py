@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routers import (
     academic, ai, auth, class_import, dashboard, pace, schools, staff, students, resubmission,
-    email_corrections, registration_email,
+    email_corrections, registration_email, grade_summary,
 )
 from app.core.config import settings
 from app.db.session import init_models
@@ -188,6 +188,7 @@ for router in (
     class_import.router,
     dashboard.router,
     ai.router,
+    grade_summary.router,
     schools.router,
 ):
     app.include_router(router)
