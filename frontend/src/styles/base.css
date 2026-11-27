@@ -338,6 +338,9 @@ button { font: inherit; }
   flex: none;
 }
 .badge-plain::before { display: none; }
+.badge-compact { width: 1.1rem; height: 1.1rem; padding: 0; justify-content: center; flex: none; }
+.risk-legend { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
+.risk-legend .badge { padding: .1rem .4rem; font-weight: 500; }
 
 .risk-text-low { color: var(--ok-700); }
 .risk-text-moderate { color: var(--warn-700); }

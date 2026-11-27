@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Brain, ClipboardList, GraduationCap, RefreshCw, Search } from 'lucide-react';
+import { Brain, ChevronDown, ClipboardList, GraduationCap, RefreshCw, Search } from 'lucide-react';
 import { aiApi, assignmentApi, classRecordApi, sectionApi, subjectApi } from '../../api/endpoints';
-import { EmptyState, ErrorNote, PageHead, RiskBadge, TableSkeleton } from '../../components/common/ui';
+import { EmptyState, ErrorNote, PageHead, RiskBadge, RiskLegend, TableSkeleton } from '../../components/common/ui';
 import { AiPredictionBasis } from '../../components/common/ai';
 import { useAuth } from '../../context/AuthContext';
 import { useSchoolYear } from '../../context/SchoolYearContext';
 import { useToast } from '../../context/ToastContext';
 import { assignedSections, sectionLabel } from '../../lib/classAccess';
 import { classRecordSelectionKey, readClassRecordSelection, subjectsForSection } from '../../lib/classRecordSelection';
-import { periodName, show } from '../../lib/grading';
+import { show } from '../../lib/grading';
 import { formatPersonName } from '../../lib/personName';
 
 export default function GradeSummaryPage() {
@@ -91,7 +91,7 @@ export default function GradeSummaryPage() {
   return (
     <div className="page grade-summary-page">
       <PageHead title="Grade summary"
-        subtitle={`Recorded grades for ${year?.year || 'the selected school year'}. Averages use completed periods.`}
+        subtitle={`Recorded grades and forecasts for ${year?.year || 'the selected school year'}.`}
         actions={<>
           <Link className="btn btn-secondary" to={recordPath}><ClipboardList size={16} /> Open class record</Link>
           <button type="button" className="btn btn-secondary" onClick={() => setRefresh((n) => n + 1)}
@@ -115,10 +115,10 @@ export default function GradeSummaryPage() {
         <div className="search"><Search size={15} /><input className="input" type="search" placeholder="Find a learner..."
           aria-label="Find a learner" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
       </div>
-      {summary && !busy && <p className="faint gs-note">
-        {summary.rows.length} learner{summary.rows.length === 1 ? '' : 's'} · {finished} final grade{finished === 1 ? '' : 's'} ready · Passing mark {show(summary.passing_mark)}.
-        {' '}Final grades appear after all {summary.period_count} periods are complete. Forecasts are estimates.
-      </p>}
+      {summary && !busy && <div className="gs-meta">
+        <p className="faint gs-note">{summary.rows.length} learner{summary.rows.length === 1 ? '' : 's'} · {finished} final grade{finished === 1 ? '' : 's'} ready · Passing mark {show(summary.passing_mark)}</p>
+        <RiskLegend />
+      </div>}
       {yearReady && !yearId ? <EmptyState icon={GraduationCap} title="No current school year"
         description="Ask your administrator to select a school year." /> :
         !readyCatalog && !catalogError ? <TableSkeleton rows={8} /> : busy ? <TableSkeleton rows={8} /> :
@@ -128,26 +128,27 @@ export default function GradeSummaryPage() {
           title={search ? 'No learner matches your search' : 'No learners enrolled'}
           description={search ? 'Try another name or student ID.' : 'Add learners to this section to see their grade summary.'} /> :
         <div className="card"><div className="table-wrap gs-scroll"><table className="table gs-table">
-          <caption className="gs-caption">{summary?.section_name} - {summary?.subject} grade summary, {year?.year}</caption>
+          <caption className="visually-hidden">{summary?.section_name} - {summary?.subject} grade summary, {year?.year}</caption>
           <thead><tr>
             <th scope="col">Student</th>
-            {Array.from({ length: summary.period_count }, (_, n) => <th key={n} scope="col" className="right">{periodName(n + 1, summary.period_label || periodLabel)}</th>)}
-            <th scope="col" className="right">Current average</th>
-            <th scope="col">AI predicted final grade</th>
-            <th scope="col" className="right">Final grade</th>
-            <th scope="col">Result</th>
+            {Array.from({ length: summary.period_count }, (_, n) => <th key={n} scope="col" className="right">{summary.period_label || periodLabel} {n + 1}</th>)}
+            <th scope="col" className="right" title="Current average of completed periods">Average</th>
+            <th scope="col" title="AI predicted final grade. Open a forecast for its basis and saved time.">Predicted final</th>
+            <th scope="col" className="right" title={`Actual grade after all ${summary.period_count} periods are complete`}>Final grade</th>
+            <th scope="col" title={`Actual final result. Passing mark: ${show(summary.passing_mark)}.`}>Result</th>
           </tr></thead>
           <tbody>{rows.map((row) => <tr key={row.enrollment_id}>
             <th scope="row" className="gs-student">
-              <Link to={`/students/${row.student_id}`}>{formatPersonName(row.student_name)}</Link>
-              {row.login_id && <div className="faint">{row.login_id}</div>}
-              {row.risk_level ? <RiskBadge level={row.risk_level} /> : <span className="faint">No standing yet</span>}
+              <div className="gs-student-name">
+                <Link to={`/students/${row.student_id}`} title={[formatPersonName(row.student_name), row.login_id, !row.risk_level && 'No standing yet'].filter(Boolean).join(' · ')}>{formatPersonName(row.student_name)}</Link>
+                {row.risk_level ? <RiskBadge level={row.risk_level} compact /> : <span className="visually-hidden">No standing yet</span>}
+              </div>
             </th>
             {row.term_grades.map((grade, n) => <td key={n} className="right" title={grade == null ? 'This period is not complete.' : undefined}>{show(grade)}</td>)}
-            <td className="right cell-strong">{show(row.current_average)}<div className="faint gs-small">{row.completed_periods}/{summary.period_count} complete</div></td>
-            <td className="gs-forecast"><ForecastCell prediction={row.ai} completed={row.final_grade != null} /></td>
+            <td className="right cell-strong" title={`${row.completed_periods} of ${summary.period_count} periods complete`}>{show(row.current_average)}</td>
+            <td className="gs-forecast"><ForecastCell prediction={row.ai} completed={row.final_grade != null} studentName={formatPersonName(row.student_name)} /></td>
             <td className={`right gs-final ${row.final_grade != null ? 'is-complete' : ''}`}>
-              {row.final_grade == null ? <span className="faint">Pending</span> : <><strong>{show(row.final_grade)}</strong><div className="faint gs-small">{row.descriptor}</div></>}
+              {row.final_grade == null ? <span className="faint" title="Final grade pending">—</span> : <strong title={row.descriptor}>{show(row.final_grade)}</strong>}
             </td>
             <td>{row.result === 'Pending' ? <span className="faint">Pending</span> :
               <span className={`badge badge-${row.result === 'Passed' ? 'low' : 'critical'}`}>{row.result}</span>}</td>
@@ -157,19 +158,26 @@ export default function GradeSummaryPage() {
   );
 }
 
-function ForecastCell({ prediction, completed }) {
-  if (!prediction || prediction.predicted_final == null) return <span className="faint">No forecast yet</span>;
+function ForecastCell({ prediction, completed, studentName }) {
+  if (!prediction || prediction.predicted_final == null) return <span className="faint" title="No forecast yet">—</span>;
   const fallback = prediction.source === 'fallback';
-  return <div className={completed ? 'faint' : ''}>
-    <div className="gs-forecast-value">{show(prediction.predicted_final, 1)}
+  const rangeLabel = prediction.range_low != null && prediction.range_high != null
+    ? `, likely range ${show(prediction.range_low, 1)} to ${show(prediction.range_high, 1)}` : '';
+  return <details className="gs-forecast-details">
+    <summary className="gs-forecast-summary" aria-label={`${fallback ? 'Rule-based' : 'AI'} forecast for ${studentName}: ${show(prediction.predicted_final, 1)}${rangeLabel}. Details`}>
+      <strong className={completed ? 'faint' : ''}>{show(prediction.predicted_final, 1)}</strong>
       {prediction.range_low != null && prediction.range_high != null &&
-        <span className="faint gs-small"> ({show(prediction.range_low, 1)}–{show(prediction.range_high, 1)})</span>}
+        <span className="faint gs-small" title="Likely range">({show(prediction.range_low, 1)}–{show(prediction.range_high, 1)})</span>}
+      <span className={`badge badge-plain gs-source ${fallback ? 'badge-neutral' : 'badge-brand'}`}>
+        {fallback ? 'Rule-based' : 'AI'}
+      </span>
+      <ChevronDown size={13} aria-hidden="true" />
+    </summary>
+    <div className="gs-forecast-meta">
+      <div className="gs-small" title={fallback ? prediction.error || 'AI service unavailable.' : prediction.model_version}>{fallback ? 'Rule-based estimate' : 'AI prediction'} · estimated final grade</div>
+      <div><AiPredictionBasis prediction={prediction} /></div>
+      {prediction.created_at && <div className="gs-small faint">Forecast saved {new Date(prediction.created_at).toLocaleString()}</div>}
+      {completed && <div className="gs-small faint">Earlier forecast · actual final grade available</div>}
     </div>
-    <span className={`badge badge-plain ${fallback ? 'badge-neutral' : 'badge-brand'}`} title={fallback ? prediction.error || 'AI service unavailable.' : prediction.model_version}>
-      {fallback ? 'Rule-based estimate' : 'AI prediction'}
-    </span>
-    <div><AiPredictionBasis prediction={prediction} /></div>
-    {prediction.created_at && <div className="gs-small faint">Forecast saved {new Date(prediction.created_at).toLocaleString()}</div>}
-    {completed && <div className="gs-small faint">Earlier forecast · actual final grade available</div>}
-  </div>;
+  </details>;
 }

@@ -953,8 +953,8 @@
 .cr-table thead .cr-sticky { z-index: 4; background: var(--surface-sunken); }
 
 .cr-name {
-  min-width: 14rem;
-  max-width: 14rem;
+  min-width: 15rem;
+  max-width: 15rem;
   padding: 0.35rem 0.6rem !important;
   font-weight: 560;
   white-space: normal;
@@ -962,30 +962,39 @@
 }
 .cr-no {
   display: inline-block;
-  min-width: 1.4rem;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
-.cr-risk-name { font-weight: 650; }
-.cr-risk-label { margin: .25rem 0 0 1.4rem; font-size: var(--text-2xs); }
-.cr-risk-label .badge { font-size: var(--text-2xs); }
+.cr-name-line { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) auto; gap: .3rem; align-items: start; }
+.cr-name-line .badge { align-self: center; }
+.cr-risk-name { font-weight: 650; overflow-wrap: anywhere; }
+.cr-risk-key { padding: .5rem .6rem; border-bottom: 1px solid var(--border-subtle); }
 
-.gs-note { margin: 0 0 1rem; font-size: var(--text-sm); }
+.gs-meta { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; margin-bottom: .75rem; }
+.gs-note { margin: 0; font-size: var(--text-xs); }
 .gs-scroll { max-height: 70vh; }
-.gs-caption { padding: .85rem 1rem; text-align: left; color: var(--text-muted); font-size: var(--text-sm); }
-.gs-table th, .gs-table td { vertical-align: top; }
+.gs-table th, .gs-table td { vertical-align: middle; }
 .gs-table thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-sunken); }
-.gs-table .gs-student { min-width: 12rem; font-weight: 500; text-align: left; }
-.gs-table tbody th { padding: .7rem 1rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.gs-table .gs-student { min-width: 14rem; max-width: 20rem; font-weight: 500; text-align: left; }
+.gs-table tbody tr { height: 3.4rem; }
+.gs-table tbody th, .gs-table tbody td { padding: .6rem .85rem; }
+.gs-table tbody th { border-bottom: 1px solid var(--border-subtle); }
 .gs-table tbody tr:last-child th { border-bottom: 0; }
-.gs-student > a { display: inline-block; color: var(--text-strong); font-weight: 650; margin-bottom: .2rem; }
-.gs-student > .badge { margin-top: .35rem; }
-.gs-forecast { min-width: 16rem; }
-.gs-forecast-value { margin-bottom: .3rem; font-size: var(--text-md); font-weight: 650; font-variant-numeric: tabular-nums; }
+.gs-student-name { display: flex; align-items: center; gap: .5rem; }
+.gs-student-name > a { flex: 1; min-width: 0; color: var(--text-strong); font-weight: 650; overflow-wrap: anywhere; }
+.gs-forecast { min-width: 13rem; }
+.gs-forecast-summary { display: flex; align-items: center; gap: .35rem; width: fit-content; min-height: 1.75rem; border-radius: var(--radius-xs); cursor: pointer; list-style: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.gs-forecast-summary::-webkit-details-marker { display: none; }
+.gs-forecast-summary:hover { color: var(--brand-600); }
+.gs-forecast-summary:focus-visible { outline: 2px solid var(--brand-400); outline-offset: 3px; }
+.gs-forecast-summary > svg { flex: none; color: var(--text-muted); }
+.gs-forecast-details[open] .gs-forecast-summary > svg { transform: rotate(180deg); }
+.gs-source { padding: .05rem .3rem; letter-spacing: 0; }
+.gs-forecast-meta { margin-top: .4rem; max-width: 18rem; line-height: 1.6; }
 .gs-small { font-size: var(--text-2xs); font-weight: 400; }
-.gs-final { min-width: 7rem; }
+.gs-final { min-width: 5rem; }
 .gs-final.is-complete { background: var(--brand-50); }
-.gs-final strong { font-size: var(--text-lg); color: var(--text-strong); }
+.gs-final strong { color: var(--text-strong); }
 
 .cr-cell { padding: 3px; }
 
@@ -1077,7 +1086,7 @@
 }
 
 @media (max-width: 760px) {
-  .cr-name { min-width: 9rem; max-width: 9rem; }
+  .cr-name { min-width: 12rem; max-width: 12rem; }
   .cr-scroll { max-height: calc(100vh - 16rem); }
 }
 

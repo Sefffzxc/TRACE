@@ -37,7 +37,7 @@ const subjects = [{ subject_id: 100, grade_level_id: 1, subject_name: 'Mathemati
   { subject_id: 101, grade_level_id: 1, subject_name: 'English' },
   { subject_id: 200, grade_level_id: 2, subject_name: 'Science' }];
 const levels = ['critical', 'high', 'moderate', 'low', null];
-const names = ['Critical Learner', 'Risk Learner', 'Watch Learner', 'Ready Learner', 'New Learner'];
+const names = ['Alexandra Gabrielle Dela Cruz Villanueva', 'Risk Learner', 'Watch Learner', 'Ready Learner', 'New Learner'];
 
 function summary(state, sectionId, subjectId) {
   return { school_year_id: 1, section_id: sectionId, section_name: sectionId === 10 ? 'Faith' : 'Hope', subject_id: subjectId,
@@ -123,23 +123,62 @@ async function run() {
       await page.getByRole('heading', { name: 'Grade summary', exact: true }).waitFor();
       await page.locator('.gs-table tbody tr').last().waitFor();
       assert.equal(await page.locator('.gs-table tbody tr').count(), 5);
-      assert.equal(await page.getByText('Rule-based estimate', { exact: true }).count(), 1);
-      assert.equal(await page.getByText('Based on First and Second Term results', { exact: true }).count(), 4);
+      assert.equal(await page.locator('.risk-legend').count(), 1);
+      assert.deepEqual(await page.locator('.risk-legend .badge').allTextContents(), ['Critical', 'At risk', 'Watch', 'On track']);
+      assert.equal(await page.locator('.gs-student .badge-compact').count(), 4);
+      assert.equal(await page.locator('.gs-forecast-details[open]').count(), 0);
+      const fallback = page.locator('.gs-table tbody tr').filter({ hasText: names[0] });
+      const fallbackDetails = fallback.locator('.gs-forecast-details');
+      assert.match(await fallback.locator('.gs-forecast-summary').innerText(), /74\.0.*72\.0.*76\.0/s);
+      assert.match(await fallback.locator('.gs-forecast-summary').innerText(), /Rule-based/);
+      assert.equal(await fallback.getByText(/^Rule-based estimate/).isVisible(), false);
+      assert.equal(await fallback.getByText('Based on First and Second Term results', { exact: true }).isVisible(), false);
+      assert.equal(await fallback.getByText(/^Forecast saved /).isVisible(), false);
+      await fallback.locator('.gs-forecast-summary').focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await fallbackDetails.getAttribute('open'), '');
+      assert.equal(await fallback.getByText(/^Rule-based estimate/).isVisible(), true);
+      assert.equal(await fallback.getByText('Based on First and Second Term results', { exact: true }).isVisible(), true);
+      assert.equal(await fallback.getByText(/^Forecast saved /).isVisible(), true);
+      await fallback.locator('.gs-forecast-summary').click();
+      assert.equal(await fallbackDetails.getAttribute('open'), null);
       const finished = page.locator('.gs-table tbody tr').filter({ hasText: 'Ready Learner' });
       assert.equal(await finished.locator('.gs-final strong').innerText(), '84');
-      assert.match(await finished.innerText(), /Earlier forecast/);
+      assert.equal(await finished.getByText('Benchmarking', { exact: true }).count(), 0);
+      assert.equal(await finished.getByText(/Earlier forecast/).isVisible(), false);
+      await finished.locator('.gs-forecast-summary').click();
+      assert.equal(await finished.getByText(/Earlier forecast/).isVisible(), true);
+      assert.equal(await finished.getByText(/^AI prediction/).isVisible(), true);
+      await finished.locator('.gs-forecast-summary').click();
+      for (const name of names.slice(1)) {
+        const height = await page.locator('.gs-table tbody tr').filter({ hasText: name }).evaluate((el) => el.getBoundingClientRect().height);
+        assert.ok(height < 85, `${name} has a compact closed row (${height}px)`);
+      }
+      assert.equal(await page.locator('.gs-table').getByText(/\d\/3 complete/).count(), 0);
+      assert.match(await fallback.locator('.gs-student a').getAttribute('title'), /S001/);
+      assert.equal(await page.locator('.gs-student').getByText(/^S00\d$/).count(), 0);
       const ungraded = page.locator('.gs-table tbody tr').filter({ hasText: 'New Learner' });
-      assert.match(await ungraded.innerText(), /No standing yet/);
-      assert.match(await ungraded.innerText(), /No forecast yet/);
+      assert.equal(await ungraded.locator('.badge-compact').count(), 0);
+      assert.equal(await ungraded.locator('.gs-student').evaluate((el) => {
+        const copy = el.cloneNode(true); copy.querySelectorAll('.sr-only, .visually-hidden').forEach((node) => node.remove());
+        return copy.textContent.trim();
+      }), 'New Learner');
+      assert.equal(await ungraded.locator('.gs-forecast').innerText(), '—');
+      assert.equal(await ungraded.locator('.gs-final').innerText(), '—');
       assert.equal(state.requests.filter((r) => r.pathname === '/api/ai/rescore').length, 0);
       await page.screenshot({ path: path.resolve(frontend, '../.tmp/grade-summary-light.png'), fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForFunction(() => document.querySelector('.sidebar').getBoundingClientRect().right <= 1);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+      await page.screenshot({ path: path.resolve(frontend, '../.tmp/grade-summary-mobile.png'), fullPage: true });
       await page.setViewportSize({ width: 1500, height: 1000 });
       await page.getByRole('button', { name: 'Update predictions', exact: true }).click();
       await page.getByRole('button', { name: 'Update predictions', exact: true }).waitFor();
       const rescore = state.requests.find((r) => r.pathname === '/api/ai/rescore');
       assert.deepEqual(JSON.parse(rescore.body), { section_id: 10, subject: 'Mathematics', limit: 2000 });
+      await page.getByLabel('Find a learner').fill('S001');
+      assert.equal(await page.locator('.gs-table tbody tr').count(), 1);
+      assert.match(await page.locator('.gs-student').innerText(), /Alexandra Gabrielle/);
       await page.getByLabel('Find a learner').fill('New Learner');
       assert.equal(await page.locator('.gs-table tbody tr').count(), 1);
       await page.getByLabel('Find a learner').fill('');
@@ -149,7 +188,7 @@ async function run() {
       assert.equal(await page.getByLabel('Subject', { exact: true }).inputValue(), '200');
       assert.equal(await page.locator('.gs-table tbody tr').count(), 0);
       assert.deepEqual(state.errors, []);
-      passed.push('Summary distinguishes recorded averages, final grades and AI/fallback forecasts; updates only on request and scopes class filters.');
+      passed.push('Compact summary keeps grades, ranges and source visible; forecast details expand by keyboard and click; ID search, explicit predictions and class filters work.');
       await context.close();
     }
     {
@@ -158,15 +197,41 @@ async function run() {
       await page.locator('.cr-risk-name.risk-text-critical').waitFor();
       assert.equal(await page.getByLabel('Subject', { exact: true }).inputValue(), '101');
       assert.equal(await page.getByLabel('Term', { exact: true }).inputValue(), '2');
+      assert.equal(await page.locator('.risk-legend').count(), 1);
+      assert.deepEqual(await page.locator('.risk-legend .badge').allTextContents(), ['Critical', 'At risk', 'Watch', 'On track']);
+      assert.equal(await page.locator('.cr-table tbody .badge-compact').count(), 4);
+      assert.equal(await page.locator('.cr-risk-label').count(), 0);
+      const newLearnerCell = page.locator('.cr-table tbody .cr-name').filter({ hasText: 'New Learner' });
+      assert.equal(await newLearnerCell.locator('.badge-compact').count(), 0);
+      assert.equal(await newLearnerCell.evaluate((el) => {
+        const copy = el.cloneNode(true); copy.querySelectorAll('.sr-only, .visually-hidden').forEach((node) => node.remove());
+        return /No standing yet|Risk not loaded/.test(copy.textContent);
+      }), false);
       for (const theme of ['light', 'dark']) {
         await page.evaluate((value) => document.documentElement.setAttribute('data-theme', value), theme);
         for (const level of ['critical', 'high', 'moderate']) {
           const cell = page.locator(`.cr-name:has(.risk-text-${level})`);
           assert.equal(await cell.locator('.cr-risk-name').evaluate((el) => getComputedStyle(el).color),
             await cell.locator('.badge').evaluate((el) => getComputedStyle(el).color));
+          assert.equal(await cell.locator('.badge-compact').innerText(), '');
+          assert.ok(await cell.locator('.badge-compact').getAttribute('aria-label'));
+          assert.ok(await cell.locator('.badge-compact').getAttribute('title'));
         }
       }
       await page.screenshot({ path: path.resolve(frontend, '../.tmp/class-record-risk-dark.png'), fullPage: true });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForFunction(() => document.querySelector('.sidebar').getBoundingClientRect().right <= 1);
+      const nameLayout = await page.locator('.cr-name:has(.risk-text-critical) .cr-name-line').evaluate((el) => {
+        const number = el.querySelector('.cr-no').getBoundingClientRect(), name = el.querySelector('.cr-risk-name').getBoundingClientRect();
+        return { numberRight: number.right, numberTop: number.top, nameLeft: name.left, nameTop: name.top,
+          nameHeight: name.height, lineHeight: parseFloat(getComputedStyle(el.querySelector('.cr-risk-name')).lineHeight) };
+      });
+      assert.ok(nameLayout.nameLeft >= nameLayout.numberRight, 'wrapped name stays to the right of the row number');
+      assert.ok(Math.abs(nameLayout.nameTop - nameLayout.numberTop) < 4, `row number aligns with the first name line (${JSON.stringify(nameLayout)})`);
+      assert.ok(nameLayout.nameHeight > nameLayout.lineHeight * 1.5, 'long learner name wraps on mobile');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+      await page.screenshot({ path: path.resolve(frontend, '../.tmp/class-record-risk-mobile.png'), fullPage: true });
+      await page.setViewportSize({ width: 1500, height: 1000 });
       await page.locator('.cr-table tbody .cr-input').first().fill('9');
       await page.getByRole('button', { name: 'Save now', exact: true }).click();
       await page.locator('.cr-risk-name.risk-text-critical').waitFor({ state: 'detached' });
@@ -182,7 +247,7 @@ async function run() {
       assert.equal(JSON.parse(writes[1].body).entries[0].subject, 'English');
       assert.equal(await page.getByLabel('Subject', { exact: true }).inputValue(), '101');
       assert.deepEqual(state.errors, []);
-      passed.push('Critical/At risk/Watch names match badge colors in light and dark themes; opening the summary saves edits and preserves section/subject.');
+      passed.push('Class Record uses one legend and compact accessible risk indicators, matches badge colors in both themes, wraps long names, and saves before opening the summary.');
       await context.close();
     }
     {

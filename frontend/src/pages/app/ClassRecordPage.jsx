@@ -6,6 +6,7 @@ import {
   ErrorNote,
   PageHead,
   RiskBadge,
+  RiskLegend,
   TableSkeleton,
 } from '../../components/common/ui';
 import { AiServiceNote } from '../../components/common/ai';
@@ -449,6 +450,7 @@ export default function ClassRecordPage() {
         />
       ) : (
         <div className="card cr-card">
+          <div className="cr-risk-key"><RiskLegend /></div>
           <div className="cr-scroll" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) record.saveOnBlur(); }}>
             <table className="cr-table">
               <thead>
@@ -579,14 +581,15 @@ export default function ClassRecordPage() {
                 {rows.map((row, index) => (
                   <tr key={row.enrollment.enrollment_id} className={row.dirty ? 'cr-dirty' : ''}>
                     <th className="cr-sticky cr-name" scope="row">
-                      <span className="cr-no">{index + 1}</span>
-                      <span className={`cr-risk-name${riskLevels.get(row.enrollment.enrollment_id) ? ` risk-text-${riskLevels.get(row.enrollment.enrollment_id)}` : ''}`}>
-                        {formatPersonName(row.enrollment.student_name)}
-                      </span>
-                      <div className="cr-risk-label">
+                      <div className="cr-name-line">
+                        <span className="cr-no" aria-hidden="true">{index + 1}</span>
+                        <span className={`cr-risk-name${riskLevels.get(row.enrollment.enrollment_id) ? ` risk-text-${riskLevels.get(row.enrollment.enrollment_id)}` : ''}`}
+                          title={!riskLevels.get(row.enrollment.enrollment_id) ? (riskSnapshot?.key === riskKey ? 'No standing yet' : 'Risk not loaded') : undefined}>
+                          {formatPersonName(row.enrollment.student_name)}
+                        </span>
                         {riskLevels.get(row.enrollment.enrollment_id)
-                          ? <RiskBadge level={riskLevels.get(row.enrollment.enrollment_id)} />
-                          : <span className="faint">{riskSnapshot?.key === riskKey ? 'No standing yet' : 'Risk not loaded'}</span>}
+                          ? <RiskBadge level={riskLevels.get(row.enrollment.enrollment_id)} compact />
+                          : <span className="visually-hidden">{riskSnapshot?.key === riskKey ? 'No standing yet' : 'Risk not loaded'}</span>}
                       </div>
                     </th>
 

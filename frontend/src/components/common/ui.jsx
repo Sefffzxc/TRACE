@@ -14,14 +14,22 @@ const RISK_LABEL = {
   low: 'On track',
 };
 
-export function RiskBadge({ level = 'low', showScore, score }) {
+export function RiskBadge({ level = 'low', showScore, score, compact = false }) {
   const key = RISK_LABEL[level] ? level : 'low';
   return (
-    <span className={`badge badge-${key}`}>
-      {RISK_LABEL[key]}
-      {showScore && score !== undefined ? ` · ${Math.round(score)}` : ''}
+    <span className={`badge badge-${key}${compact ? ' badge-compact' : ''}`}
+      role={compact ? 'img' : undefined} aria-label={compact ? RISK_LABEL[key] : undefined}
+      title={compact ? RISK_LABEL[key] : undefined}>
+      {!compact && RISK_LABEL[key]}
+      {!compact && showScore && score !== undefined ? ` · ${Math.round(score)}` : ''}
     </span>
   );
+}
+
+export function RiskLegend() {
+  return <div className="risk-legend" role="group" aria-label="Risk color key">
+    {Object.keys(RISK_LABEL).map((level) => <RiskBadge key={level} level={level} />)}
+  </div>;
 }
 
 /* ── Avatar ──────────────────────────────────────────────────────────────── */
